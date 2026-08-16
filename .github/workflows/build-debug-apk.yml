@@ -1,0 +1,100 @@
+name: Build Debug APK & Dynamic KeyStore (Manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      generate_custom_key:
+        description: 'Generar clave personalizada en el runner'
+        required: false
+        default: 'true'
+        type: boolean
+
+concurrency:
+  group: build-debug-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-debug:
+    name: Download Code, Generate Key & Build Debug APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Full Codebase
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17 with Gradle Cache
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Generate Dynamic Debug Keystore in Runner
+        id: gen-key
+        run: |
+          echo "Generando Keystore criptográfico directamente en el runner de GitHub Actions..."
+          mkdir -p keystores
+          
+          # Generar certificado RSA 2048 con validez extendida usando keytool nativo de JDK
+          keytool -genkeypair \
+            -v \
+            -keystore keystores/generated-debug.keystore \
+            -alias androiddebugkey \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass android \
+            -keypass android \
+            -dname "CN=Keystore Generator Debug, OU=Mobile Dev, O=Uptodown Community, L=Madrid, ST=Madrid, C=ES"
+          
+          # Asegurar que esté disponible en la raíz del proyecto para signingConfigs
+          cp keystores/generated-debug.keystore ./debug.keystore
+          
+          # Calcular huella digital SHA-256 de la clave generada
+          echo "=== HUELLAS DIGITALES DE LA CLAVE GENERADA ==="
+          keytool -list -v -keystore ./debug.keystore -alias androiddebugkey -storepass android | grep -E "SHA1:|SHA256:|MD5:"
+          
+          # Exportar a Base64 para logs de verificación
+          echo "KEYSTORE_BASE64_LEN=$(base64 -w 0 ./debug.keystore | wc -c)" >> $GITHUB_OUTPUT
+          echo "Keystore generado exitosamente."
+
+      - name: Setup Gradle Cache Environment
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: false
+
+      - name: Grant Execute Permission to Gradle Wrapper
+        run: chmod +x ./gradlew
+
+      - name: Compile & Build Debug APK
+        run: ./gradlew assembleDebug --stacktrace
+
+      - name: Locate and Verify Debug APK
+        id: find-apk
+        run: |
+          APK_PATH=$(find app/build/outputs/apk/debug/ -type f -name "*.apk" | head -n 1)
+          if [ -z "$APK_PATH" ]; then
+            echo "Error: No se encontró el archivo APK generado."
+            exit 1
+          fi
+          echo "APK generado encontrado en: $APK_PATH"
+          echo "Tamaño del APK: $(du -h "$APK_PATH" | cut -f1)"
+          echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
+
+      - name: Upload Debug APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: keystore-generator-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload Generated Keystore Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-runner-keystore
+          path: keystores/generated-debug.keystore
+          if-no-files-found: warn
+          retention-days: 7

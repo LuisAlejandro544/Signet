@@ -9,6 +9,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,6 +29,7 @@ import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.DataObject
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.IntegrationInstructions
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Security
@@ -40,6 +42,8 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -89,6 +93,7 @@ fun KeystoreDetailsSheet(
     var showStorePassword by remember { mutableStateOf(false) }
     var showKeyPassword by remember { mutableStateOf(false) }
     var isBase64Expanded by remember { mutableStateOf(false) }
+    var selectedSnippetTab by remember { mutableStateOf(CodeSnippetTab.GRADLE_KTS) }
 
     // Resolve Base64 if not already present in details
     val base64String = remember(details) {
@@ -484,58 +489,151 @@ fun KeystoreDetailsSheet(
                 }
             }
 
-            // Code Snippets Section
-            Text(
-                text = "Fragmentos Listos para Usar",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            // Code & CI/CD Snippets Section
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                ),
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                OutlinedButton(
-                    onClick = {
-                        val snippet = KeystoreGenerator.generateGradleSnippet(details.fileName, details.alias)
-                        copyToClipboard(context, "Gradle Config", snippet)
-                    },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(10.dp)
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Icon(Icons.Default.Code, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("Copiar Gradle", fontSize = 13.sp)
-                }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Code,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Text(
+                                text = "Configuración de Firma & CI/CD",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
 
-                OutlinedButton(
-                    onClick = {
-                        val snippet = KeystoreGenerator.generateApksignerSnippet(details.fileName, details.alias)
-                        copyToClipboard(context, "Comando apksigner", snippet)
-                    },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(10.dp)
-                ) {
-                    Icon(Icons.Default.Terminal, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("apksigner CLI", fontSize = 13.sp)
-                }
-            }
+                    Text(
+                        text = "Visualiza y copia directamente el código listo para Gradle, pipelines de GitHub Actions o comandos de terminal.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
 
-            OutlinedButton(
-                onClick = {
-                    copyToClipboard(context, "Certificado PEM", details.certificatePem)
-                },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(10.dp)
-            ) {
-                Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(8.dp))
-                Text("Copiar Certificado Público (PEM)")
+                    // Horizontal FilterChips for Snippet Tabs
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        CodeSnippetTab.values().forEach { tab ->
+                            FilterChip(
+                                selected = selectedSnippetTab == tab,
+                                onClick = { selectedSnippetTab = tab },
+                                label = { Text(tab.tabLabel, fontSize = 12.sp) },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = tab.icon,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            )
+                        }
+                    }
+
+                    // Active Snippet Content Resolver
+                    val currentSnippet = when (selectedSnippetTab) {
+                        CodeSnippetTab.GRADLE_KTS -> KeystoreGenerator.generateGradleKtsSnippet(details.fileName, details.alias)
+                        CodeSnippetTab.GITHUB_ACTIONS -> KeystoreGenerator.generateGitHubActionsWorkflow(details.fileName, details.alias)
+                        CodeSnippetTab.GRADLE_GROOVY -> KeystoreGenerator.generateGradleGroovySnippet(details.fileName, details.alias)
+                        CodeSnippetTab.APKSIGNER -> KeystoreGenerator.generateApksignerSnippet(details.fileName, details.alias)
+                        CodeSnippetTab.PEM_CERT -> details.certificatePem
+                    }
+
+                    val currentDescription = when (selectedSnippetTab) {
+                        CodeSnippetTab.GRADLE_KTS -> "Pega este bloque en 'app/build.gradle.kts'. Lee las contraseñas de variables de entorno para máxima seguridad."
+                        CodeSnippetTab.GITHUB_ACTIONS -> "Crea el archivo '.github/workflows/build-and-sign.yml' en tu repositorio y agrega el secreto 'KEYSTORE_BASE64' (Settings > Secrets)."
+                        CodeSnippetTab.GRADLE_GROOVY -> "Para proyectos con Groovy DSL tradicional (Flutter / React Native / Android heredado)."
+                        CodeSnippetTab.APKSIGNER -> "Comandos oficiales para alinear con zipalign y firmar APKs con soporte de firma v1, v2 y v3."
+                        CodeSnippetTab.PEM_CERT -> "Certificado público X.509 en formato PEM para consolas de APIs y proveedores de autenticación."
+                    }
+
+                    Text(
+                        text = currentDescription,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Medium,
+                        lineHeight = 16.sp
+                    )
+
+                    // Code Viewer Box
+                    Surface(
+                        color = MaterialTheme.colorScheme.surface,
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp))
+                    ) {
+                        Text(
+                            text = currentSnippet,
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 11.5.sp,
+                                lineHeight = 16.sp
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier
+                                .padding(12.dp)
+                                .horizontalScroll(rememberScrollState())
+                        )
+                    }
+
+                    // Copy Snippet Action Button
+                    Button(
+                        onClick = {
+                            copyToClipboard(context, selectedSnippetTab.tabLabel, currentSnippet)
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("copy_snippet_button"),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Copiar ${selectedSnippetTab.tabLabel}")
+                    }
+                }
             }
         }
     }
+}
+
+enum class CodeSnippetTab(
+    val tabLabel: String,
+    val icon: androidx.compose.ui.graphics.vector.ImageVector
+) {
+    GRADLE_KTS("build.gradle.kts", Icons.Default.Code),
+    GITHUB_ACTIONS("GitHub Actions (.yml)", Icons.Default.IntegrationInstructions),
+    GRADLE_GROOVY("build.gradle (Groovy)", Icons.Default.Code),
+    APKSIGNER("apksigner CLI", Icons.Default.Terminal),
+    PEM_CERT("Certificado PEM", Icons.Default.Security)
 }
 
 @Composable

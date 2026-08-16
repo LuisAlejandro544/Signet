@@ -90,4 +90,25 @@ class ExampleRobolectricTest {
     assertNotNull(details)
     assertTrue(details.sha256Fingerprint.isNotBlank())
   }
+
+  @Test
+  fun `generate gradle and github actions snippets correctly`() {
+    val ktsSnippet = KeystoreGenerator.generateGradleKtsSnippet("release.jks", "app_key")
+    assertTrue(ktsSnippet.contains("release.jks"))
+    assertTrue(ktsSnippet.contains("app_key"))
+    assertTrue(ktsSnippet.contains("signingConfigs"))
+
+    val groovySnippet = KeystoreGenerator.generateGradleGroovySnippet("release.jks", "app_key")
+    assertTrue(groovySnippet.contains("release.jks"))
+    assertTrue(groovySnippet.contains("app_key"))
+
+    val ghWorkflow = KeystoreGenerator.generateGitHubActionsWorkflow("release.jks", "app_key")
+    assertTrue(ghWorkflow.contains("KEYSTORE_BASE64"))
+    assertTrue(ghWorkflow.contains("release.jks"))
+    assertTrue(ghWorkflow.contains("assembleRelease"))
+
+    val apksignerSnippet = KeystoreGenerator.generateApksignerSnippet("release.jks", "app_key")
+    assertTrue(apksignerSnippet.contains("apksigner sign"))
+    assertTrue(apksignerSnippet.contains("zipalign"))
+  }
 }

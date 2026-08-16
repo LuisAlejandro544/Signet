@@ -11,6 +11,9 @@ import com.example.data.model.DistinguishedName
 import com.example.data.model.KeyAlgorithm
 import com.example.data.model.KeystoreConfig
 import com.example.data.model.KeystoreDetails
+import com.example.ui.theme.ColorPalette
+import com.example.ui.theme.ThemeMode
+import com.example.ui.theme.ThemeState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -65,6 +68,8 @@ sealed interface InspectorUiState {
 
 class KeystoreViewModel(application: Application) : AndroidViewModel(application) {
 
+    private val prefs = application.getSharedPreferences("keystore_generator_prefs", Context.MODE_PRIVATE)
+
     private val repository: KeystoreRepository = KeystoreRepository(
         AppDatabase.getDatabase(application)
     )
@@ -72,7 +77,8 @@ class KeystoreViewModel(application: Application) : AndroidViewModel(application
     val savedKeystores: StateFlow<List<KeystoreDetails>> = repository.allKeystores
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    private val _selectedTab = MutableStateFlow(0) // 0: Generar, 1: Mis Keystores, 2: Inspeccionar
+    // 0: Generar, 1: Mis Keystores, 2: Inspeccionar, 3: Configuración
+    private val _selectedTab = MutableStateFlow(0)
     val selectedTab: StateFlow<Int> = _selectedTab.asStateFlow()
 
     private val _formState = MutableStateFlow(FormState())
@@ -87,12 +93,50 @@ class KeystoreViewModel(application: Application) : AndroidViewModel(application
     private val _selectedKeystoreForDetail = MutableStateFlow<KeystoreDetails?>(null)
     val selectedKeystoreForDetail: StateFlow<KeystoreDetails?> = _selectedKeystoreForDetail.asStateFlow()
 
+    // Theme state with saved preferences
+    private val _themeState = MutableStateFlow(loadInitialThemeState())
+    val themeState: StateFlow<ThemeState> = _themeState.asStateFlow()
+
+    private fun loadInitialThemeState(): ThemeState {
+        val savedModeName = prefs.getString("theme_mode", ThemeMode.SYSTEM.name) ?: ThemeMode.SYSTEM.name
+        val savedPaletteName = prefs.getString("color_palette", ColorPalette.DYNAMIC.name) ?: ColorPalette.DYNAMIC.name
+
+        val mode = try {
+            ThemeMode.valueOf(savedModeName)
+        } catch (_: Exception) {
+            ThemeMode.SYSTEM
+        }
+
+        val palette = try {
+            ColorPalette.valueOf(savedPaletteName)
+        } catch (_: Exception) {
+            ColorPalette.DYNAMIC
+        }
+
+        return ThemeState(themeMode = mode, colorPalette = palette)
+    }
+
+    fun setThemeMode(mode: ThemeMode) {
+        _themeState.value = _themeState.value.copy(themeMode = mode)
+        prefs.edit().putString("theme_mode", mode.name).apply()
+    }
+
+    fun setColorPalette(palette: ColorPalette) {
+        _themeState.value = _themeState.value.copy(colorPalette = palette)
+        prefs.edit().putString("color_palette", palette.name).apply()
+    }
+
     fun setSelectedTab(index: Int) {
         _selectedTab.value = index
     }
 
     fun updateForm(transform: (FormState) -> FormState) {
         _formState.value = transform(_formState.value)
+    }
+
+    fun setValidityYears(years: Int) {
+        val clamped = years.coerceIn(1, 100)
+        _formState.value = _formState.value.copy(validityYears = clamped)
     }
 
     fun generateRandomPassword() {

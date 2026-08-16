@@ -4,14 +4,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.outlined.AddCircle
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -34,11 +33,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.data.model.KeystoreDetails
 import com.example.ui.components.KeystoreDetailsSheet
 import com.example.ui.screens.GenerateScreen
 import com.example.ui.screens.InspectScreen
 import com.example.ui.screens.SavedKeystoresScreen
+import com.example.ui.screens.SettingsScreen
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -69,7 +68,13 @@ fun MainScreen(
             CenterAlignedTopAppBar(
                 title = {
                     Text(
-                        text = "Keystore Generator",
+                        text = when (selectedTab) {
+                            0 -> "Generar Keystore"
+                            1 -> "Mis Keystores"
+                            2 -> "Inspeccionar Keystore"
+                            3 -> "Configuración"
+                            else -> "Keystore Generator"
+                        },
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.titleLarge
                     )
@@ -90,7 +95,7 @@ fun MainScreen(
                     onClick = { viewModel.setSelectedTab(0) },
                     icon = {
                         Icon(
-                            imageVector = if (selectedTab == 0) Icons.Filled.Key else Icons.Default.Key,
+                            imageVector = Icons.Filled.Key,
                             contentDescription = "Generar"
                         )
                     },
@@ -121,7 +126,7 @@ fun MainScreen(
                             )
                         }
                     },
-                    label = { Text("Mis Keystores") },
+                    label = { Text("Guardados") },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = MaterialTheme.colorScheme.primary,
                         indicatorColor = MaterialTheme.colorScheme.primaryContainer
@@ -145,6 +150,23 @@ fun MainScreen(
                     ),
                     modifier = Modifier.testTag("tab_inspect")
                 )
+
+                NavigationBarItem(
+                    selected = selectedTab == 3,
+                    onClick = { viewModel.setSelectedTab(3) },
+                    icon = {
+                        Icon(
+                            imageVector = if (selectedTab == 3) Icons.Filled.Settings else Icons.Outlined.Settings,
+                            contentDescription = "Configuración"
+                        )
+                    },
+                    label = { Text("Ajustes") },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = MaterialTheme.colorScheme.primary,
+                        indicatorColor = MaterialTheme.colorScheme.primaryContainer
+                    ),
+                    modifier = Modifier.testTag("tab_settings")
+                )
             }
         },
         modifier = modifier.fillMaxSize()
@@ -158,6 +180,7 @@ fun MainScreen(
                 0 -> GenerateScreen(viewModel = viewModel)
                 1 -> SavedKeystoresScreen(viewModel = viewModel)
                 2 -> InspectScreen(viewModel = viewModel)
+                3 -> SettingsScreen(viewModel = viewModel)
             }
         }
     }
