@@ -1,0 +1,137 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout
+  title="Política de Privacidad - Signet"
+  description="Política de Privacidad de Signet: Cero recolección de datos, cero telemetría, 100% offline y almacenamiento local exclusivo."
+>
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
+    
+    <!-- Header -->
+    <div class="border-b border-gray-800 pb-8 mb-10">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-500/10 text-brand-400 text-xs font-mono font-bold mb-4">
+        Última actualización: Agosto 2026 • Versión 1.0
+      </div>
+      <h1 class="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
+        Política de Privacidad
+      </h1>
+      <p class="mt-4 text-lg text-gray-400">
+        En <strong>Signet</strong>, tu privacidad y la seguridad de tus certificados de firma no son una promesa de marketing, son un principio arquitectónico inquebrantable.
+      </p>
+    </div>
+
+    <!-- Privacy Content -->
+    <div class="prose prose-invert max-w-none space-y-8 text-gray-300 text-sm sm:text-base leading-relaxed">
+      
+      <!-- Highlight Box -->
+      <div class="p-6 rounded-2xl bg-brand-500/10 border border-brand-500/30 text-brand-200">
+        <h2 class="text-lg font-bold text-brand-400 mb-2 flex items-center gap-2">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+          </svg>
+          Declaración Principal: Cero Recolección de Datos
+        </h2>
+        <p class="text-sm text-gray-300">
+          <strong>Signet no recopila, no transmite, no almacena en la nube, no vende ni comparte NINGÚN tipo de información personal, técnica, criptográfica o de telemetría.</strong> Todo el procesamiento ocurre exclusivamente en la memoria y almacenamiento local de tu dispositivo Android.
+        </p>
+      </div>
+
+      <!-- Section 1 -->
+      <section class="border-t border-gray-800/80 pt-6">
+        <h2 class="text-xl font-bold text-white mb-3">1. Datos Criptográficos y Credenciales</h2>
+        <p>
+          Cuando generas o inspeccionas un Keystore (<code class="text-brand-300 font-mono">.jks</code> o <code class="text-brand-300 font-mono">.keystore</code>), los siguientes datos son procesados:
+        </p>
+        <ul class="list-disc list-inside space-y-1.5 mt-2 text-gray-400">
+          <li>Alias y nombres identificadores de la clave.</li>
+          <li>Contraseñas de acceso y de desbloqueo de clave.</li>
+          <li>Valores de Distinguished Name (DN): CN, OU, O, L, ST, C.</li>
+          <li>Huellas digitales (SHA-256, SHA-1, MD5) y certificados X.509.</li>
+          <li>Cadenas codificadas en Base64 para integración continua (CI/CD).</li>
+        </ul>
+        <p class="mt-3">
+          <strong>Tratamiento:</strong> Estos datos se almacenan exclusivamente en la base de datos local SQLite (Room) de tu propio dispositivo Android. Ninguna contraseña o clave privada es enviada a servidores externos bajo ninguna circunstancia.
+        </p>
+      </section>
+
+      <!-- Section 2 -->
+      <section class="border-t border-gray-800/80 pt-6" id="offline-guarantee">
+        <h2 class="text-xl font-bold text-white mb-3">2. Ausencia Total de Telemetría y Rastreadores</h2>
+        <p>
+          Para garantizar la máxima seguridad e independencia:
+        </p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+          <div class="p-4 rounded-xl bg-oled-900 border border-gray-800">
+            <h3 class="font-bold text-white text-sm">❌ Sin Analíticas</h3>
+            <p class="text-xs text-gray-400 mt-1">No incluimos Google Analytics, Firebase Analytics, Mixpanel ni rastreadores de comportamiento.</p>
+          </div>
+          <div class="p-4 rounded-xl bg-oled-900 border border-gray-800">
+            <h3 class="font-bold text-white text-sm">❌ Sin Crash Reporting Externo</h3>
+            <p class="text-xs text-gray-400 mt-1">No se envían volcados de memoria ni reportes de fallo automáticos a servidores de terceros.</p>
+          </div>
+          <div class="p-4 rounded-xl bg-oled-900 border border-gray-800">
+            <h3 class="font-bold text-white text-sm">❌ Sin Publicidad</h3>
+            <p class="text-xs text-gray-400 mt-1">La aplicación no cuenta con SDKs de anuncios (AdMob, Unity Ads, etc.) ni rastreo de identificadores publicitarios.</p>
+          </div>
+          <div class="p-4 rounded-xl bg-oled-900 border border-gray-800">
+            <h3 class="font-bold text-white text-sm">❌ Sin Servicios Obligatorios de Google</h3>
+            <p class="text-xs text-gray-400 mt-1">Completamente funcional en dispositivos libres de Google Play Services (AOSP, LineageOS, GrapheneOS).</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 3 -->
+      <section class="border-t border-gray-800/80 pt-6">
+        <h2 class="text-xl font-bold text-white mb-3">3. Permisos del Dispositivo</h2>
+        <p>
+          Signet está diseñada bajo el principio de privilegio mínimo:
+        </p>
+        <ul class="list-disc list-inside space-y-2 mt-2 text-gray-400">
+          <li><strong>Storage Access Framework (SAF):</strong> Utilizamos el selector de documentos estándar de Android para exportar e importar archivos sin requerir permisos invasivos de lectura global del almacenamiento.</li>
+          <li><strong>FileProvider:</strong> Empleado exclusivamente cuando el usuario solicita explícitamente compartir un keystore mediante la hoja de compartir nativa del sistema operativo.</li>
+        </ul>
+      </section>
+
+      <!-- Section 4 -->
+      <section class="border-t border-gray-800/80 pt-6">
+        <h2 class="text-xl font-bold text-white mb-3">4. Respaldos ZIP y Seguridad Anti-Manipulación</h2>
+        <p>
+          Los paquetes de respaldo <code class="text-brand-300 font-mono">.zip</code> generados por Signet contienen una firma digital <strong class="text-brand-300">HMAC-SHA256</strong> en su manifiesto. Este mecanismo se procesa íntegramente de manera local para certificar que el archivo no fue modificado externamente antes de ser restaurado.
+        </p>
+      </section>
+
+      <!-- Section 5 -->
+      <section class="border-t border-gray-800/80 pt-6">
+        <h2 class="text-xl font-bold text-white mb-3">5. Auditoría y Código Abierto</h2>
+        <p>
+          Cualquier usuario o desarrollador puede auditar de forma independiente el código fuente completo de la aplicación en nuestro repositorio público para verificar la veracidad de esta política:
+        </p>
+        <p class="mt-2">
+          Licencia: <strong>GNU General Public License v3.0 (GPL v3)</strong>.
+        </p>
+      </section>
+
+      <!-- Section 6 -->
+      <section class="border-t border-gray-800/80 pt-6">
+        <h2 class="text-xl font-bold text-white mb-3">6. Cambios en esta Política</h2>
+        <p>
+          Cualquier modificación futura a este documento se reflejará con una actualización de fecha en esta página web y en el repositorio del proyecto. Dado que Signet no recopila datos de contacto, te sugerimos revisar periódicamente esta página o los changelogs de versiones.
+        </p>
+      </section>
+
+    </div>
+
+    <!-- Back to Home CTA -->
+    <div class="mt-12 pt-8 border-t border-gray-800 flex justify-between items-center">
+      <a href="/" class="inline-flex items-center gap-2 text-sm font-semibold text-brand-400 hover:text-brand-300">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+        Volver al Inicio
+      </a>
+      <a href="/terms" class="text-sm text-gray-400 hover:text-white">
+        Ver Términos y Condiciones →
+      </a>
+    </div>
+
+  </div>
+</Layout>

@@ -1,6 +1,7 @@
 package com.example.ui.screens
 
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.border
@@ -169,11 +170,16 @@ fun InspectScreen(
                     onClick = {
                         selectedFileUri?.let { uri ->
                             try {
-                                context.contentResolver.openInputStream(uri)?.use { stream ->
-                                    viewModel.inspectKeystoreFile(stream, keystorePassword)
+                                val keystoreBytes = context.contentResolver.openInputStream(uri)?.use { stream ->
+                                    stream.readBytes()
+                                }
+                                if (keystoreBytes != null && keystoreBytes.isNotEmpty()) {
+                                    viewModel.inspectKeystoreFile(keystoreBytes, keystorePassword)
+                                } else {
+                                    Toast.makeText(context, "El archivo seleccionado está vacío.", Toast.LENGTH_SHORT).show()
                                 }
                             } catch (e: Exception) {
-                                // Handled in VM
+                                Toast.makeText(context, "Error al leer el archivo: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
                             }
                         }
                     },

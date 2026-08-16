@@ -277,10 +277,10 @@ class KeystoreViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun restoreFromZip(context: Context, inputStream: java.io.InputStream) {
+    fun restoreFromZip(context: Context, zipBytes: ByteArray) {
         _restoreState.value = RestoreUiState.Restoring
         viewModelScope.launch {
-            val result = repository.restoreAndSaveKeystoreFromZip(context, inputStream)
+            val result = repository.restoreAndSaveKeystoreFromZip(context, zipBytes)
             result.onSuccess { details ->
                 _restoreState.value = RestoreUiState.Success(details)
             }.onFailure { error ->
@@ -291,6 +291,10 @@ class KeystoreViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    fun restoreFromZip(context: Context, inputStream: java.io.InputStream) {
+        restoreFromZip(context, inputStream.readBytes())
+    }
+
     fun dismissRestoreState() {
         _restoreState.value = RestoreUiState.Idle
     }
@@ -299,10 +303,10 @@ class KeystoreViewModel(application: Application) : AndroidViewModel(application
         return repository.createBackupZip(details)
     }
 
-    fun inspectKeystoreFile(inputStream: java.io.InputStream, password: String) {
+    fun inspectKeystoreFile(bytes: ByteArray, password: String) {
         _inspectorState.value = InspectorUiState.Loading
         viewModelScope.launch {
-            val result = repository.inspectKeystore(inputStream, password)
+            val result = repository.inspectKeystore(bytes, password)
             result.onSuccess { items ->
                 _inspectorState.value = InspectorUiState.Success(items)
             }.onFailure { error ->
@@ -311,6 +315,10 @@ class KeystoreViewModel(application: Application) : AndroidViewModel(application
                 )
             }
         }
+    }
+
+    fun inspectKeystoreFile(inputStream: java.io.InputStream, password: String) {
+        inspectKeystoreFile(inputStream.readBytes(), password)
     }
 
     fun resetInspector() {

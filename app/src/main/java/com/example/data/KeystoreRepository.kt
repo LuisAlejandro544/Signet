@@ -38,9 +38,14 @@ class KeystoreRepository(private val database: AppDatabase) {
     suspend fun restoreAndSaveKeystoreFromZip(
         context: Context,
         inputStream: InputStream
+    ): Result<KeystoreDetails> = restoreAndSaveKeystoreFromZip(context, inputStream.readBytes())
+
+    suspend fun restoreAndSaveKeystoreFromZip(
+        context: Context,
+        zipBytes: ByteArray
     ): Result<KeystoreDetails> = withContext(Dispatchers.IO) {
         try {
-            val restoredDetails = SignetBackupManager.restoreFromZip(context, inputStream)
+            val restoredDetails = SignetBackupManager.restoreFromZip(context, zipBytes)
             val entity = KeystoreEntity.fromDetails(restoredDetails)
             val id = database.keystoreDao().insertKeystore(entity)
             Result.success(restoredDetails.copy(id = id))
@@ -80,9 +85,12 @@ class KeystoreRepository(private val database: AppDatabase) {
     }
 
     suspend fun inspectKeystore(inputStream: java.io.InputStream, password: String): Result<List<KeystoreDetails>> =
+        inspectKeystore(inputStream.readBytes(), password)
+
+    suspend fun inspectKeystore(bytes: ByteArray, password: String): Result<List<KeystoreDetails>> =
         withContext(Dispatchers.IO) {
             try {
-                val list = KeystoreGenerator.inspectKeystore(inputStream, password)
+                val list = KeystoreGenerator.inspectKeystore(bytes, password)
                 Result.success(list)
             } catch (e: Exception) {
                 Result.failure(e)

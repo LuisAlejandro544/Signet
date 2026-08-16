@@ -1,6 +1,16 @@
-feat(ci): integrar envío seguro de APK debug a Telegram vía Telethon MTProto
+fix(restore): corregir cierre prematuro de InputStream al restaurar e inspeccionar respaldos ZIP
 
-- Reemplazar la subida pública de artefactos de GitHub por envío privado directo a Telegram
-- Implementar cliente nativo MTProto con Telethon capaz de transferir paquetes de hasta 2GB
-- Configurar variables de entorno y secrets específicos: TELEGRAM_BOT_TOKEN_DEBUG_APK, TELEGRAM_API_ID_DEBUG_APK, TELEGRAM_API_HASH_DEBUG_APK, TELEGRAM_CHAT_ID_DEBUG_APK
-- Eliminar retención pública y almacenamiento de keystores y APKs en artefactos de GitHub Actions
+- Leer los bytes del archivo binario sincrónicamente en el ContentResolver antes de despachar a corrutinas
+- Evitar excepción 'Stream Closed' producida por el cierre anticipado del bloque use {} en la UI
+- Agregar soporte y sobrecargas de ByteArray en SignetBackupManager, KeystoreRepository y KeystoreViewModel
+- Solucionar restauración de paquetes de respaldo anti-manipulación e inspección de certificados externos
+
+feat(web): integrar portal oficial en Astro y Tailwind para Cloudflare Pages
+
+- Crear módulo web estático de alto rendimiento con Astro 5, Tailwind CSS y soporte de Cloudflare Pages (wrangler.toml)
+- Diseñar Landing Page oficial responsiva con descarga de APKs, características criptográficas y pilares de seguridad
+- Implementar Política de Privacidad estricta (/privacy) con declaración explícita de Cero Recolección de Datos y Cero Telemetría
+- Implementar Términos y Condiciones (/terms) bajo licencia GNU General Public License v3.0 (GPL v3)
+- Actualizar documentación del proyecto (README.md, STRUCTURE.md, ROADMAP.md, AI_CONTEXT.md)
+
+

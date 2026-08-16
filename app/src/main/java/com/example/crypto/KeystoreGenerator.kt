@@ -205,12 +205,18 @@ object KeystoreGenerator {
      * Inspects an existing keystore stream and extracts certificate fingerprints & info
      */
     fun inspectKeystore(inputStream: InputStream, password: String): List<KeystoreDetails> {
+        return inspectKeystore(inputStream.readBytes(), password)
+    }
+
+    /**
+     * Inspects an existing keystore byte array and extracts certificate fingerprints & info
+     */
+    fun inspectKeystore(bytes: ByteArray, password: String): List<KeystoreDetails> {
         val results = mutableListOf<KeystoreDetails>()
         val types = listOf("PKCS12", "JKS", "BKS")
         var loadedKeyStore: KeyStore? = null
 
         // Try supported keystore types
-        val bytes = inputStream.readBytes()
         for (type in types) {
             try {
                 val ks = KeyStore.getInstance(type)

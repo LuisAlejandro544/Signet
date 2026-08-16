@@ -1,0 +1,35 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout
+  title="Página No Encontrada (404) - Signet"
+  description="La página solicitada no existe en el sitio oficial de Signet."
+>
+  <div class="max-w-2xl mx-auto px-4 sm:px-6 py-28 text-center">
+    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/10 text-red-400 text-xs font-mono font-bold mb-6">
+      Error 404
+    </div>
+    <h1 class="text-4xl sm:text-6xl font-extrabold text-white tracking-tight">
+      Página no encontrada
+    </h1>
+    <p class="mt-4 text-gray-400 text-base leading-relaxed">
+      La dirección que buscas no existe o ha sido movida. Puedes regresar a la página principal o consultar nuestras páginas legales.
+    </p>
+
+    <div class="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+      <a
+        href="/"
+        class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-500 hover:bg-brand-400 text-gray-950 font-bold text-sm transition-all hover:scale-105"
+      >
+        Volver al Inicio
+      </a>
+      <a
+        href="/privacy"
+        class="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-gray-700 bg-oled-900 text-gray-200 text-sm font-semibold hover:border-gray-600"
+      >
+        Política de Privacidad
+      </a>
+    </div>
+  </div>
+</Layout>

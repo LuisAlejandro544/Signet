@@ -87,8 +87,13 @@ fun SavedKeystoresScreen(
     ) { uri ->
         if (uri != null) {
             try {
-                context.contentResolver.openInputStream(uri)?.use { stream ->
-                    viewModel.restoreFromZip(context, stream)
+                val zipBytes = context.contentResolver.openInputStream(uri)?.use { stream ->
+                    stream.readBytes()
+                }
+                if (zipBytes != null && zipBytes.isNotEmpty()) {
+                    viewModel.restoreFromZip(context, zipBytes)
+                } else {
+                    Toast.makeText(context, "El archivo seleccionado está vacío.", Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
                 Toast.makeText(context, "No se pudo abrir el archivo ZIP: ${e.localizedMessage}", Toast.LENGTH_LONG).show()

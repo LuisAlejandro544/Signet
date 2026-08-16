@@ -63,3 +63,9 @@ Este documento proporciona contexto técnico, decisiones de arquitectura y direc
 12. **Licencia GPL v3 & Política de Contribuciones**:
    - El proyecto está licenciado bajo la **GNU General Public License v3.0 (GPL v3)**.
    - Como se detalla en `CONTRIBUTING.md`, el proyecto se desarrolla de forma centralizada y cerrada temporalmente respecto a Pull Requests externos para proteger la integridad de las primitivas criptográficas y del roadmap.
+
+13. **Portal Web Oficial, Términos & Privacidad (`web/` en Cloudflare Pages)**:
+   - Desarrollado con **Astro 5 + Tailwind CSS** como sitio estático sin JavaScript runtime innecesario.
+   - Incluye Landing Page oficial (`/`), Política de Privacidad estricta (`/privacy`) y Términos y Condiciones (`/terms`).
+   - **Postura Obligatoria de Cero Recolección**: Se garantiza de forma explícita que Signet no recopila contraseñas, no tiene servidores en la nube, no integra SDKs de analítica ni telemetría y funciona 100% offline.
+

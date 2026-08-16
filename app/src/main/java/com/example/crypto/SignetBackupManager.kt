@@ -87,11 +87,18 @@ object SignetBackupManager {
      * unlocks the keystore, writes it to app storage, and returns the restored KeystoreDetails.
      */
     fun restoreFromZip(context: Context, inputStream: InputStream): KeystoreDetails {
+        return restoreFromZip(context, inputStream.readBytes())
+    }
+
+    /**
+     * Reads a ZIP backup from byte array, verifies the anti-tamper signature and identity of Signet,
+     * unlocks the keystore, writes it to app storage, and returns the restored KeystoreDetails.
+     */
+    fun restoreFromZip(context: Context, zipBytes: ByteArray): KeystoreDetails {
         var manifestJsonString: String? = null
         var keystoreBytes: ByteArray? = null
         var detectedKeystoreFileName: String? = null
 
-        val zipBytes = inputStream.readBytes()
         ZipInputStream(ByteArrayInputStream(zipBytes)).use { zis ->
             var entry: ZipEntry? = zis.nextEntry
             while (entry != null) {

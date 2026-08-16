@@ -40,9 +40,14 @@ Generador y administrador profesional de Keystores (`.jks` y `.keystore`) para A
   - Cálculo instantáneo de huellas digitales (**SHA-256**, **SHA-1**, **MD5**) requeridas para Firebase, Google Sign-In, Facebook SDK y Maps API.
   - Visualización del certificado en formato estándar PEM (`-----BEGIN CERTIFICATE-----`).
 
-- **Gestión Local Segura**:
-  - Almacenamiento seguro en base de datos local **Room** (100% offline, sin telemetría ni servidores externos).
+- **Gestión Local Segura & Cero Recolección**:
+  - Almacenamiento seguro en base de datos local **Room** (100% offline, sin telemetría, sin analíticas ni servidores externos).
   - Visualización y copia rápida de credenciales (Alias, Contraseña del Keystore, Contraseña de la Clave).
+  - Garantía de Cero Recolección de Datos: ninguna clave, contraseña o huella digital sale jamás del silicio de tu dispositivo.
+
+- **Portal Web Oficial, Términos y Privacidad (`web/`)**:
+  - Sitio web estático de alto rendimiento desarrollado en **Astro 5 + Tailwind CSS** optimizado para **Cloudflare Pages**.
+  - Documentación pública y páginas legales con declaración explícita de privacidad (`/privacy`) y términos de licencia GPL v3 (`/terms`).
 
 ---
 
@@ -50,12 +55,13 @@ Generador y administrador profesional de Keystores (`.jks` y `.keystore`) para A
 
 | Capa | Tecnología |
 |---|---|
-| **Lenguaje** | Kotlin 2.0+ con Coroutines & StateFlow |
-| **UI Framework** | Jetpack Compose con Material Design 3 & Material You |
+| **Lenguaje Android** | Kotlin 2.0+ con Coroutines & StateFlow |
+| **UI Framework Android** | Jetpack Compose con Material Design 3 & Material You |
 | **Persistencia** | Room Database (SQLite local offline-first) & SharedPreferences |
 | **Criptografía** | BouncyCastle (SpongyCastle/BC) X.509 PKCS#12 JCA & CSPRNG SecureRandom |
 | **Arquitectura** | MVVM (Model - View - ViewModel) + Clean Architecture Modular |
 | **Testing** | Robolectric 4.14+ & JUnit 4 |
+| **Web & Legal (Cloudflare Pages)** | Astro 5, Tailwind CSS, TypeScript & Static HTML5 |
 
 ---
 

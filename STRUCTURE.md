@@ -61,6 +61,17 @@ app/
 │   └── workflows/
 │       ├── build-debug-apk.yml                  # Compilación manual (workflow_dispatch) de APK Debug con generación de clave en runner y caché de Gradle
 │       └── sync-zip.yml                         # Automatización de sincronización desde zip
+├── web/                                         # Portal web oficial, Términos y Política de Privacidad (Astro + Tailwind para Cloudflare Pages)
+│   ├── public/                                  # Activos estáticos (favicon.svg, robots.txt)
+│   ├── src/
+│   │   ├── components/                          # Componentes UI (Navbar, Footer, Hero, Features, SecurityPillars, DownloadSection)
+│   │   ├── layouts/                             # Layout base (Layout.astro)
+│   │   ├── pages/                               # Rutas y páginas (index.astro, privacy.astro, terms.astro, 404.astro)
+│   │   └── styles/                              # Estilos globales y utilidades Tailwind (global.css)
+│   ├── astro.config.mjs                         # Configuración de Astro con Tailwind y Cloudflare Pages
+│   ├── tailwind.config.mjs                      # Paleta de colores Dark/OLED y tipografía
+│   ├── wrangler.toml                            # Configuración de despliegue Cloudflare Pages
+│   └── package.json                             # Dependencias del frontend estático
 ├── zip/                                         # Carpeta para archivos comprimidos
 ├── LICENSE                                      # Licencia GNU General Public License v3.0 (GPL v3)
 ├── CONTRIBUTING.md                             # Directrices de contribución y políticas del repositorio

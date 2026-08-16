@@ -1,0 +1,101 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout
+  title="Términos y Condiciones - Signet"
+  description="Términos de Servicio y Condiciones de Uso de Signet bajo la licencia GNU General Public License v3.0 (GPL v3)."
+>
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
+    
+    <!-- Header -->
+    <div class="border-b border-gray-800 pb-8 mb-10">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-500/10 text-brand-400 text-xs font-mono font-bold mb-4">
+        Última actualización: Agosto 2026 • Licencia GPL v3.0
+      </div>
+      <h1 class="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
+        Términos y Condiciones de Uso
+      </h1>
+      <p class="mt-4 text-lg text-gray-400">
+        Signet es software libre y de código abierto diseñado para la generación, gestión e inspección de certificados criptográficos en Android.
+      </p>
+    </div>
+
+    <!-- Terms Content -->
+    <div class="prose prose-invert max-w-none space-y-8 text-gray-300 text-sm sm:text-base leading-relaxed">
+      
+      <!-- Section 1 -->
+      <section>
+        <h2 class="text-xl font-bold text-white mb-3">1. Aceptación de los Términos</h2>
+        <p>
+          Al descargar, instalar, compilar o utilizar la aplicación móvil <strong>Signet</strong> o acceder a este sitio web, aceptas quedar legalmente vinculado por los presentes Términos y Condiciones y por los términos de la <strong>Licencia Pública General de GNU versión 3 (GPL v3)</strong>.
+        </p>
+      </section>
+
+      <!-- Section 2 -->
+      <section class="border-t border-gray-800/80 pt-6">
+        <h2 class="text-xl font-bold text-white mb-3">2. Licencia de Software (GNU GPL v3)</h2>
+        <p>
+          Signet es software libre. Tienes el derecho de ejecutar, estudiar, copiar, modificar y redistribuir el software bajo las condiciones estipuladas en la licencia GPL v3:
+        </p>
+        <ul class="list-disc list-inside space-y-1.5 mt-2 text-gray-400">
+          <li>Cualquier trabajo derivado debe ser distribuido bajo la misma licencia GPL v3.</li>
+          <li>Se debe mantener la atribución original de derechos de autor y el aviso de licencia.</li>
+          <li>El código fuente completo debe estar a disposición de los usuarios que reciban los binarios.</li>
+        </ul>
+      </section>
+
+      <!-- Section 3 -->
+      <section class="border-t border-gray-800/80 pt-6">
+        <h2 class="text-xl font-bold text-white mb-3">3. Propiedad de las Claves y Certificados</h2>
+        <p>
+          <strong>Todos los archivos Keystore (<code class="text-brand-300 font-mono">.jks</code> / <code class="text-brand-300 font-mono">.keystore</code>), certificados X.509, claves privadas, huellas y contraseñas generadas a través de Signet pertenecen 100% al usuario.</strong>
+        </p>
+        <p class="mt-2">
+          Los autores, mantenedores o colaboradores del proyecto Signet no reclaman ninguna titularidad, derecho ni acceso sobre los certificados creados.
+        </p>
+      </section>
+
+      <!-- Section 4 -->
+      <section class="border-t border-gray-800/80 pt-6">
+        <h2 class="text-xl font-bold text-white mb-3">4. Responsabilidad de Custodia y Respaldo</h2>
+        <p>
+          La seguridad criptográfica depende de la correcta custodia de los secretos:
+        </p>
+        <ul class="list-disc list-inside space-y-2 mt-2 text-gray-400">
+          <li><strong>Pérdida de Contraseñas o Claves:</strong> Dado que Signet no dispone de servidores en la nube ni almacenamiento remoto, es responsabilidad exclusiva del usuario guardar copias de seguridad de sus archivos y contraseñas en lugares seguros. La pérdida de una clave de firma de producción puede impedir la actualización de aplicaciones en tiendas de Android.</li>
+          <li><strong>Uso en CI/CD:</strong> Las cadenas Base64 exportadas deben ser administradas como secretos confidenciales en plataformas como GitHub Actions, Bitrise o Fastlane.</li>
+        </ul>
+      </section>
+
+      <!-- Section 5 -->
+      <section class="border-t border-gray-800/80 pt-6">
+        <h2 class="text-xl font-bold text-white mb-3">5. Exención de Garantías (Disclaimer "AS IS")</h2>
+        <div class="p-4 rounded-xl bg-oled-900 border border-gray-800 text-xs font-mono text-gray-400 uppercase leading-relaxed">
+          EL PROGRAMA SE DISTRIBUYE "TAL CUAL", SIN GARANTÍA DE NINGÚN TIPO, EXPRESA O IMPLÍCITA, INCLUYENDO, PERO SIN LIMITARSE A, LAS GARANTÍAS IMPLÍCITAS DE COMERCIABILIDAD Y ADECUACIÓN PARA UN PROPÓSITO PARTICULAR. EL RIESGO TOTAL EN CUANTO A LA CALIDAD Y EL RENDIMIENTO DEL PROGRAMA RECAE EN EL USUARIO.
+        </div>
+      </section>
+
+      <!-- Section 6 -->
+      <section class="border-t border-gray-800/80 pt-6">
+        <h2 class="text-xl font-bold text-white mb-3">6. Limitación de Responsabilidad</h2>
+        <p>
+          En ningún caso los autores o titulares de derechos de autor serán responsables por cualquier daño directo, indirecto, incidental, especial, ejemplar o consecuente (incluyendo, pero no limitado a, la pérdida de uso, datos, beneficios o interrupción de negocios) derivado del uso o la incapacidad de usar el software.
+        </p>
+      </section>
+
+    </div>
+
+    <!-- Back Navigation -->
+    <div class="mt-12 pt-8 border-t border-gray-800 flex justify-between items-center">
+      <a href="/" class="inline-flex items-center gap-2 text-sm font-semibold text-brand-400 hover:text-brand-300">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+        Volver al Inicio
+      </a>
+      <a href="/privacy" class="text-sm text-gray-400 hover:text-white">
+        Ver Política de Privacidad →
+      </a>
+    </div>
+
+  </div>
+</Layout>
