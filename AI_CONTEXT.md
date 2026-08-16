@@ -83,4 +83,9 @@ Este documento proporciona contexto técnico, decisiones de arquitectura y direc
    - Verifica en el emulador la generación e importación de paquetes ZIP válidos y comprueba el rechazo estricto de paquetes adulterados (verificación HMAC-SHA256).
    - Genera el reporte estructurado `emulator-e2e-report.json`, captura de pantalla (`emulator_screenshot.png`) y lo despacha de forma segura a Telegram con enmascaramiento total de credenciales.
 
+16. **Validación Cruzada con Herramientas Oficiales CLI (`.github/workflows/cli-interoperability-test.yml`)**:
+   - Automatiza pruebas de compatibilidad cruzada entre los Keystores y firmas generados por la arquitectura de Signet y las herramientas CLI oficiales de Oracle/Google (`keytool` y `apksigner`).
+   - Verifica firmas reales en APKs con validación estricta de esquemas Android v1 (JAR), v2 (APK Signature Scheme v2) y v3.
+   - Genera reporte estructurado `cli-interop-report.json` y lo despacha de forma confidencial a Telegram.
+
 

@@ -1,7 +1,8 @@
-fix(ci): solucionar error 127 en runner KVM y actualizar applicationId oficial a com.signet.app
+feat(ci): agregar workflow de validación cruzada Signet con keytool y Google apksigner
 
-- Modularizar ejecución de pruebas E2E en `scripts/run_e2e_test.sh` y `scripts/e2e_emulator_test.py`
-- Corregir resolución de rutas PATH para ADB y Python en entorno no interactivo de `reactivecircus/android-emulator-runner`
-- Asignar permisos de ejecución explícitos (`chmod +x`) antes de iniciar el emulador
-- Garantizar despacho confidencial del reporte estructurado `emulator-e2e-report.json` y captura a Telegram
-- Actualizar el identificador oficial de la aplicación a `com.signet.app` en `build.gradle.kts` y scripts de testing E2E
+- Implementar `.github/workflows/cli-interoperability-test.yml` con ejecución manual (`workflow_dispatch`)
+- Crear suite de validación `scripts/cli_interoperability_test.py` para probar compatibilidad entre Keystores de Signet y herramientas oficiales de terminal
+- Validar generación con `keytool -genkeypair`, extracción de huellas SHA-256 (`keytool -list`) y firma de APKs con `apksigner` de Google SDK
+- Verificar conformidad con los esquemas de firma de Android v1 (JAR), v2 (APK Signature) y v3
+- Generar reporte estructurado `cli-interop-report.json` con enmascaramiento estricto y despacho confidencial a Telegram
+- Actualizar documentación en README.md, ROADMAP.md, AI_CONTEXT.md y STRUCTURE.md

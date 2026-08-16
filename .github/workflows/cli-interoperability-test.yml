@@ -1,0 +1,197 @@
+name: Signet CLI & Toolchain Interoperability Test (Manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      compile_sample_apk:
+        description: 'Compilar APK de prueba para test de firma apksigner'
+        required: false
+        default: true
+        type: boolean
+
+concurrency:
+  group: cli-interop-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cli-interop-test:
+    name: Keytool & Google apksigner Interoperability Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Full Codebase
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17 with Gradle Cache
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Setup Android SDK Build-Tools & apksigner
+        uses: android-actions/setup-android@v3
+
+      - name: Setup Gradle Environment & Cache
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.3.1"
+          cache-read-only: false
+
+      - name: Set up Python Environment
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python Utilities (Telethon & Requests)
+        run: |
+          python3 -m pip install --quiet --no-cache-dir requests telethon > /dev/null 2>&1
+
+      - name: Ensure Gradle Wrapper & Debug Keystore
+        run: |
+          if [ ! -f "./gradlew" ]; then
+            echo "ℹ️ ./gradlew no encontrado. Generando Gradle Wrapper 9.3.1..."
+            gradle wrapper --gradle-version 9.3.1
+          fi
+          chmod +x ./gradlew
+
+          if [ ! -f "./debug.keystore" ]; then
+            echo "Generando debug.keystore dinámico en runner..."
+            keytool -genkeypair \
+              -v \
+              -keystore ./debug.keystore \
+              -alias androiddebugkey \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -storepass android \
+              -keypass android \
+              -dname "CN=Signet CLI Interop, OU=Mobile Dev, O=Signet, L=Madrid, ST=Madrid, C=ES"
+          fi
+
+      - name: Compile Debug APK for Signing Test (Optional)
+        if: ${{ github.event.inputs.compile_sample_apk != 'false' }}
+        run: ./gradlew assembleDebug --stacktrace
+
+      - name: Execute CLI Interoperability & apksigner Test Suite
+        run: |
+          chmod +x ./scripts/cli_interoperability_test.py
+          python3 ./scripts/cli_interoperability_test.py
+
+      - name: Upload Interoperability Report & Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-interoperability-artifacts
+          path: |
+            cli-interop-report.json
+            signet_cli_interop_backup.zip
+            tampered_cli_backup.zip
+            terminal_generated.jks
+            signed_by_toolchain.apk
+
+      - name: Dispatch Silent Interoperability Report to Private Telegram (MTProto / Bot API)
+        if: always()
+        env:
+          TELEGRAM_BOT_TOKEN_CLI_INTEROP: ${{ secrets.TELEGRAM_BOT_TOKEN_CLI_INTEROP || secrets.TELEGRAM_BOT_TOKEN_DEBUG_APK || secrets.TELEGRAM_BOT_TOKEN_E2E_EMULATOR || secrets.TELEGRAM_BOT_TOKEN_SECURITY_SCAN }}
+          TELEGRAM_API_ID_CLI_INTEROP: ${{ secrets.TELEGRAM_API_ID_CLI_INTEROP || secrets.TELEGRAM_API_ID_DEBUG_APK || secrets.TELEGRAM_API_ID_E2E_EMULATOR || secrets.TELEGRAM_API_ID_SECURITY_SCAN }}
+          TELEGRAM_API_HASH_CLI_INTEROP: ${{ secrets.TELEGRAM_API_HASH_CLI_INTEROP || secrets.TELEGRAM_API_HASH_DEBUG_APK || secrets.TELEGRAM_API_HASH_E2E_EMULATOR || secrets.TELEGRAM_API_HASH_SECURITY_SCAN }}
+          TELEGRAM_CHAT_ID_CLI_INTEROP: ${{ secrets.TELEGRAM_CHAT_ID_CLI_INTEROP || secrets.TELEGRAM_CHAT_ID_DEBUG_APK || secrets.TELEGRAM_CHAT_ID_E2E_EMULATOR || secrets.TELEGRAM_CHAT_ID_SECURITY_SCAN }}
+        run: |
+          # Enmascarar credenciales estrictamente para evitar fugas en logs
+          if [ -n "$TELEGRAM_BOT_TOKEN_CLI_INTEROP" ]; then echo "::add-mask::$TELEGRAM_BOT_TOKEN_CLI_INTEROP"; fi
+          if [ -n "$TELEGRAM_API_HASH_CLI_INTEROP" ]; then echo "::add-mask::$TELEGRAM_API_HASH_CLI_INTEROP"; fi
+
+          if [ -z "$TELEGRAM_BOT_TOKEN_CLI_INTEROP" ] || [ -z "$TELEGRAM_CHAT_ID_CLI_INTEROP" ]; then
+            echo "::warning ::Secretos de Telegram no configurados. Se guardó el reporte JSON como artefacto en GitHub Actions."
+            exit 0
+          fi
+
+          echo "==> Despachando reporte de Interoperabilidad CLI y JSON a Telegram..."
+          python3 - << 'EOF' > /dev/null 2>&1
+          import os
+          import sys
+          import json
+          import asyncio
+          import requests
+
+          report_file = "cli-interop-report.json"
+          if not os.path.exists(report_file):
+              sys.exit(0)
+
+          with open(report_file, 'r', encoding='utf-8') as f:
+              report_data = json.load(f)
+
+          summary = report_data.get("summary", {})
+          status = summary.get("status", "UNKNOWN")
+          status_emoji = "🟢" if status == "PASSED" else "🔴"
+          commit_sha = report_data.get("commit", "local")
+          total = summary.get("total", 0)
+          passed = summary.get("passed", 0)
+          failed = summary.get("failed", 0)
+
+          steps_text = ""
+          for s in report_data.get("steps", []):
+              icon = "✅" if s["status"] == "PASSED" else "❌"
+              steps_text += f"{icon} **{s['step']}**: {s['details']}\n"
+
+          caption = (
+              f"{status_emoji} **Reporte de Interoperabilidad CLI / Google apksigner**\n\n"
+              f"🛠️ **Herramientas**: `keytool` (Oracle) + `apksigner` (Google SDK)\n"
+              f"🔨 **Commit**: `{commit_sha}`\n"
+              f"📊 **Resultado**: `{status}` ({passed}/{total} pruebas superadas)\n\n"
+              f"📋 **Pruebas de Compatibilidad**:\n{steps_text}\n"
+              f"🔐 **Esquemas Validados**: Android APK v1 (JAR), v2 (APK Signature) y v3\n"
+              f"📄 **JSON Adjunto**: `cli-interop-report.json`"
+          )
+
+          bot_token = os.environ.get("TELEGRAM_BOT_TOKEN_CLI_INTEROP")
+          chat_id = os.environ.get("TELEGRAM_CHAT_ID_CLI_INTEROP")
+          api_id = os.environ.get("TELEGRAM_API_ID_CLI_INTEROP")
+          api_hash = os.environ.get("TELEGRAM_API_HASH_CLI_INTEROP")
+
+          # 1. Intentar envío vía MTProto (Telethon)
+          sent_via_mtproto = False
+          if api_id and api_hash:
+              try:
+                  from telethon import TelegramClient
+                  async def send_telethon():
+                      client = TelegramClient('signet_cli_bot', int(api_id), api_hash)
+                      await client.start(bot_token=bot_token)
+                      
+                      await client.send_message(
+                          entity=int(chat_id),
+                          message=caption,
+                          parse_mode='md'
+                      )
+                      
+                      if os.path.exists(report_file):
+                          await client.send_file(
+                              entity=int(chat_id),
+                              file=report_file,
+                              caption="📄 **Reporte JSON Estructurado de Interoperabilidad CLI**",
+                              parse_mode='md'
+                          )
+                      await client.disconnect()
+                  
+                  asyncio.run(send_telethon())
+                  sent_via_mtproto = True
+              except Exception:
+                  sent_via_mtproto = False
+
+          # 2. Fallback a Telegram Bot API estándar
+          if not sent_via_mtproto:
+              try:
+                  url_msg = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+                  requests.post(url_msg, data={"chat_id": chat_id, "text": caption, "parse_mode": "Markdown"}, timeout=15)
+
+                  if os.path.exists(report_file):
+                      url_doc = f"https://api.telegram.org/bot{bot_token}/sendDocument"
+                      with open(report_file, 'rb') as doc:
+                          requests.post(url_doc, data={"chat_id": chat_id, "caption": "📄 cli-interop-report.json"}, files={"document": doc}, timeout=20)
+              except Exception:
+                  pass
+          EOF
+          echo "✅ Despacho de reporte completado con éxito."

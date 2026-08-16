@@ -62,10 +62,12 @@ app/
 ├── .github/
 │   └── workflows/
 │       ├── build-debug-apk.yml                  # Compilación manual (workflow_dispatch) de APK Debug con generación de clave en runner y caché de Gradle
+│       ├── cli-interoperability-test.yml        # Validación cruzada de Keystores y firmas v1/v2/v3 con keytool y apksigner oficial
 │       ├── emulator-e2e-test.yml                # Pruebas E2E en emulador real KVM en runner con validación de ZIPs y reporte JSON a Telegram
 │       ├── security-scan.yml                    # Auditoría de seguridad silenciosa (modo stealth) y envío de reporte JSON a Telegram
 │       └── sync-zip.yml                         # Automatización de sincronización desde zip
 ├── scripts/
+│   ├── cli_interoperability_test.py             # Suite de validación cruzada Signet <-> keytool / Google apksigner
 │   ├── run_e2e_test.sh                          # Script ejecutable de inicialización y ejecución en emulador KVM
 │   └── e2e_emulator_test.py                     # Suite de pruebas E2E, validación HMAC anti-tampering y generación de JSON
 ├── web/                                         # Portal web oficial, Términos y Política de Privacidad (Astro + Tailwind para Cloudflare Pages)

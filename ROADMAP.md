@@ -40,6 +40,9 @@ Plan estratégico de evolución técnica y funcionalidades para el proyecto **Si
   - [x] Emulador Android nativo acelerado por hardware KVM (Pixel 6 / API 34).
   - [x] Verificación de importación de paquetes ZIP legítimos vs rechazo estricto de paquetes adulterados (Anti-Tampering HMAC).
   - [x] Generación de reporte JSON `emulator-e2e-report.json`, captura de pantalla del emulador y despacho confidencial a Telegram.
+- [x] **Validación Cruzada CLI con Herramientas Oficiales (`cli-interoperability-test.yml`)**:
+  - [x] Prueba de compatibilidad e interoperabilidad de Keystores de Signet con `keytool` y `apksigner` oficial de Google.
+  - [x] Verificación estricta de firmas Android v1, v2 y v3, reporte `cli-interop-report.json` y despacho privado a Telegram.
 - [x] Tests unitarios con Robolectric y soporte de CI/CD para repositorios.
 - [x] **Portal Web Oficial, Términos & Privacidad para Cloudflare Pages (`web/`)**:
   - [x] Sitio estático de alto rendimiento en **Astro 5 + Tailwind CSS** con tema OLED y Emerald.

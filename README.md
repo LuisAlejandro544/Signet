@@ -122,6 +122,12 @@ El repositorio cuenta con pipelines automatizados en GitHub Actions orientados a
   - `TELEGRAM_API_ID_E2E_EMULATOR` (o fallback a `TELEGRAM_API_ID_DEBUG_APK`)
   - `TELEGRAM_API_HASH_E2E_EMULATOR` (o fallback a `TELEGRAM_API_HASH_DEBUG_APK`)
 
+### 4. Validación Cruzada con Herramientas Oficiales CLI (`.github/workflows/cli-interoperability-test.yml`)
+- **Interoperabilidad Total con Terminal**: Valida que los Keystores y firmas generados por Signet sean 100% compatibles e intercambiables con `keytool` (Oracle) y `apksigner` (Android SDK / Google).
+- **Firma Real y Verificación de Esquemas**: Firma un APK real con el keystore y valida exhaustivamente los esquemas de firma de Android **v1 (JAR signing), v2 (APK Signature Scheme v2) y v3**.
+- **Reporte JSON & Despacho a Telegram**: Genera `cli-interop-report.json` con desglose paso a paso y lo despacha de forma confidencial a Telegram.
+- **Secretos en GitHub**: Soporta secretos dedicados `TELEGRAM_BOT_TOKEN_CLI_INTEROP` / `TELEGRAM_CHAT_ID_CLI_INTEROP` o fallback automático a los secretos principales.
+
 ---
 
 ## 📜 Licencia & Contribuciones
