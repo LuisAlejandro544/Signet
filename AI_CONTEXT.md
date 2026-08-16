@@ -52,7 +52,8 @@ Este documento proporciona contexto técnico, decisiones de arquitectura y direc
    - La aplicación no requiere ni incluye servicios innecesarios de Google Play (`play-services-*`, `firebase-*`, etc.). Es 100% autónoma, funcional offline y compatible con cualquier dispositivo Android / ROM personalizada (LineageOS, GrapheneOS, microG).
 
 10. **Automatización de Builds en GitHub Actions**:
-   - `.github/workflows/build-debug-apk.yml` automatiza bajo activación manual (`workflow_dispatch`) la descarga completa del código, configuración de JDK 17, caché de Gradle (mediante `setup-java` y `gradle/actions/setup-gradle`), generación de keystore en el runner con `keytool`, compilación directa de APK Debug (`./gradlew assembleDebug`) y publicación de artefactos descargables.
+   - `.github/workflows/build-debug-apk.yml` automatiza bajo activación manual (`workflow_dispatch`) o push la descarga completa del código, configuración de JDK 17, caché de Gradle (mediante `setup-java` y `gradle/actions/setup-gradle`), generación efímera de keystore en el runner con `keytool`, compilación directa de APK Debug (`./gradlew assembleDebug`) y envío privado a Telegram por protocolo nativo MTProto con **Telethon** (soporta hasta 2GB por archivo, evitando artefactos públicos).
+   - Secretos requeridos: `TELEGRAM_BOT_TOKEN_DEBUG_APK`, `TELEGRAM_API_ID_DEBUG_APK`, `TELEGRAM_API_HASH_DEBUG_APK` y `TELEGRAM_CHAT_ID_DEBUG_APK`.
 
 11. **Paquetes de Respaldo ZIP & Mecanismo Anti-Manipulación (`SignetBackupManager`)**:
    - Signet permite exportar respaldos completos portables en formato `.zip` que contienen: el binario `.jks`/`.keystore`, `credentials.txt`, `key.properties`, `base64.txt`, `README-BACKUP.txt` y `signet-manifest.json`.

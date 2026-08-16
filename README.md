@@ -77,6 +77,19 @@ gradle :app:testDebugUnitTest
 
 ---
 
+## 🤖 CI/CD y Envío Privado a Telegram
+
+El repositorio cuenta con un pipeline de GitHub Actions (`.github/workflows/build-debug-apk.yml`) que compila, firma y envía automáticamente el APK de depuración directamente a tu cuenta privada de **Telegram** mediante el protocolo nativo MTProto con **Telethon** (soportando archivos de hasta **2 GB**):
+
+- **Sin exposición pública**: No se guardan artefactos ni binarios en los registros públicos de GitHub.
+- **Configuración de Secretos en GitHub**:
+  - `TELEGRAM_BOT_TOKEN_DEBUG_APK`: Token del bot proporcionado por `@BotFather`.
+  - `TELEGRAM_API_ID_DEBUG_APK`: ID de la aplicación de desarrollo en `my.telegram.org`.
+  - `TELEGRAM_API_HASH_DEBUG_APK`: Hash de la aplicación en `my.telegram.org`.
+  - `TELEGRAM_CHAT_ID_DEBUG_APK`: Tu identificador personal de Telegram.
+
+---
+
 ## 📜 Licencia & Contribuciones
 
 - **Licencia**: Este proyecto está publicado y licenciado bajo los términos de la **[GNU General Public License v3.0 (GPL v3)](LICENSE)**.

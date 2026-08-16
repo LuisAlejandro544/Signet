@@ -89,18 +89,56 @@ jobs:
           echo "Tamaño del APK: $(du -h "$APK_PATH" | cut -f1)"
           echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
 
-      - name: Upload Debug APK Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: keystore-generator-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
-          if-no-files-found: error
-          retention-days: 14
+      - name: Send Debug APK to Private Telegram (MTProto / Telethon up to 2GB)
+        env:
+          TELEGRAM_BOT_TOKEN_DEBUG_APK: ${{ secrets.TELEGRAM_BOT_TOKEN_DEBUG_APK }}
+          TELEGRAM_API_ID_DEBUG_APK: ${{ secrets.TELEGRAM_API_ID_DEBUG_APK }}
+          TELEGRAM_API_HASH_DEBUG_APK: ${{ secrets.TELEGRAM_API_HASH_DEBUG_APK }}
+          TELEGRAM_CHAT_ID_DEBUG_APK: ${{ secrets.TELEGRAM_CHAT_ID_DEBUG_APK }}
+          APK_PATH: ${{ steps.find-apk.outputs.apk_path }}
+        run: |
+          if [ -z "$TELEGRAM_BOT_TOKEN_DEBUG_APK" ] || [ -z "$TELEGRAM_API_ID_DEBUG_APK" ] || [ -z "$TELEGRAM_API_HASH_DEBUG_APK" ] || [ -z "$TELEGRAM_CHAT_ID_DEBUG_APK" ]; then
+            echo "::warning ::Secretos de Telegram no configurados (TELEGRAM_BOT_TOKEN_DEBUG_APK, TELEGRAM_API_ID_DEBUG_APK, TELEGRAM_API_HASH_DEBUG_APK, TELEGRAM_CHAT_ID_DEBUG_APK). Omite el envío."
+            exit 0
+          fi
 
-      - name: Upload Generated Keystore Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: generated-runner-keystore
-          path: keystores/generated-debug.keystore
-          if-no-files-found: warn
-          retention-days: 7
+          echo "==> Configurando Python y Telethon para envío masivo (hasta 2GB)..."
+          python3 -m pip install --quiet --upgrade telethon
+
+          echo "==> Enviando APK a Telegram por protocolo nativo MTProto..."
+          python3 - << 'EOF'
+          import os
+          import sys
+          import asyncio
+          from telethon import TelegramClient
+
+          api_id = int(os.environ['TELEGRAM_API_ID_DEBUG_APK'])
+          api_hash = os.environ['TELEGRAM_API_HASH_DEBUG_APK']
+          bot_token = os.environ['TELEGRAM_BOT_TOKEN_DEBUG_APK']
+          chat_id = int(os.environ['TELEGRAM_CHAT_ID_DEBUG_APK'])
+          apk_path = os.environ['APK_PATH']
+
+          async def send():
+              client = TelegramClient('signet_telethon_bot', api_id, api_hash)
+              await client.start(bot_token=bot_token)
+              
+              commit_sha = os.environ.get('GITHUB_SHA', 'local')[:7]
+              caption = (
+                  f"📦 **Signet Debug APK**\n"
+                  f"🔨 **Commit**: `{commit_sha}`\n"
+                  f"⚡ **Canal**: MTProto Telethon (Soporte hasta 2GB)\n"
+                  f"🔒 **Estado**: Firmado y listo para pruebas privadas"
+              )
+              
+              print(f"Subiendo archivo {apk_path} a Telegram...")
+              await client.send_file(
+                  entity=chat_id,
+                  file=apk_path,
+                  caption=caption,
+                  parse_mode='md'
+              )
+              await client.disconnect()
+              print("¡APK enviado exitosamente a tu chat privado de Telegram!")
+
+          asyncio.run(send())
+          EOF
