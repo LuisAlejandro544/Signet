@@ -16,6 +16,7 @@ app/
 │   │   │   ├── crypto/
 │   │   │   │   ├── KeystoreGenerator.kt         # Motor criptográfico: X.509, BouncyCastle, hashes, PEM y Base64
 │   │   │   │   ├── PasswordGenerator.kt         # Generador criptográfico CSPRNG de contraseñas ultra seguras y cálculo de entropía
+│   │   │   │   ├── SignetBackupManager.kt       # Gestor de paquetes ZIP: exportación, firma HMAC anti-manipulación y restauración
 │   │   │   │   └── SnippetGenerator.kt          # Generador modular de snippets: Gradle KTS, Groovy, GitHub Actions & apksigner
 │   │   │   ├── data/
 │   │   │   │   ├── KeystoreRepository.kt        # Repositorio que orquesta base de datos y operaciones

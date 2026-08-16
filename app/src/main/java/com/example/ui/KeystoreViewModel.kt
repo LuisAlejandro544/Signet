@@ -60,6 +60,13 @@ sealed interface GenerationUiState {
     data class Error(val message: String) : GenerationUiState
 }
 
+sealed interface RestoreUiState {
+    object Idle : RestoreUiState
+    object Restoring : RestoreUiState
+    data class Success(val details: KeystoreDetails) : RestoreUiState
+    data class Error(val message: String) : RestoreUiState
+}
+
 sealed interface InspectorUiState {
     object Idle : InspectorUiState
     object Loading : InspectorUiState
@@ -87,6 +94,9 @@ class KeystoreViewModel(application: Application) : AndroidViewModel(application
 
     private val _generationState = MutableStateFlow<GenerationUiState>(GenerationUiState.Idle)
     val generationState: StateFlow<GenerationUiState> = _generationState.asStateFlow()
+
+    private val _restoreState = MutableStateFlow<RestoreUiState>(RestoreUiState.Idle)
+    val restoreState: StateFlow<RestoreUiState> = _restoreState.asStateFlow()
 
     private val _inspectorState = MutableStateFlow<InspectorUiState>(InspectorUiState.Idle)
     val inspectorState: StateFlow<InspectorUiState> = _inspectorState.asStateFlow()
@@ -265,6 +275,28 @@ class KeystoreViewModel(application: Application) : AndroidViewModel(application
                 _selectedKeystoreForDetail.value = null
             }
         }
+    }
+
+    fun restoreFromZip(context: Context, inputStream: java.io.InputStream) {
+        _restoreState.value = RestoreUiState.Restoring
+        viewModelScope.launch {
+            val result = repository.restoreAndSaveKeystoreFromZip(context, inputStream)
+            result.onSuccess { details ->
+                _restoreState.value = RestoreUiState.Success(details)
+            }.onFailure { error ->
+                _restoreState.value = RestoreUiState.Error(
+                    error.localizedMessage ?: "Error al restaurar el paquete de respaldo ZIP."
+                )
+            }
+        }
+    }
+
+    fun dismissRestoreState() {
+        _restoreState.value = RestoreUiState.Idle
+    }
+
+    suspend fun createBackupZip(details: KeystoreDetails): Result<ByteArray> {
+        return repository.createBackupZip(details)
     }
 
     fun inspectKeystoreFile(inputStream: java.io.InputStream, password: String) {

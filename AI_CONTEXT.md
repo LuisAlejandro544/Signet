@@ -54,6 +54,11 @@ Este documento proporciona contexto técnico, decisiones de arquitectura y direc
 10. **Automatización de Builds en GitHub Actions**:
    - `.github/workflows/build-debug-apk.yml` automatiza bajo activación manual (`workflow_dispatch`) la descarga completa del código, configuración de JDK 17, caché de Gradle (mediante `setup-java` y `gradle/actions/setup-gradle`), generación de keystore en el runner con `keytool`, compilación directa de APK Debug (`./gradlew assembleDebug`) y publicación de artefactos descargables.
 
-11. **Licencia GPL v3 & Política de Contribuciones**:
+11. **Paquetes de Respaldo ZIP & Mecanismo Anti-Manipulación (`SignetBackupManager`)**:
+   - Signet permite exportar respaldos completos portables en formato `.zip` que contienen: el binario `.jks`/`.keystore`, `credentials.txt`, `key.properties`, `base64.txt`, `README-BACKUP.txt` y `signet-manifest.json`.
+   - **Firma Anti-Manipulación Obligatoria**: El manifiesto JSON contiene la firma criptográfica HMAC-SHA256 y hash SHA-256 del binario. Si el archivo `.json` es alterado, falsificado o si el binario del keystore fue modificado, Signet rechazará automáticamente la restauración con `SecurityException`.
+   - Al restaurar, se valida además la apertura del archivo contra los certificados antes de persistir en Room Database.
+
+12. **Licencia GPL v3 & Política de Contribuciones**:
    - El proyecto está licenciado bajo la **GNU General Public License v3.0 (GPL v3)**.
    - Como se detalla en `CONTRIBUTING.md`, el proyecto se desarrolla de forma centralizada y cerrada temporalmente respecto a Pull Requests externos para proteger la integridad de las primitivas criptográficas y del roadmap.

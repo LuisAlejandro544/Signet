@@ -1,7 +1,9 @@
 package com.example.data
 
 import android.content.Context
+import android.util.Base64
 import com.example.crypto.KeystoreGenerator
+import com.example.crypto.SignetBackupManager
 import com.example.data.local.AppDatabase
 import com.example.data.local.KeystoreEntity
 import com.example.data.model.KeystoreConfig
@@ -11,6 +13,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.InputStream
 
 class KeystoreRepository(private val database: AppDatabase) {
 
@@ -27,6 +30,36 @@ class KeystoreRepository(private val database: AppDatabase) {
             val entity = KeystoreEntity.fromDetails(details)
             val id = database.keystoreDao().insertKeystore(entity)
             Result.success(details.copy(id = id))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun restoreAndSaveKeystoreFromZip(
+        context: Context,
+        inputStream: InputStream
+    ): Result<KeystoreDetails> = withContext(Dispatchers.IO) {
+        try {
+            val restoredDetails = SignetBackupManager.restoreFromZip(context, inputStream)
+            val entity = KeystoreEntity.fromDetails(restoredDetails)
+            val id = database.keystoreDao().insertKeystore(entity)
+            Result.success(restoredDetails.copy(id = id))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun createBackupZip(details: KeystoreDetails): Result<ByteArray> = withContext(Dispatchers.IO) {
+        try {
+            val bytes = if (details.filePath.isNotBlank() && File(details.filePath).exists()) {
+                File(details.filePath).readBytes()
+            } else if (details.base64Content.isNotBlank()) {
+                Base64.decode(details.base64Content, Base64.DEFAULT)
+            } else {
+                throw IllegalStateException("No se encontraron los datos binarios del keystore para exportar.")
+            }
+            val zipBytes = SignetBackupManager.createBackupZip(details, bytes)
+            Result.success(zipBytes)
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -56,3 +89,4 @@ class KeystoreRepository(private val database: AppDatabase) {
             }
         }
 }
+

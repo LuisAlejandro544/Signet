@@ -64,8 +64,8 @@ fun KeystoreDetailsSheet(
         } else ""
     }
 
-    // SAF Document export launcher
-    val exportLauncher = rememberLauncherForActivityResult(
+    // SAF Document export launcher for plain Keystore file
+    val exportFileLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/octet-stream")
     ) { uri ->
         if (uri != null && details.filePath.isNotBlank()) {
@@ -77,10 +77,39 @@ fun KeystoreDetailsSheet(
                             input.copyTo(out)
                         }
                     }
-                    Toast.makeText(context, "Archivo guardado exitosamente.", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Archivo keystore guardado exitosamente.", Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
                 Toast.makeText(context, "Error al guardar: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    // SAF ZIP bundle export launcher (Keystore + Credentials + Signed Manifest + Snippets)
+    val exportZipLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/zip")
+    ) { uri ->
+        if (uri != null) {
+            try {
+                val bytes = if (details.filePath.isNotBlank() && File(details.filePath).exists()) {
+                    File(details.filePath).readBytes()
+                } else if (details.base64Content.isNotBlank()) {
+                    android.util.Base64.decode(details.base64Content, android.util.Base64.DEFAULT)
+                } else {
+                    null
+                }
+
+                if (bytes != null) {
+                    val zipData = com.example.crypto.SignetBackupManager.createBackupZip(details, bytes)
+                    context.contentResolver.openOutputStream(uri)?.use { out ->
+                        out.write(zipData)
+                    }
+                    Toast.makeText(context, "Paquete ZIP de respaldo exportado exitosamente.", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(context, "No se encontraron los datos del keystore para exportar.", Toast.LENGTH_LONG).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(context, "Error al generar ZIP: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -99,14 +128,18 @@ fun KeystoreDetailsSheet(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Header: Title, alias info, close and action buttons (Export SAF & Share)
+            // Header: Title, alias info, close and action buttons (ZIP Export, SAF & Share)
             KeystoreHeaderSection(
                 details = details,
                 onDismiss = {
                     scope.launch { sheetState.hide() }.invokeOnCompletion { onDismiss() }
                 },
-                onExportClick = {
-                    exportLauncher.launch(details.fileName)
+                onExportZipClick = {
+                    val baseName = details.fileName.substringBeforeLast(".")
+                    exportZipLauncher.launch("${baseName}-signet-bundle.zip")
+                },
+                onExportFileClick = {
+                    exportFileLauncher.launch(details.fileName)
                 },
                 onShareClick = {
                     DetailsActionUtils.shareKeystoreFile(context, details)

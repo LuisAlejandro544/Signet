@@ -48,7 +48,11 @@ Cuando se active una tarea, opera bajo la mentalidad del rol correspondiente:
 3. **Verificación Continua**:
    - Tras cada cambio en la lógica o UI, verificar la compilación y ejecutar los tests unitarios con `gradle :app:testDebugUnitTest`.
 
-4. **Licencia & Gobernanza Open Source**:
+4. **Integridad de Respaldos ZIP Anti-Manipulación**:
+   - Todo paquete ZIP generado por Signet debe incorporar la firma HMAC-SHA256 y hash SHA-256 en su manifiesto.
+   - Cualquier archivo de respaldo con manifiesto alterado o binario modificado debe ser estrictamente rechazado mediante `SecurityException`.
+
+5. **Licencia & Gobernanza Open Source**:
    - El proyecto se distribuye bajo la licencia **GNU General Public License v3.0 (GPL v3)** (`LICENSE`).
    - Respetar las directrices de `CONTRIBUTING.md` manteniendo el desarrollo enfocado y seguro.
 

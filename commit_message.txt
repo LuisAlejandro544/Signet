@@ -1,16 +1,10 @@
-feat: integracion de licencia GPL v3, directrices de contribucion e identidad oficial Signet
+feat: sistema de exportacion y restauracion de respaldo ZIP con firma criptografica anti-manipulacion
 
-- Integrar el texto oficial integro de la licencia GNU General Public License v3.0 (GPL v3) en LICENSE
-- Crear CONTRIBUTING.md estableciendo politicas de desarrollo centralizado y no recepcion temporal de PRs de terceros para proteger la integridad criptografica
-- Establecer el nombre oficial de la aplicacion como "Signet" en metadata.json, strings.xml (app_name), settings.gradle.kts (rootProject.name) y UI
-- Modularizar KeystoreDetailsSheet en submódulos especializados dentro de ui/components/details/: KeystoreHeaderSection, KeystoreCredentialsCard, KeystoreBase64Card, KeystoreFingerprintsCard, KeystoreCodeSnippetsCard y DetailsActionUtils
-- Desacoplar GenerateScreen en submódulos dentro de ui/screens/generate/: GeneratePresetsSection, KeystoreCredentialsForm, KeystoreValiditySection y KeystoreDnFields
-- Extraer plantillas de configuracion y CI/CD (Gradle KTS, Groovy, GitHub Actions, apksigner) a SnippetGenerator.kt en el paquete crypto
-- Implementar generador criptográfico CSPRNG de contraseñas ultra seguras en PasswordGenerator.kt con inclusión de mayúsculas, minúsculas, dígitos y símbolos seguros para Gradle/Terminal
-- Añadir cálculo en tiempo real de bits de entropía y barra indicadora visual de nivel de seguridad en el formulario de contraseñas
-- Configurar selector interactivo de longitud de contraseña (16, 20, 24 y 32 caracteres)
-- Diferenciar visualmente los campos obligatorios por estándar Google/Android (CN, O, nombre de archivo, contraseñas, alias) y campos opcionales (OU, L, ST, C)
-- Añadir aviso explicativo sobre requisitos de identidad X.509 de Google y soporte para uso de nombres inventados o seudónimos artísticos para preservar la privacidad
-- Actualizar arbol de componentes y flujo de datos en STRUCTURE.md reflejando la nueva arquitectura modular y archivos LICENSE/CONTRIBUTING.md
-- Actualizar documentacion tecnica en README.md, ROADMAP.md, AI_CONTEXT.md y AGENTS.md
-- Mantener compatibilidad total en tests unitarios Robolectric y persistencia en base de datos Room
+- Implementar SignetBackupManager en com.example.crypto para empaquetar y restaurar respaldos completos en formato .zip
+- Incluir en cada paquete ZIP el archivo keystore (.jks/.keystore), manifiesto JSON firmado, credentials.txt, key.properties para Gradle, base64.txt para CI/CD y README-BACKUP.txt explicativo
+- Diseñar mecanismo de seguridad anti-manipulación basado en HMAC-SHA256 y hash SHA-256 del binario keystore: si un usuario u origen no autorizado altera o crea un archivo .json de manifiesto falso, la firma no coincidirá y Signet rechazará automáticamente la restauración
+- Integrar flujo de exportación de paquetes ZIP en KeystoreDetailsSheet y KeystoreHeaderSection mediante SAF (Storage Access Framework)
+- Añadir interfaz y flujo de restauración directa de paquetes ZIP en SavedKeystoresScreen (tanto en estado vacío como en la cabecera de la lista)
+- Integrar métodos restoreAndSaveKeystoreFromZip y createBackupZip en KeystoreRepository y KeystoreViewModel
+- Añadir tests unitarios en ExampleRobolectricTest verificando la exportación, importación exitosa y rechazo criptográfico por SecurityException ante manipulaciones en el manifiesto o binario
+- Actualizar documentación técnica en README.md, ROADMAP.md, STRUCTURE.md, AI_CONTEXT.md y AGENTS.md

@@ -1,6 +1,5 @@
 package com.example.ui.components.details
 
-import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,6 +11,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Key
@@ -36,7 +36,8 @@ import com.example.data.model.KeystoreDetails
 fun KeystoreHeaderSection(
     details: KeystoreDetails,
     onDismiss: () -> Unit,
-    onExportClick: () -> Unit,
+    onExportZipClick: () -> Unit,
+    onExportFileClick: () -> Unit,
     onShareClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -87,36 +88,53 @@ fun KeystoreHeaderSection(
             }
         }
 
-        // Quick Export & Share Action Buttons
-        Row(
+        // Action Buttons: ZIP Package (Full Backup), Plain File & Share
+        Column(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Button(
-                onClick = onExportClick,
+                onClick = onExportZipClick,
                 modifier = Modifier
-                    .weight(1f)
-                    .testTag("export_keystore_button"),
+                    .fillMaxWidth()
+                    .testTag("export_zip_bundle_button"),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary
                 ),
                 shape = RoundedCornerShape(10.dp)
             ) {
-                Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(18.dp))
+                Icon(Icons.Default.Archive, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
-                Text("Exportar Archivo", fontWeight = FontWeight.SemiBold)
+                Text("Exportar Paquete ZIP (Llave + Claves + Respaldo)", fontWeight = FontWeight.SemiBold)
             }
 
-            OutlinedButton(
-                onClick = onShareClick,
-                modifier = Modifier
-                    .weight(1f)
-                    .testTag("share_keystore_button"),
-                shape = RoundedCornerShape(10.dp)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(8.dp))
-                Text("Compartir", fontWeight = FontWeight.SemiBold)
+                OutlinedButton(
+                    onClick = onExportFileClick,
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("export_keystore_button"),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Solo Archivo .JKS", fontWeight = FontWeight.SemiBold)
+                }
+
+                OutlinedButton(
+                    onClick = onShareClick,
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("share_keystore_button"),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Compartir", fontWeight = FontWeight.SemiBold)
+                }
             }
         }
     }

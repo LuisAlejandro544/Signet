@@ -16,6 +16,10 @@ Plan estratégico de evolución técnica y funcionalidades para el proyecto **Si
 - [x] Conversión y visualización en tiempo real a Base64.
 - [x] Copia de credenciales y contraseñas con un solo toque.
 - [x] Persistencia local con Room Database y exportación SAF.
+- [x] **Paquetes de Respaldo ZIP y Restauración con Firma Anti-Manipulación**:
+  - [x] Generación de paquetes `.zip` con keystore, contraseñas, `key.properties`, `base64.txt` y manifiesto JSON firmado.
+  - [x] Mecanismo de verificación criptográfica HMAC-SHA256 para prevenir restauraciones de archivos manipulados o apócrifos.
+  - [x] Restauración instantánea hacia la base de datos Room.
 - [x] Pestaña de Configuración con personalización de color, Material You, modo Negro 100% (AMOLED) y paletas de autor.
 - [x] **Generador y Visualizador Interactivo de Snippets**:
   - [x] Visualizador interactivo de bloques `signingConfigs` para `build.gradle.kts` (Kotlin DSL) y `build.gradle` (Groovy).
