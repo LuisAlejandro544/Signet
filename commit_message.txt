@@ -1,13 +1,7 @@
-feat(crypto): integrar generador PEPK, bundle ZIP y workflow E2E en emulador KVM
+fix(ci): solucionar error 127 en runner KVM y actualizar applicationId oficial a com.signet.app
 
-- Implementar `PepkGenerator` con cifrado híbrido seguro RSA-OAEP (SHA-256) + AES-256-GCM
-- Añadir soporte para parsear certificados y claves públicas PEM (`encryption_public_key.pem`) de Google Play Console
-- Integrar `PepkExportDialog` con selector de modo dual: exportar solo `.pepk` o Paquete ZIP Completo (Keystore + `.pepk` + credenciales + `key.properties` + `base64.txt`)
-- Actualizar `SignetBackupManager` para empaquetar opcionalmente claves `.pepk` con manifiesto firmado y `README-BACKUP.txt`
-- Añadir pestaña y generación de comandos CLI oficiales para `pepk.jar` en `KeystoreCodeSnippetsCard`
-- Implementar workflow `.github/workflows/emulator-e2e-test.yml` con emulador Android acelerado por KVM (Pixel 6 / API 34), caché de Gradle y despacho privado a Telegram
-- Automatizar pruebas E2E de validación de importación de ZIP auténtico y rechazo estricto anti-tampering de ZIP manipulado con reporte `emulator-e2e-report.json`
-- Actualizar suite de pruebas con Robolectric para validar cifrado, firma, descifrado y empaquetado/restauración de bundle ZIP
-- Actualizar documentación técnica en README.md, ROADMAP.md, AI_CONTEXT.md y STRUCTURE.md
-
-
+- Modularizar ejecución de pruebas E2E en `scripts/run_e2e_test.sh` y `scripts/e2e_emulator_test.py`
+- Corregir resolución de rutas PATH para ADB y Python en entorno no interactivo de `reactivecircus/android-emulator-runner`
+- Asignar permisos de ejecución explícitos (`chmod +x`) antes de iniciar el emulador
+- Garantizar despacho confidencial del reporte estructurado `emulator-e2e-report.json` y captura a Telegram
+- Actualizar el identificador oficial de la aplicación a `com.signet.app` en `build.gradle.kts` y scripts de testing E2E

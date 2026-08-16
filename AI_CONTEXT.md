@@ -14,6 +14,7 @@ Este documento proporciona contexto técnico, decisiones de arquitectura y direc
 1. **Identidad del Proyecto**:
    - Nombre de la aplicación: **Signet**.
    - Nombre en launcher (`app_name`): `Signet`.
+   - Identificador de aplicación (`applicationId`): `com.signet.app`.
    - Propósito: Suite criptográfica de firma digital de APKs, creación de Keystores, certificados X.509 y generación de variables para CI/CD.
 
 2. **Proveedor BouncyCastle en Android**:
