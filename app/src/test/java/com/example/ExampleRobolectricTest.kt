@@ -24,7 +24,7 @@ class ExampleRobolectricTest {
   fun `read string from context`() {
     val context = ApplicationProvider.getApplicationContext<Context>()
     val appName = context.getString(R.string.app_name)
-    assertEquals("Keystore Generator", appName)
+    assertEquals("Signet", appName)
   }
 
   @Test
@@ -110,5 +110,25 @@ class ExampleRobolectricTest {
     val apksignerSnippet = KeystoreGenerator.generateApksignerSnippet("release.jks", "app_key")
     assertTrue(apksignerSnippet.contains("apksigner sign"))
     assertTrue(apksignerSnippet.contains("zipalign"))
+  }
+
+  @Test
+  fun `generate ultra secure passwords with high entropy`() {
+    val pwd20 = com.example.crypto.PasswordGenerator.generate(20)
+    assertEquals(20, pwd20.length)
+    assertTrue(pwd20.any { it.isUpperCase() })
+    assertTrue(pwd20.any { it.isLowerCase() })
+    assertTrue(pwd20.any { it.isDigit() })
+    assertTrue(pwd20.any { it in com.example.crypto.PasswordGenerator.SYMBOLS })
+
+    val entropy20 = com.example.crypto.PasswordGenerator.calculateEntropy(pwd20)
+    assertTrue(entropy20 >= 100.0) // 20 chars with ~72 pool is > 120 bits
+
+    val strength = com.example.crypto.PasswordGenerator.evaluateStrength(pwd20)
+    assertEquals(com.example.crypto.PasswordGenerator.PasswordStrength.ULTRA, strength)
+
+    val pwd32 = com.example.crypto.PasswordGenerator.generate(32)
+    assertEquals(32, pwd32.length)
+    assertTrue(com.example.crypto.PasswordGenerator.calculateEntropy(pwd32) > 180.0)
   }
 }

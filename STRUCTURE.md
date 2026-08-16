@@ -1,6 +1,6 @@
-# 🏗️ Arquitectura y Estructura del Proyecto
+# 🏗️ Arquitectura y Estructura del Proyecto: Signet
 
-Este documento describe la organización de carpetas, responsabilidades de cada módulo y flujo de datos dentro de **Keystore Generator**.
+Este documento describe la organización de carpetas, responsabilidades de cada módulo y flujo de datos dentro de **Signet**.
 
 ---
 
@@ -14,7 +14,9 @@ app/
 │   │   ├── java/com/example/
 │   │   │   ├── MainActivity.kt                  # Punto de entrada de la actividad, Navigation y tema reactivo
 │   │   │   ├── crypto/
-│   │   │   │   └── KeystoreGenerator.kt         # Motor criptográfico: X.509, BouncyCastle, hashes, PEM, Base64, Gradle snippets & GitHub Actions workflow
+│   │   │   │   ├── KeystoreGenerator.kt         # Motor criptográfico: X.509, BouncyCastle, hashes, PEM y Base64
+│   │   │   │   ├── PasswordGenerator.kt         # Generador criptográfico CSPRNG de contraseñas ultra seguras y cálculo de entropía
+│   │   │   │   └── SnippetGenerator.kt          # Generador modular de snippets: Gradle KTS, Groovy, GitHub Actions & apksigner
 │   │   │   ├── data/
 │   │   │   │   ├── KeystoreRepository.kt        # Repositorio que orquesta base de datos y operaciones
 │   │   │   │   ├── local/
@@ -27,10 +29,21 @@ app/
 │   │   │       ├── KeystoreViewModel.kt         # ViewModel central: StateFlows, tema, validaciones y UI state
 │   │   │       ├── MainScreen.kt                # Barra de navegación de 4 pestañas y contenedor de vistas
 │   │   │       ├── components/
-│   │   │       │   ├── KeystoreCard.kt          # Tarjeta visual para listas de keystores
-│   │   │       │   └── KeystoreDetailsSheet.kt  # Hoja modal con Base64, huellas, exportación y visualizador interactivo de snippets Gradle & GitHub Actions
+│   │   │       │   ├── KeystoreDetailsSheet.kt  # BottomSheet orquestador de exportación SAF, compartir y detalles
+│   │   │       │   └── details/
+│   │   │       │       ├── DetailsActionUtils.kt         # Utilidades de portapapeles y compartir mediante FileProvider
+│   │   │       │       ├── KeystoreHeaderSection.kt      # Encabezado, alias, botones de exportar y compartir
+│   │   │       │       ├── KeystoreCredentialsCard.kt    # Tarjeta de credenciales con visibilidad y copia en un toque
+│   │   │       │       ├── KeystoreBase64Card.kt         # Visualizador de Base64 para variables de entorno y CI/CD
+│   │   │       │       ├── KeystoreFingerprintsCard.kt   # Huellas SHA-256, SHA-1, MD5 y datos X.509
+│   │   │       │       └── KeystoreCodeSnippetsCard.kt   # Visor interactivo de código Gradle, Groovy, YAML y CLI
 │   │   │       ├── screens/
-│   │   │       │   ├── GenerateScreen.kt        # Pantalla de creación con Slider de validez interactivo
+│   │   │       │   ├── GenerateScreen.kt        # Pantalla principal de generación
+│   │   │       │   ├── generate/
+│   │   │       │   │   ├── GeneratePresetsSection.kt     # Chips de plantillas rápidas (Release, Upload, RSA 4096)
+│   │   │       │   │   ├── KeystoreCredentialsForm.kt    # Formato, contraseñas, medidor de entropía y generador CSPRNG
+│   │   │       │   │   ├── KeystoreValiditySection.kt    # Slider interactivo de años, chips y selector de algoritmo
+│   │   │       │   │   └── KeystoreDnFields.kt           # Formulario X.500 con distinción de obligatorios Google y opcionales
 │   │   │       │   ├── InspectScreen.kt         # Pantalla de análisis e inspección de archivos externos
 │   │   │       │   ├── SavedKeystoresScreen.kt  # Pantalla de historial de keystores guardados
 │   │   │       │   └── SettingsScreen.kt        # Pantalla de configuración visual (Temas, Material You, OLED)
@@ -42,12 +55,14 @@ app/
 │   │   └── res/                                 # Recursos visuales, strings y drawables
 │   └── test/
 │       └── java/com/example/
-│           └── ExampleRobolectricTest.kt        # Tests unitarios con Robolectric para generación y validación
+│           └── ExampleRobolectricTest.kt        # Tests unitarios con Robolectric para generación, contraseñas y validación
 ├── .github/
 │   └── workflows/
 │       ├── build-debug-apk.yml                  # Compilación manual (workflow_dispatch) de APK Debug con generación de clave en runner y caché de Gradle
 │       └── sync-zip.yml                         # Automatización de sincronización desde zip
 ├── zip/                                         # Carpeta para archivos comprimidos
+├── LICENSE                                      # Licencia GNU General Public License v3.0 (GPL v3)
+├── CONTRIBUTING.md                             # Directrices de contribución y políticas del repositorio
 ├── commit_message.txt                           # Mensaje de commit predeterminado
 └── metadata.json                                # Metadatos de la plataforma AI Studio
 ```
@@ -62,7 +77,9 @@ app/
        ▼ (Eventos / Formularios / Tema)
 [KeystoreViewModel] (MutableStateFlow / UI States / ThemeState)
        │
-       ├──► [KeystoreGenerator] (Criptografía X.509, BouncyCastle, Hashes, Base64)
+       ├──► [PasswordGenerator] (CSPRNG, Entropía Shannon, Caracteres Seguros Terminal/Gradle)
+       │
+       ├──► [KeystoreGenerator & SnippetGenerator] (Criptografía X.509, BouncyCastle, Hashes, Base64, Templates CI/CD)
        │
        ├──► [SharedPreferences] (Persistencia de Modo de Pantalla y Paleta de Color)
        │

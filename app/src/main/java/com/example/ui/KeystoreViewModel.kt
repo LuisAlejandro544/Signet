@@ -5,6 +5,7 @@ import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.crypto.KeystoreGenerator
+import com.example.crypto.PasswordGenerator
 import com.example.data.KeystoreRepository
 import com.example.data.local.AppDatabase
 import com.example.data.model.DistinguishedName
@@ -139,8 +140,8 @@ class KeystoreViewModel(application: Application) : AndroidViewModel(application
         _formState.value = _formState.value.copy(validityYears = clamped)
     }
 
-    fun generateRandomPassword() {
-        val pwd = KeystoreGenerator.generateRandomPassword(16)
+    fun generateRandomPassword(length: Int = 20) {
+        val pwd = PasswordGenerator.generate(length = length)
         _formState.value = _formState.value.copy(
             storePassword = pwd,
             confirmPassword = pwd,

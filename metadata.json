@@ -1,6 +1,6 @@
 {
-  "name": "Keystore Generator",
-  "description": "Generador de archivos keystore y certificados para firmar aplicaciones Android.",
+  "name": "Signet",
+  "description": "Generador profesional y seguro de keystores, certificados X.509 y firmas para Android y CI/CD.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

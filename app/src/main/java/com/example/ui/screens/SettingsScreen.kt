@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.Smartphone
 import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
@@ -408,6 +409,26 @@ fun SettingsScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
+                }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Signet v1.0.0",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "GPL v3 • Offline First",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }

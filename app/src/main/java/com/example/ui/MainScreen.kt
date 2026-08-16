@@ -73,7 +73,7 @@ fun MainScreen(
                             1 -> "Mis Keystores"
                             2 -> "Inspeccionar Keystore"
                             3 -> "Configuración"
-                            else -> "Keystore Generator"
+                            else -> "Signet"
                         },
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.titleLarge

@@ -1,6 +1,6 @@
-# 🔐 Keystore Generator (Android KeyStore & Certificate Tool)
+# 🔐 Signet (Android KeyStore & Certificate Tool)
 
-Generador y administrador profesional de Keystores (`.jks` y `.keystore`) para Android en Jetpack Compose con arquitectura Material Design 3 y criptografía BouncyCastle. Permite crear, inspeccionar, exportar y convertir certificados a Base64 para CI/CD sin depender de Android Studio ni comandos manuales de terminal.
+Generador y administrador profesional de Keystores (`.jks` y `.keystore`) para Android en Jetpack Compose con arquitectura Material Design 3 y criptografía BouncyCastle. **Signet** permite crear, inspeccionar, exportar y convertir certificados a Base64 para CI/CD sin depender de Android Studio ni comandos manuales de terminal.
 
 ---
 
@@ -9,8 +9,9 @@ Generador y administrador profesional de Keystores (`.jks` y `.keystore`) para A
 - **Generación Criptográfica Completa**:
   - Algoritmos soportados: **RSA 2048**, **RSA 4096** y **Curva Elíptica (EC P-256)** con firmas SHA-256.
   - Soporte de extensiones estándar: `.jks` (estándar moderno de Android Studio) y `.keystore` (formato tradicional).
+  - **Generador de Contraseñas Ultra Seguras (CSPRNG Nativo)**: Motor aleatorio basado en `SecureRandom` con longitud seleccionable (16, 20, 24, 32 caracteres), inclusión obligatoria de mayúsculas, minúsculas, dígitos y símbolos seguros para Gradle/Terminal, acompañado de medidor en tiempo real de bits de entropía y nivel de seguridad.
   - **Validez de Certificado Personalizada & Deslizable**: Control interactivo mediante slider (1 a 100 años), indicador de días totales y atajos rápidos (1, 5, 10, 25, 30, 50, 100 años).
-  - Configuración detallada de Distinguished Name (CN, OU, O, L, ST, C) y validación de parámetros X.500.
+  - **Campos de Certificado con Guía de Identidad**: Distinción clara entre campos obligatorios por estándar Google/Android (`CN`, `O`) y opcionales (`OU`, `L`, `ST`, `C`), con aviso de soporte para datos inventados o seudónimos artísticos para preservar la privacidad.
   - Presets rápidos de 1 clic: *Google Play Release*, *Upload Key* y *Alta Seguridad*.
 
 - **Personalización Visual & Pestaña de Configuración**:
@@ -49,8 +50,8 @@ Generador y administrador profesional de Keystores (`.jks` y `.keystore`) para A
 | **Lenguaje** | Kotlin 2.0+ con Coroutines & StateFlow |
 | **UI Framework** | Jetpack Compose con Material Design 3 & Material You |
 | **Persistencia** | Room Database (SQLite local offline-first) & SharedPreferences |
-| **Criptografía** | BouncyCastle (SpongyCastle/BC) X.509 PKCS#12 JCA |
-| **Arquitectura** | MVVM (Model - View - ViewModel) + Clean Architecture |
+| **Criptografía** | BouncyCastle (SpongyCastle/BC) X.509 PKCS#12 JCA & CSPRNG SecureRandom |
+| **Arquitectura** | MVVM (Model - View - ViewModel) + Clean Architecture Modular |
 | **Testing** | Robolectric 4.14+ & JUnit 4 |
 
 ---
@@ -58,21 +59,23 @@ Generador y administrador profesional de Keystores (`.jks` y `.keystore`) para A
 ## 📦 Cómo Compilar y Ejecutar
 
 ### Requisitos Previos
-- Android Studio Ladybug / Koala o superior (o entorno Gradle compatible).
-- JDK 17 o superior.
-- Android SDK Min 26, Target 35.
+- Android SDK con `minSdk = 26` y `targetSdk = 36`
+- Java Development Kit (JDK 17)
+- Gradle 8.13+ / 9.x compatible con Kotlin 2.0+
 
-### Comandos de Construcción
+### Comandos de Terminal
 ```bash
-# Compilar en modo Debug
+# Compilar el proyecto en modo depuración
 gradle assembleDebug
 
-# Ejecutar la suite completa de tests unitarios
+# Ejecutar la suite completa de tests unitarios y Robolectric
 gradle :app:testDebugUnitTest
 ```
 
 ---
 
-## 🧪 Estructura de Automatización (GitHub Actions)
-- **`build-debug-apk.yml` (Manual / workflow_dispatch)**: Flujo de ejecución manual bajo demanda. Descarga todo el código fuente del repositorio (`actions/checkout@v4`), configura el entorno con JDK 17 y caché de Gradle (`setup-java` y `setup-gradle`), genera dinámicamente una clave criptográfica RSA 2048 directamente en el runner (`keytool`), compila el APK Debug (`./gradlew assembleDebug`) y publica el APK y el Keystore generado como artefactos descargables.
-- **`sync-zip.yml`**: Flujo para actualizar el código base automáticamente subiendo archivos comprimidos (`.zip`, `.tar.gz`, etc.) a la carpeta `zip/`.
+## 📜 Licencia & Contribuciones
+
+- **Licencia**: Este proyecto está publicado y licenciado bajo los términos de la **[GNU General Public License v3.0 (GPL v3)](LICENSE)**.
+- **Contribuciones**: Consulta **[CONTRIBUTING.md](CONTRIBUTING.md)** para más detalles sobre las políticas actuales del repositorio (actualmente bajo desarrollo enfocado sin admisión de PRs de terceros).
+
