@@ -414,7 +414,7 @@ object KeystoreGenerator {
                   - name: Ensure Gradle Wrapper & Permissions
                     run: |
                       if [ ! -f "./gradlew" ]; then
-                        gradle wrapper --gradle-version 8.11.1
+                        gradle wrapper --gradle-version 9.3.1
                       fi
                       chmod +x ./gradlew
 
