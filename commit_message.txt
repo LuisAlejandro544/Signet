@@ -1,8 +1,5 @@
-feat(ci): agregar workflow de auditoría de seguridad silenciosa manual y reporte confidencial a Telegram
+fix(ci): corregir fallo de cache en setup-python para workflow de escaneo de seguridad
 
-- Implementar `.github/workflows/security-scan.yml` activado exclusivamente bajo demanda manual (`workflow_dispatch`) con escaneo estático en modo Stealth (cero exposición de logs en runners de GitHub)
-- Analizar código Kotlin, Manifest, dependencias, secretos hardcodeados y primitivas criptográficas
-- Generar reporte consolidado `vulnerabilities-report.json` y despacharlo adjunto a Telegram junto con un resumen ejecutivo en texto
-- Soportar secretos dedicados (`TELEGRAM_BOT_TOKEN_SECURITY_SCAN`, `TELEGRAM_CHAT_ID_SECURITY_SCAN`) con fallback automático a credenciales de Debug APK
-- Actualizar documentación del proyecto en README.md, STRUCTURE.md, AI_CONTEXT.md, ROADMAP.md y AGENTS.md
-- Mantener configuración de Cloudflare Pages y compatibilidad con sincronización de código y despliegues
+- Eliminar parámetro `cache: 'pip'` en `actions/setup-python@v5` dentro de `.github/workflows/security-scan.yml`
+- Evitar el error de búsqueda de `requirements.txt`/`pyproject.toml` en proyectos de Android/Kotlin
+- Permitir la ejecución fluida de la auditoría de seguridad y despacho del reporte a Telegram
