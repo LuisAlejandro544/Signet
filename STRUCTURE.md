@@ -14,11 +14,18 @@ app/
 │   │   ├── java/com/example/
 │   │   │   ├── MainActivity.kt                  # Punto de entrada de la actividad, Navigation y tema reactivo
 │   │   │   ├── crypto/
-│   │   │   │   ├── ApkMatcher.kt                # Validador forense de firmas APK vs Keystore (v1 JAR, v2/v3 Signing Block)
+│   │   │   │   ├── ApkMatcher.kt                # Fachada orquestadora forense APK vs Keystore (análisis y coincidencia)
+│   │   │   │   ├── apk/
+│   │   │   │   │   ├── ApkSigningBlockParser.kt # Parser binario de bajo nivel para esquemas v2 y v3 (APK Signing Block)
+│   │   │   │   │   ├── ApkV1SignatureParser.kt  # Extractor de firmas PKCS#7 en META-INF mediante BouncyCastle CMS (v1 JAR)
+│   │   │   │   │   └── AxmlManifestParser.kt    # Extractor de packageName desde el string pool binario de AndroidManifest.xml
 │   │   │   │   ├── KeystoreGenerator.kt         # Motor criptográfico: X.509, BouncyCastle, hashes, PEM y Base64
 │   │   │   │   ├── PasswordGenerator.kt         # Generador criptográfico CSPRNG de contraseñas ultra seguras y cálculo de entropía
 │   │   │   │   ├── PepkGenerator.kt             # Cifrado híbrido PEPK (RSA-OAEP + AES-GCM) para Google Play App Signing
-│   │   │   │   ├── SignetBackupManager.kt       # Gestor de paquetes ZIP: exportación (.jks + .pepk bundle), firma HMAC anti-manipulación y restauración
+│   │   │   │   ├── SignetBackupManager.kt       # Fachada orquestadora de exportación ZIP y restauración de respaldos
+│   │   │   │   ├── backup/
+│   │   │   │   │   ├── BackupTemplates.kt       # Generador de plantillas de texto (credentials.txt, key.properties, README-BACKUP.txt)
+│   │   │   │   │   └── BackupIntegrityVerifier.kt # Cálculo de SHA-256, firma HMAC-SHA256 y verificación de integridad anti-tamper
 │   │   │   │   └── SnippetGenerator.kt          # Generador modular de snippets: Gradle KTS, Groovy, GitHub Actions, apksigner & pepk
 │   │   │   ├── data/
 │   │   │   │   ├── KeystoreRepository.kt        # Repositorio que orquesta base de datos y operaciones
@@ -42,6 +49,7 @@ app/
 │   │   │       │       ├── KeystoreCodeSnippetsCard.kt   # Visor interactivo de código Gradle, Groovy, YAML, CLI y PEPK
 │   │   │       │       └── PepkExportDialog.kt           # Diálogo de generación y exportación (.pepk individual o Bundle ZIP con Keystore)
 │   │   │       ├── screens/
+│   │   │       │   ├── WelcomeScreen.kt         # Pantallas interactivas de bienvenida, explicación de capacidades y aceptación legal
 │   │   │       │   ├── GenerateScreen.kt        # Pantalla principal de generación
 │   │   │       │   ├── generate/
 │   │   │       │   │   ├── GeneratePresetsSection.kt     # Chips de plantillas rápidas (Release, Upload, RSA 4096)
@@ -52,7 +60,13 @@ app/
 │   │   │       │   ├── inspect/
 │   │   │       │   │   └── ApkMatcherSection.kt     # Interfaz interactiva de validación forense APK vs Keystore
 │   │   │       │   ├── SavedKeystoresScreen.kt  # Pantalla de historial de keystores guardados
-│   │   │       │   └── SettingsScreen.kt        # Pantalla de configuración visual (Temas, Material You, OLED)
+│   │   │       │   ├── SettingsScreen.kt        # Pantalla de configuración modular
+│   │   │       │   └── settings/
+│   │   │       │       ├── SettingsHeaderCard.kt         # Tarjeta de encabezado y resumen visual
+│   │   │       │       ├── ThemeModeSection.kt           # Selector de temas (Claro, Oscuro, Negro 100% AMOLED, Sistema)
+│   │   │       │       ├── ColorPaletteSection.kt        # Selector de paleta de acentos y Material You (Android 12+)
+│   │   │       │       ├── LegalLinksSection.kt          # Accesos a Términos, Privacidad y guía de bienvenida
+│   │   │       │       └── DistributionInfoSection.kt    # Resumen de criptografía offline, soporte de tiendas y GPL v3
 │   │   │       └── theme/
 │   │   │           ├── Color.kt                 # Paleta de colores M3 (Emerald, Purple, Amber, Teal, Crimson, Mono)
 │   │   │           ├── ThemeConfig.kt           # Enums ThemeMode (Claro, Oscuro, Negro 100%) y ColorPalette
@@ -86,23 +100,27 @@ app/
 
 ## 🔄 Flujo de Datos y Operaciones Clave
 
-### 1. Validación Forense de APK vs Keystore (APK Matcher)
+### 1. Validación Forense de APK vs Keystore (APK Matcher Modular)
 1. **Selección del APK**: El usuario proporciona un archivo `.apk` mediante Android SAF.
 2. **Extracción y Parsing Multi-Esquema**:
-   - `ApkMatcher` examina primero el bloque **APK Signing Block** (v2 y v3) buscando el ID de bloque `0x7109871a` y extrayendo los certificados X.509 de los signers.
-   - De forma concurrente o fallback, examina los archivos PKCS#7 en `META-INF/*.RSA`, `META-INF/*.DSA` o `META-INF/*.EC` (v1 JAR Signature).
-   - Extrae metadatos del paquete (`packageName`, `versionName`, `versionCode`).
+   - `ApkMatcher` coordina el análisis delegando en parsers especializados:
+     * `ApkSigningBlockParser`: examina el bloque **APK Signing Block** (v2 y v3) buscando el ID `0x7109871a` y extrayendo los certificados X.509 de los signers.
+     * `ApkV1SignatureParser`: examina los archivos PKCS#7 en `META-INF/*.RSA`, `META-INF/*.DSA` o `META-INF/*.EC` (v1 JAR Signature).
+     * `AxmlManifestParser`: extrae metadatos del paquete (`packageName`, `versionName`, `versionCode`) desde el string pool binario.
 3. **Cruce de Huellas Digitales**:
    - Se calculan las huellas SHA-256 de todos los certificados detectados en el APK y se contrastan con la huella del Keystore seleccionado (almacenado en Signet o externo).
 4. **Diagnóstico**:
    - Se emite un dictamen visual inmediato: Coincidencia confirmada o Alerta de incompatibilidad de actualización.
 
 ### 2. Generación de Keystore
-1. `GenerateScreen` recopila la configuración validada.
+1. `GenerateScreen` recopila la configuración validada mediante sus submódulos (`GeneratePresetsSection`, `KeystoreCredentialsForm`, `KeystoreValiditySection`, `KeystoreDnFields`).
 2. `KeystoreGenerator` genera el par de claves mediante BouncyCastle y construye el certificado X.509.
 3. Se calcula el hash SHA-256, SHA-1, MD5 y se codifica el binario en Base64.
 4. `KeystoreRepository` persiste la entidad en la base de datos Room.
 
-### 3. Respaldos ZIP & Anti-Tampering
-1. `SignetBackupManager.createBackupZip` empaqueta el binario `.jks`/`.keystore`, credenciales, `key.properties`, `base64.txt` y genera el manifiesto `signet-backup.json` firmado con HMAC-SHA256.
-2. `SignetBackupManager.restoreFromZip` valida exhaustivamente la integridad criptográfica antes de escribir o importar en Room.
+### 3. Respaldos ZIP & Anti-Tampering Modular
+1. `SignetBackupManager.createBackupZip`:
+   - Delega la construcción de archivos textuales en `BackupTemplates` (`credentials.txt`, `key.properties`, `README-BACKUP.txt`).
+   - Delega la generación y firma criptográfica HMAC-SHA256 del manifiesto `signet-backup.json` en `BackupIntegrityVerifier`.
+2. `SignetBackupManager.restoreFromZip`:
+   - Valida la integridad del archivo binario y del manifiesto contra la firma HMAC mediante `BackupIntegrityVerifier` antes de persistir o desbloquear.

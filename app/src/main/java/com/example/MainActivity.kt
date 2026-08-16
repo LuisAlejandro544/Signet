@@ -9,6 +9,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import com.example.ui.KeystoreViewModel
 import com.example.ui.MainScreen
+import com.example.ui.screens.WelcomeScreen
 import com.example.ui.theme.MyApplicationTheme
 
 class MainActivity : ComponentActivity() {
@@ -20,8 +21,17 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             val themeState by viewModel.themeState.collectAsState()
+            val isOnboardingCompleted by viewModel.isOnboardingCompleted.collectAsState()
+
             MyApplicationTheme(themeState = themeState) {
-                MainScreen(viewModel = viewModel)
+                if (!isOnboardingCompleted) {
+                    WelcomeScreen(
+                        onComplete = { viewModel.completeOnboarding() },
+                        viewModel = viewModel
+                    )
+                } else {
+                    MainScreen(viewModel = viewModel)
+                }
             }
         }
     }

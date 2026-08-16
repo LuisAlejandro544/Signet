@@ -20,11 +20,17 @@ Generador y administrador profesional de Keystores (`.jks` y `.keystore`) para A
   - **Cruce Criptográfico Determinista**: Compara las huellas digitales SHA-256 de los certificados contenidos en el APK contra un Keystore seleccionado (guardado en Signet o archivo externo `.jks`).
   - **Diagnóstico Preventivo de Actualización**: Alerta de forma inmediata si un APK podrá actualizarse con el Keystore o si causará un error `INSTALL_FAILED_UPDATE_INCOMPATIBLE` en dispositivos de usuarios finales.
 
+- **Flujo de Bienvenida Interactivo & Onboarding**:
+  - **Experiencia de Primera Ejecución**: Guía visual paso a paso de 4 pantallas que presenta de forma estructurada las capacidades de la aplicación (Generación RSA/EC y CSPRNG, Exportación PEPK/ZIP/CI-CD, Validador APK Matcher y Privacidad 100% Offline).
+  - **Aceptación Explícita de Términos y Privacidad**: Bloque de consentimiento informado con enlaces directos al sitio oficial y verificación de aceptación para comenzar.
+  - **Revisión Continua**: Opción disponible en la pestaña de Configuración para reabrir la guía explicativa en cualquier momento.
+
 - **Personalización Visual & Pestaña de Configuración**:
   - **Material You**: Soporte completo para colores dinámicos sincronizados con el fondo de pantalla en Android 12+.
   - **Modos de Pantalla**: Modo Claro, Modo Oscuro y **Negro 100% AMOLED** (#000000 absoluto) para máxima eficiencia energética en pantallas OLED.
   - **Paletas de Color de Autor**: Azul Marino, Verde Esmeralda Terminal, Púrpura Profundo, Ámbar Cálido, Cian Tecnológico, Rojo Carmesí y Monocromo Minimalista.
-  - Persistencia automática de preferencias visuales en el dispositivo.
+  - **Acceso Directo al Portal Legal**: Enlaces directos para abrir en el navegador los [Términos y Condiciones](https://signet-web.luisalejandrososacamacho9.workers.dev/terms/) y la [Política de Privacidad](https://signet-web.luisalejandrososacamacho9.workers.dev/privacy/).
+  - Persistencia automática de preferencias visuales y estado de aceptación en el dispositivo.
 
 - **Exportación, Respaldos ZIP & CI/CD**:
   - **Generación y Exportación de Claves Cifradas para Google Play (.pepk)**:

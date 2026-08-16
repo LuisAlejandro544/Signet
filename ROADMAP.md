@@ -55,6 +55,10 @@ Plan estratégico de evolución técnica y funcionalidades para el proyecto **Si
   - [x] Declaración explícita de Política de Privacidad (`/privacy`) con fecha de entrada en vigor al **16 de agosto de 2026**, **Cero Recolección de Datos** y Cero Telemetría.
   - [x] Términos y Condiciones de Uso (`/terms`) ampliados al **16 de agosto de 2026** con 13 secciones jurídicas y técnicas bajo licencia GPL v3, soberanía de claves, custodia, CI/CD, APK Matcher, PEPK, anti-tampering HMAC, tiendas de terceros y exención de garantías "AS IS".
   - [x] Configuración lista para despliegue global en Cloudflare Pages (`wrangler.toml`).
+- [x] **Flujo de Bienvenida Interactivo (Onboarding) & Integración Legal en la App**:
+  - [x] Pantallas de bienvenida (`WelcomeScreen`) de 4 pasos explicando las capacidades del sistema y la privacidad 100% offline.
+  - [x] Consentimiento informado y aceptación de Términos y Privacidad en el primer arranque.
+  - [x] Acceso directo en `SettingsScreen` a las URLs de Términos y Privacidad del portal web y botón para repasar la bienvenida.
 
 ---
 

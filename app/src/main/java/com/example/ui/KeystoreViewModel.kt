@@ -126,6 +126,34 @@ class KeystoreViewModel(application: Application) : AndroidViewModel(application
     private val _themeState = MutableStateFlow(loadInitialThemeState())
     val themeState: StateFlow<ThemeState> = _themeState.asStateFlow()
 
+    // Onboarding and Terms acceptance state
+    private val _isOnboardingCompleted = MutableStateFlow(prefs.getBoolean(PREF_ONBOARDING_COMPLETED, false))
+    val isOnboardingCompleted: StateFlow<Boolean> = _isOnboardingCompleted.asStateFlow()
+
+    fun completeOnboarding() {
+        prefs.edit().putBoolean(PREF_ONBOARDING_COMPLETED, true).apply()
+        _isOnboardingCompleted.value = true
+    }
+
+    fun resetOnboarding() {
+        _isOnboardingCompleted.value = false
+    }
+
+    fun openWebUrl(context: Context, url: String) {
+        try {
+            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url)).apply {
+                flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            context.startActivity(intent)
+        } catch (_: Exception) {}
+    }
+
+    companion object {
+        const val PREF_ONBOARDING_COMPLETED = "onboarding_completed"
+        const val URL_TERMS = "https://signet-web.luisalejandrososacamacho9.workers.dev/terms/"
+        const val URL_PRIVACY = "https://signet-web.luisalejandrososacamacho9.workers.dev/privacy/"
+    }
+
     private fun loadInitialThemeState(): ThemeState {
         val savedModeName = prefs.getString("theme_mode", ThemeMode.SYSTEM.name) ?: ThemeMode.SYSTEM.name
         val savedPaletteName = prefs.getString("color_palette", ColorPalette.DYNAMIC.name) ?: ColorPalette.DYNAMIC.name

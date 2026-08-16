@@ -64,6 +64,11 @@ Este documento proporciona contexto técnico, decisiones de arquitectura y direc
 
 12. **Portal Web Oficial, Términos y Privacidad (`web/`)**:
     - Sitio web en Astro 5 + Tailwind CSS para Cloudflare Pages.
-    - Términos y Condiciones (`/terms`) y Política de Privacidad (`/privacy`) formalizados con fecha **16 de agosto de 2026**.
+    - Términos y Condiciones (`/terms` -> `https://signet-web.luisalejandrososacamacho9.workers.dev/terms/`) y Política de Privacidad (`/privacy` -> `https://signet-web.luisalejandrososacamacho9.workers.dev/privacy/`) formalizados con fecha **16 de agosto de 2026**.
     - Cobertura legal integral: GPL v3, soberanía total de claves del usuario, custodia sin servidores remotos, buenas prácticas en CI/CD, disclaimer del APK Matcher, compatibilidad PEPK, respaldos ZIP con firma HMAC y distribución en plataformas de terceros (Uptodown, GitHub Releases, APKs directos).
+
+13. **Flujo de Bienvenida & Onboarding (`WelcomeScreen`)**:
+    - `MainActivity` evalúa `isOnboardingCompleted` desde `KeystoreViewModel` (respaldado en `SharedPreferences` con la clave `onboarding_completed`).
+    - En el primer inicio, presenta una experiencia guiada de 4 etapas que detalla las características de la suite, garantiza la privacidad offline y solicita la aceptación expresa de los Términos y la Privacidad antes de acceder a la aplicación principal.
+    - `SettingsScreen` contiene accesos directos interactivos a los URLs legales y permite reiniciar la guía con `resetOnboarding()`.
 

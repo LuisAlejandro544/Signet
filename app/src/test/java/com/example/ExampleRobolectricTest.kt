@@ -443,4 +443,31 @@ class ExampleRobolectricTest {
     assertNull(matchResultB.matchedAlias)
     assertTrue(matchResultB.reasonMessage.contains("Las firmas no coinciden"))
   }
+
+  @Test
+  fun `onboarding state and legal URL endpoints verification`() {
+    val application = ApplicationProvider.getApplicationContext<android.app.Application>()
+    val viewModel = com.example.ui.KeystoreViewModel(application)
+
+    // Verify initial onboarding state or toggle
+    assertNotNull(viewModel.isOnboardingCompleted.value)
+
+    // Complete onboarding
+    viewModel.completeOnboarding()
+    assertTrue(viewModel.isOnboardingCompleted.value)
+
+    // Reset onboarding
+    viewModel.resetOnboarding()
+    assertFalse(viewModel.isOnboardingCompleted.value)
+
+    // Verify URLs
+    assertEquals(
+      "https://signet-web.luisalejandrososacamacho9.workers.dev/terms/",
+      com.example.ui.KeystoreViewModel.URL_TERMS
+    )
+    assertEquals(
+      "https://signet-web.luisalejandrososacamacho9.workers.dev/privacy/",
+      com.example.ui.KeystoreViewModel.URL_PRIVACY
+    )
+  }
 }
