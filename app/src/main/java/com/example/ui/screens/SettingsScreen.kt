@@ -331,7 +331,7 @@ fun SettingsScreen(
             }
         }
 
-        // Section 3: Seguridad y Distribución (Uptodown / F-Droid / CI/CD)
+        // Section 3: Seguridad y Distribución (Uptodown / GitHub Releases / CI/CD)
         Card(
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface
@@ -404,7 +404,7 @@ fun SettingsScreen(
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
-                            text = "Los keystores generados son 100% compatibles con apksigner, Google Play, Uptodown, F-Droid y GitHub Releases.",
+                            text = "Los keystores generados son 100% compatibles con apksigner, Google Play, Uptodown y GitHub Releases.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

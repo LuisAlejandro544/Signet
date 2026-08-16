@@ -118,22 +118,30 @@ object SignetBackupManager {
         var keystoreBytes: ByteArray? = null
         var detectedKeystoreFileName: String? = null
 
-        ZipInputStream(ByteArrayInputStream(zipBytes)).use { zis ->
-            var entry: ZipEntry? = zis.nextEntry
-            while (entry != null) {
-                val name = entry.name.substringAfterLast("/")
-                if (name.equals(MANIFEST_FILE_NAME, ignoreCase = true)) {
-                    manifestJsonString = String(zis.readBytes(), Charsets.UTF_8)
-                } else if (name.endsWith(".jks", ignoreCase = true) ||
-                    name.endsWith(".keystore", ignoreCase = true) ||
-                    name.endsWith(".p12", ignoreCase = true)
-                ) {
-                    detectedKeystoreFileName = name
-                    keystoreBytes = zis.readBytes()
+        try {
+            ZipInputStream(ByteArrayInputStream(zipBytes)).use { zis ->
+                var entry: ZipEntry? = zis.nextEntry
+                while (entry != null) {
+                    val name = entry.name.substringAfterLast("/")
+                    val entryBytes = zis.readBytes()
+                    if (name.equals(MANIFEST_FILE_NAME, ignoreCase = true)) {
+                        manifestJsonString = String(entryBytes, Charsets.UTF_8)
+                    } else if (name.endsWith(".jks", ignoreCase = true) ||
+                        name.endsWith(".keystore", ignoreCase = true) ||
+                        name.endsWith(".p12", ignoreCase = true)
+                    ) {
+                        detectedKeystoreFileName = name
+                        keystoreBytes = entryBytes
+                    }
+                    entry = zis.nextEntry
                 }
-                zis.closeEntry()
-                entry = zis.nextEntry
             }
+        } catch (e: SecurityException) {
+            throw e
+        } catch (e: Exception) {
+            throw SecurityException(
+                "Error al leer el archivo ZIP de respaldo: ${e.localizedMessage ?: "Formato comprimido no válido"}"
+            )
         }
 
         if (manifestJsonString.isNullOrBlank()) {

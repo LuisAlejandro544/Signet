@@ -1,8 +1,16 @@
-feat(ci): agregar workflow de validación cruzada Signet con keytool y Google apksigner
+feat(inspector): implementar validador forense APK vs Keystore (APK Matcher) y enriquecer portal web
 
-- Implementar `.github/workflows/cli-interoperability-test.yml` con ejecución manual (`workflow_dispatch`)
-- Crear suite de validación `scripts/cli_interoperability_test.py` para probar compatibilidad entre Keystores de Signet y herramientas oficiales de terminal
-- Validar generación con `keytool -genkeypair`, extracción de huellas SHA-256 (`keytool -list`) y firma de APKs con `apksigner` de Google SDK
-- Verificar conformidad con los esquemas de firma de Android v1 (JAR), v2 (APK Signature) y v3
-- Generar reporte estructurado `cli-interop-report.json` con enmascaramiento estricto y despacho confidencial a Telegram
-- Actualizar documentación en README.md, ROADMAP.md, AI_CONTEXT.md y STRUCTURE.md
+- Crear motor `com.example.crypto.ApkMatcher` para análisis multi-esquema de firmas de Android:
+  * Esquema v1 (JAR signing): lectura y extracción de certificados X.509 en `META-INF/*.RSA`, `*.DSA` o `*.EC` con CMSSignedData de BouncyCastle.
+  * Esquema v2 / v3 (APK Signing Block): parsing binario directo buscando la marca `APK Sig Block 42` y extrayendo certificados de bloques ID `0x7109871a` y `0xf05368c0`.
+  * Extracción de metadatos de paquete APK (Package Name, Version Name, Version Code).
+- Implementar cruce criptográfico de huellas SHA-256 entre certificados de APKs y Keystores (guardados en Room o externos).
+- Diseñar interfaz modular `ApkMatcherSection.kt` e integrarla con selector de subpestañas en `InspectScreen.kt`.
+- Corregir error `Stream Closed` en la restauración de respaldos ZIP en `SignetBackupManager.kt` asegurando lectura secuencial segura de entradas.
+- Incorporar nuevos modelos de datos (`ApkCertificateInfo`, `ApkInfo`, `ApkMatchResult`) y flujos en `KeystoreViewModel.kt`.
+- Añadir tests unitarios y de integración en `ExampleRobolectricTest.kt` cubriendo coincidencias exactas, detección de firmas incompatibles y restauración de paquetes ZIP.
+- Enriquecer y actualizar el portal web oficial (`web/src/pages/terms.astro` y `web/src/pages/privacy.astro`):
+  * Establecer la fecha formal de entrada en vigor y redacción: 16 de agosto de 2026.
+  * Ampliar los Términos y Condiciones a 13 secciones jurídicas y técnicas: licenciamiento GPL v3, soberanía criptográfica de claves del usuario, deberes de custodia y respaldo, seguridad de variables Base64 en CI/CD, disclaimer informativo del APK Matcher, especificaciones del cifrado PEPK para Google Play, respaldos ZIP con firma HMAC-SHA256, distribución en plataformas de terceros (Uptodown, GitHub Releases, APKs directos) y cláusulas de exención de garantía ("AS IS" secciones 15 y 16 GPL v3) y limitación de responsabilidad.
+  * Actualizar la Política de Privacidad reafirmando la arquitectura 100% offline, cero telemetría, almacenamiento local Room y principio de privilegio mínimo con SAF.
+- Actualizar y alinear documentación en README.md, ROADMAP.md, AI_CONTEXT.md, CONTRIBUTING.md, AGENTS.md y STRUCTURE.md (ajustando los canales de distribución externa a Uptodown, GitHub Releases y APKs directos).

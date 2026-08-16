@@ -4,10 +4,13 @@ import android.app.Application
 import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.crypto.ApkMatcher
 import com.example.crypto.KeystoreGenerator
 import com.example.crypto.PasswordGenerator
 import com.example.data.KeystoreRepository
 import com.example.data.local.AppDatabase
+import com.example.data.model.ApkInfo
+import com.example.data.model.ApkMatchResult
 import com.example.data.model.DistinguishedName
 import com.example.data.model.KeyAlgorithm
 import com.example.data.model.KeystoreConfig
@@ -15,12 +18,14 @@ import com.example.data.model.KeystoreDetails
 import com.example.ui.theme.ColorPalette
 import com.example.ui.theme.ThemeMode
 import com.example.ui.theme.ThemeState
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 data class FormState(
     val fileName: String = "release-key",
@@ -74,6 +79,16 @@ sealed interface InspectorUiState {
     data class Error(val message: String) : InspectorUiState
 }
 
+sealed interface ApkMatcherUiState {
+    object Idle : ApkMatcherUiState
+    object Loading : ApkMatcherUiState
+    data class Success(
+        val apkInfo: ApkInfo,
+        val matchResult: ApkMatchResult?
+    ) : ApkMatcherUiState
+    data class Error(val message: String) : ApkMatcherUiState
+}
+
 class KeystoreViewModel(application: Application) : AndroidViewModel(application) {
 
     private val prefs = application.getSharedPreferences("keystore_generator_prefs", Context.MODE_PRIVATE)
@@ -100,6 +115,9 @@ class KeystoreViewModel(application: Application) : AndroidViewModel(application
 
     private val _inspectorState = MutableStateFlow<InspectorUiState>(InspectorUiState.Idle)
     val inspectorState: StateFlow<InspectorUiState> = _inspectorState.asStateFlow()
+
+    private val _apkMatcherState = MutableStateFlow<ApkMatcherUiState>(ApkMatcherUiState.Idle)
+    val apkMatcherState: StateFlow<ApkMatcherUiState> = _apkMatcherState.asStateFlow()
 
     private val _selectedKeystoreForDetail = MutableStateFlow<KeystoreDetails?>(null)
     val selectedKeystoreForDetail: StateFlow<KeystoreDetails?> = _selectedKeystoreForDetail.asStateFlow()
@@ -323,5 +341,49 @@ class KeystoreViewModel(application: Application) : AndroidViewModel(application
 
     fun resetInspector() {
         _inspectorState.value = InspectorUiState.Idle
+    }
+
+    fun matchApkWithKeystore(
+        context: Context?,
+        apkBytes: ByteArray,
+        apkFileName: String,
+        targetKeystore: KeystoreDetails
+    ) {
+        _apkMatcherState.value = ApkMatcherUiState.Loading
+        viewModelScope.launch(Dispatchers.Default) {
+            try {
+                val apkInfo = ApkMatcher.analyzeApk(context, apkBytes, apkFileName)
+                val matchResult = ApkMatcher.matchApkWithKeystoreDetails(apkInfo, targetKeystore)
+                _apkMatcherState.value = ApkMatcherUiState.Success(
+                    apkInfo = apkInfo,
+                    matchResult = matchResult
+                )
+            } catch (e: Exception) {
+                _apkMatcherState.value = ApkMatcherUiState.Error(
+                    e.localizedMessage ?: "Error al analizar y verificar el archivo APK."
+                )
+            }
+        }
+    }
+
+    fun analyzeApk(context: Context?, apkBytes: ByteArray, apkFileName: String) {
+        _apkMatcherState.value = ApkMatcherUiState.Loading
+        viewModelScope.launch(Dispatchers.Default) {
+            try {
+                val apkInfo = ApkMatcher.analyzeApk(context, apkBytes, apkFileName)
+                _apkMatcherState.value = ApkMatcherUiState.Success(
+                    apkInfo = apkInfo,
+                    matchResult = null
+                )
+            } catch (e: Exception) {
+                _apkMatcherState.value = ApkMatcherUiState.Error(
+                    e.localizedMessage ?: "Error al extraer las firmas del APK."
+                )
+            }
+        }
+    }
+
+    fun resetApkMatcher() {
+        _apkMatcherState.value = ApkMatcherUiState.Idle
     }
 }

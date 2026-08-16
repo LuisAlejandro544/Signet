@@ -189,7 +189,7 @@ fun KeystoreValiditySection(
                             modifier = Modifier.size(18.dp)
                         )
                         Text(
-                            text = "Para publicar en Uptodown, F-Droid o tiendas oficiales, se exige un mínimo de 25 años para poder firmar actualizaciones sin que el certificado expire.",
+                            text = "Para publicar en Uptodown, GitHub Releases o tiendas oficiales, se exige un mínimo de 25 años para poder firmar actualizaciones sin que el certificado expire.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             lineHeight = 15.sp

@@ -11,13 +11,13 @@ import Layout from '../layouts/Layout.astro';
     <!-- Header -->
     <div class="border-b border-gray-800 pb-8 mb-10">
       <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-500/10 text-brand-400 text-xs font-mono font-bold mb-4">
-        Última actualización: Agosto 2026 • Licencia GPL v3.0
+        Fecha de entrada en vigor y última actualización: 16 de agosto de 2026 • Licencia GPL v3.0
       </div>
       <h1 class="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
         Términos y Condiciones de Uso
       </h1>
       <p class="mt-4 text-lg text-gray-400">
-        Signet es software libre y de código abierto diseñado para la generación, gestión e inspección de certificados criptográficos en Android.
+        Signet es una suite criptográfica autónoma, libre y de código abierto para la generación, inspección, validación forense y exportación de almacenes de claves y certificados digitales para Android.
       </p>
     </div>
 
@@ -26,61 +26,134 @@ import Layout from '../layouts/Layout.astro';
       
       <!-- Section 1 -->
       <section>
-        <h2 class="text-xl font-bold text-white mb-3">1. Aceptación de los Términos</h2>
+        <h2 class="text-xl font-bold text-white mb-3">1. Aceptación de los Términos y Naturaleza del Servicio</h2>
         <p>
-          Al descargar, instalar, compilar o utilizar la aplicación móvil <strong>Signet</strong> o acceder a este sitio web, aceptas quedar legalmente vinculado por los presentes Términos y Condiciones y por los términos de la <strong>Licencia Pública General de GNU versión 3 (GPL v3)</strong>.
+          Al descargar, compilar, instalar, ejecutar o utilizar la aplicación móvil <strong>Signet</strong>, su código fuente o acceder a este portal web, el usuario declara haber leído, comprendido y aceptado en su totalidad los presentes Términos y Condiciones de Uso, así como los preceptos de la <strong>Licencia Pública General de GNU versión 3 (GNU GPL v3)</strong>.
+        </p>
+        <p class="mt-2">
+          Signet es una herramienta de software cliente que se ejecuta exclusivamente de manera local en el dispositivo del usuario. No constituye un servicio SaaS (Software as a Service) centralizado, no mantiene servidores de autenticación ni ofrece servicios de custodia en la nube.
         </p>
       </section>
 
       <!-- Section 2 -->
       <section class="border-t border-gray-800/80 pt-6">
-        <h2 class="text-xl font-bold text-white mb-3">2. Licencia de Software (GNU GPL v3)</h2>
+        <h2 class="text-xl font-bold text-white mb-3">2. Licencia de Software y Código Abierto (GNU GPL v3)</h2>
         <p>
-          Signet es software libre. Tienes el derecho de ejecutar, estudiar, copiar, modificar y redistribuir el software bajo las condiciones estipuladas en la licencia GPL v3:
+          El software Signet se distribuye bajo los términos de la <strong>GNU General Public License v3.0</strong>. Como usuario o desarrollador, se te otorgan las libertades fundamentales del software libre:
         </p>
-        <ul class="list-disc list-inside space-y-1.5 mt-2 text-gray-400">
-          <li>Cualquier trabajo derivado debe ser distribuido bajo la misma licencia GPL v3.</li>
-          <li>Se debe mantener la atribución original de derechos de autor y el aviso de licencia.</li>
-          <li>El código fuente completo debe estar a disposición de los usuarios que reciban los binarios.</li>
+        <ul class="list-disc list-inside space-y-2 mt-2 text-gray-400">
+          <li><strong>Libertad de Uso:</strong> Derecho a ejecutar el programa para cualquier propósito, comercial, educativo, personal o industrial.</li>
+          <li><strong>Libertad de Estudio y Modificación:</strong> Derecho a inspeccionar el código fuente completo, auditar su comportamiento criptográfico y adaptarlo a tus necesidades.</li>
+          <li><strong>Libertad de Redistribución y Copyleft:</strong> Puedes redistribuir copias del software o de trabajos derivados, siempre y cuando se distribuyan bajo los mismos términos exactos de la licencia GPL v3, manteniendo los avisos de copyright originales y poniendo a disposición el código fuente completo correspondiente.</li>
         </ul>
       </section>
 
       <!-- Section 3 -->
       <section class="border-t border-gray-800/80 pt-6">
-        <h2 class="text-xl font-bold text-white mb-3">3. Propiedad de las Claves y Certificados</h2>
+        <h2 class="text-xl font-bold text-white mb-3">3. Propiedad y Soberanía Criptográfica del Usuario</h2>
         <p>
-          <strong>Todos los archivos Keystore (<code class="text-brand-300 font-mono">.jks</code> / <code class="text-brand-300 font-mono">.keystore</code>), certificados X.509, claves privadas, huellas y contraseñas generadas a través de Signet pertenecen 100% al usuario.</strong>
+          <strong>La totalidad de los artefactos generados mediante Signet pertenecen en un 100% y de forma exclusiva al usuario que los creó.</strong> Esto incluye de forma no limitativa:
         </p>
-        <p class="mt-2">
-          Los autores, mantenedores o colaboradores del proyecto Signet no reclaman ninguna titularidad, derecho ni acceso sobre los certificados creados.
+        <ul class="list-disc list-inside space-y-1.5 mt-2 text-gray-400">
+          <li>Archivos de almacén de claves (<code class="text-brand-300 font-mono">.jks</code> y <code class="text-brand-300 font-mono">.keystore</code>).</li>
+          <li>Pares de claves públicas y privadas (algoritmos RSA 2048, RSA 4096, EC P-256).</li>
+          <li>Certificados digitales X.509 y valores de Distinguished Name (X.500 DN).</li>
+          <li>Archivos cifrados de clave de exportación para Google Play (<code class="text-brand-300 font-mono">.pepk</code>).</li>
+          <li>Contraseñas generadas por el motor CSPRNG y cadenas codificadas en Base64.</li>
+        </ul>
+        <p class="mt-3">
+          Los autores, mantenedores o contribuidores del proyecto Signet no tienen acceso, no poseen llaves maestras de recuperación ni reclaman ningún derecho de propiedad intelectual sobre las aplicaciones firmadas con estos certificados.
         </p>
       </section>
 
       <!-- Section 4 -->
       <section class="border-t border-gray-800/80 pt-6">
-        <h2 class="text-xl font-bold text-white mb-3">4. Responsabilidad de Custodia y Respaldo</h2>
+        <h2 class="text-xl font-bold text-white mb-3">4. Deberes de Custodia, Respaldo y Manejo de Secretos</h2>
         <p>
-          La seguridad criptográfica depende de la correcta custodia de los secretos:
+          La seguridad de cualquier ecosistema de distribución de aplicaciones depende fundamentalmente de la custodia rigurosa de las claves privadas. El usuario reconoce y asume las siguientes responsabilidades:
         </p>
         <ul class="list-disc list-inside space-y-2 mt-2 text-gray-400">
-          <li><strong>Pérdida de Contraseñas o Claves:</strong> Dado que Signet no dispone de servidores en la nube ni almacenamiento remoto, es responsabilidad exclusiva del usuario guardar copias de seguridad de sus archivos y contraseñas en lugares seguros. La pérdida de una clave de firma de producción puede impedir la actualización de aplicaciones en tiendas de Android.</li>
-          <li><strong>Uso en CI/CD:</strong> Las cadenas Base64 exportadas deben ser administradas como secretos confidenciales en plataformas como GitHub Actions, Bitrise o Fastlane.</li>
+          <li><strong>Irreversibilidad de la Pérdida:</strong> Dado que Signet no almacena datos en la nube ni cuenta con servidores de recuperación, si el usuario desinstala la aplicación sin haber realizado un respaldo o si olvida las contraseñas asignadas, <strong>no existirá método alguno para recuperar las claves privadas</strong>. La pérdida de una clave de firma de lanzamiento puede impedir de forma definitiva la actualización de aplicaciones publicadas en tiendas como Google Play, Uptodown o distribución directa mediante APKs.</li>
+          <li><strong>Custodia de Copias de Seguridad:</strong> El usuario es el único responsable de salvaguardar los paquetes de respaldo <code class="text-brand-300 font-mono">.zip</code> y contraseñas en medios físicos o bóvedas de seguridad cifradas externas.</li>
         </ul>
       </section>
 
       <!-- Section 5 -->
       <section class="border-t border-gray-800/80 pt-6">
-        <h2 class="text-xl font-bold text-white mb-3">5. Exención de Garantías (Disclaimer "AS IS")</h2>
-        <div class="p-4 rounded-xl bg-oled-900 border border-gray-800 text-xs font-mono text-gray-400 uppercase leading-relaxed">
-          EL PROGRAMA SE DISTRIBUYE "TAL CUAL", SIN GARANTÍA DE NINGÚN TIPO, EXPRESA O IMPLÍCITA, INCLUYENDO, PERO SIN LIMITARSE A, LAS GARANTÍAS IMPLÍCITAS DE COMERCIABILIDAD Y ADECUACIÓN PARA UN PROPÓSITO PARTICULAR. EL RIESGO TOTAL EN CUANTO A LA CALIDAD Y EL RENDIMIENTO DEL PROGRAMA RECAE EN EL USUARIO.
-        </div>
+        <h2 class="text-xl font-bold text-white mb-3">5. Uso en Integración Continua (CI/CD) y Exposición de Base64</h2>
+        <p>
+          Signet provee utilidades para codificar almacenes de claves en Base64 con el fin de facilitar la automatización de firmas en pipelines de CI/CD (como GitHub Actions, Bitrise, Fastlane o GitLab CI). El usuario asume la total responsabilidad de:
+        </p>
+        <ul class="list-disc list-inside space-y-1.5 mt-2 text-gray-400">
+          <li>Inyectar estas cadenas únicamente a través de gestores de secretos cifrados (<code class="text-brand-300 font-mono">Repository Secrets</code>).</li>
+          <li>Evitar exponer cadenas Base64 o contraseñas en texto plano dentro de repositorios de control de versiones o registros públicos de compilación.</li>
+        </ul>
       </section>
 
       <!-- Section 6 -->
       <section class="border-t border-gray-800/80 pt-6">
-        <h2 class="text-xl font-bold text-white mb-3">6. Limitación de Responsabilidad</h2>
+        <h2 class="text-xl font-bold text-white mb-3">6. Validador Forense APK vs Keystore (APK Matcher)</h2>
         <p>
-          En ningún caso los autores o titulares de derechos de autor serán responsables por cualquier daño directo, indirecto, incidental, especial, ejemplar o consecuente (incluyendo, pero no limitado a, la pérdida de uso, datos, beneficios o interrupción de negocios) derivado del uso o la incapacidad de usar el software.
+          La funcionalidad <strong>APK Matcher</strong> realiza una extracción técnica local de certificados y firmas (esquemas v1, v2 y v3) embebidas en archivos APK para contrastar sus huellas digitales SHA-256 contra un Keystore seleccionado.
+        </p>
+        <p class="mt-2">
+          Esta función se ofrece con fines informativos y de diagnóstico preventivo. Aunque Signet implementa estándares criptográficos rigurosos, el usuario debe verificar independientemente los requisitos específicos de su canal de distribución antes del despliegue masivo en producción.
+        </p>
+      </section>
+
+      <!-- Section 7 -->
+      <section class="border-t border-gray-800/80 pt-6">
+        <h2 class="text-xl font-bold text-white mb-3">7. Cifrado PEPK para Google Play App Signing</h2>
+        <p>
+          El generador PEPK integrado aplica un esquema de cifrado híbrido (RSA-OAEP con SHA-256 y AES-256-GCM) utilizando la clave pública oficial provista por Google Play Console (<code class="text-brand-300 font-mono">encryption_public_key.pem</code>). El usuario es responsable de verificar la autenticidad del certificado público descargado desde su propia consola de desarrollador de Google antes de proceder al cifrado de su clave privada.
+        </p>
+      </section>
+
+      <!-- Section 8 -->
+      <section class="border-t border-gray-800/80 pt-6">
+        <h2 class="text-xl font-bold text-white mb-3">8. Respaldos ZIP y Protección Anti-Manipulación (HMAC)</h2>
+        <p>
+          Los archivos ZIP de respaldo generados por Signet incorporan un resumen criptográfico HMAC-SHA256 para verificar la integridad del paquete. Si un archivo de respaldo es alterado o corrompido, la aplicación rechazará automáticamente la restauración mediante una excepción de seguridad. Esta medida protege contra manipulaciones externas pero no exime al usuario de mantener sus respaldos en ubicaciones seguras.
+        </p>
+      </section>
+
+      <!-- Section 9 -->
+      <section class="border-t border-gray-800/80 pt-6">
+        <h2 class="text-xl font-bold text-white mb-3">9. Distribución en Plataformas de Terceros</h2>
+        <p>
+          Signet está diseñada como software autónomo preparado para su distribución universal tanto en tiendas de aplicaciones como en plataformas comunitarias y de terceros (incluyendo Uptodown, GitHub Releases y descarga directa de APKs). Se recomienda al usuario descargar la aplicación exclusivamente desde canales oficiales y verificar los hashes o firmas de publicación para evitar versiones apócrifas.
+        </p>
+      </section>
+
+      <!-- Section 10 -->
+      <section class="border-t border-gray-800/80 pt-6">
+        <h2 class="text-xl font-bold text-white mb-3">10. Cumplimiento Normativo y Control de Exportación Criptográfica</h2>
+        <p>
+          Signet utiliza algoritmos criptográficos de clave pública estándar de la industria (BouncyCastle JCA/JCE). El usuario se compromete a utilizar este software de conformidad con las leyes, estatutos y regulaciones aplicables en su jurisdicción, incluidas aquellas relativas a la exportación, importación y uso de software criptográfico.
+        </p>
+      </section>
+
+      <!-- Section 11 -->
+      <section class="border-t border-gray-800/80 pt-6">
+        <h2 class="text-xl font-bold text-white mb-3">11. Exención Total de Garantías (Disclaimer "AS IS")</h2>
+        <div class="p-5 rounded-2xl bg-oled-900 border border-gray-800 text-xs font-mono text-gray-400 uppercase leading-relaxed">
+          DE CONFORMIDAD CON LAS SECCIONES 15 Y 16 DE LA LICENCIA GNU GPL V3, EL SOFTWARE SE ENTREGA "TAL CUAL" Y "SEGÚN DISPONIBILIDAD", SIN GARANTÍAS DE NINGUNA CLASE, SEAN EXPRESAS O IMPLÍCITAS, INCLUYENDO, SIN LIMITACIÓN, LAS GARANTÍAS DE COMERCIABILIDAD, APTITUD PARA UN PROPÓSITO DETERMINADO O NO INFRACCIÓN. TODO EL RIESGO RELATIVO A LA CALIDAD, DESEMPEÑO Y ADECUACIÓN DEL PROGRAMA RECAE EXCLUSIVAMENTE EN EL USUARIO.
+        </div>
+      </section>
+
+      <!-- Section 12 -->
+      <section class="border-t border-gray-800/80 pt-6">
+        <h2 class="text-xl font-bold text-white mb-3">12. Limitación Estricta de Responsabilidad</h2>
+        <p>
+          En la máxima medida permitida por la legislación aplicable, bajo ninguna circunstancia los desarrolladores, autores, colaboradores o distribuidores de Signet serán legalmente responsables por daños directos, indirectos, incidentales, especiales, punitivos o consecuentes (incluyendo, entre otros, la pérdida de claves de firma, imposibilidad de actualizar aplicaciones, fallos de compilación en CI/CD, corrupción de datos, interrupción de actividades comerciales o lucro cesante) que surjan del uso o la incapacidad de uso de este software.
+        </p>
+      </section>
+
+      <!-- Section 13 -->
+      <section class="border-t border-gray-800/80 pt-6">
+        <h2 class="text-xl font-bold text-white mb-3">13. Modificaciones, Divisibilidad y Vigencia</h2>
+        <p>
+          Los presentes Términos fueron formalizados con fecha <strong>16 de agosto de 2026</strong>. Si cualquier cláusula de este documento fuese declarada inválida o inaplicable por un tribunal competente, dicha disposición se interpretará en la medida estrictamente necesaria para hacerla ejecutable, manteniéndose en pleno vigor el resto de las disposiciones.
         </p>
       </section>
 

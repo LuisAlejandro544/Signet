@@ -11,13 +11,13 @@ import Layout from '../layouts/Layout.astro';
     <!-- Header -->
     <div class="border-b border-gray-800 pb-8 mb-10">
       <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-500/10 text-brand-400 text-xs font-mono font-bold mb-4">
-        Última actualización: Agosto 2026 • Versión 1.0
+        Fecha de entrada en vigor y última actualización: 16 de agosto de 2026 • Versión 1.0
       </div>
       <h1 class="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
         Política de Privacidad
       </h1>
       <p class="mt-4 text-lg text-gray-400">
-        En <strong>Signet</strong>, tu privacidad y la seguridad de tus certificados de firma no son una promesa de marketing, son un principio arquitectónico inquebrantable.
+        En <strong>Signet</strong>, tu privacidad y la soberanía de tus certificados de firma no son una promesa comercial: son un principio arquitectónico estricto e inmutable.
       </p>
     </div>
 
@@ -30,93 +30,91 @@ import Layout from '../layouts/Layout.astro';
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
           </svg>
-          Declaración Principal: Cero Recolección de Datos
+          Principio Fundamental: Cero Recolección de Datos
         </h2>
         <p class="text-sm text-gray-300">
-          <strong>Signet no recopila, no transmite, no almacena en la nube, no vende ni comparte NINGÚN tipo de información personal, técnica, criptográfica o de telemetría.</strong> Todo el procesamiento ocurre exclusivamente en la memoria y almacenamiento local de tu dispositivo Android.
+          <strong>Signet no recopila, no transmite, no almacena en servidores remotos, no comercializa ni comparte NINGÚN tipo de dato personal, identificador de dispositivo, contraseña, clave privada o telemetría.</strong> Todo el procesamiento criptográfico, generación de llaves e inspección ocurre de manera 100% local en la memoria y almacenamiento de tu dispositivo Android.
         </p>
       </div>
 
       <!-- Section 1 -->
       <section class="border-t border-gray-800/80 pt-6">
-        <h2 class="text-xl font-bold text-white mb-3">1. Datos Criptográficos y Credenciales</h2>
+        <h2 class="text-xl font-bold text-white mb-3">1. Datos Criptográficos y Credenciales Procesadas</h2>
         <p>
-          Cuando generas o inspeccionas un Keystore (<code class="text-brand-300 font-mono">.jks</code> o <code class="text-brand-300 font-mono">.keystore</code>), los siguientes datos son procesados:
+          Al utilizar Signet para generar, inspeccionar o validar Keystores (<code class="text-brand-300 font-mono">.jks</code>, <code class="text-brand-300 font-mono">.keystore</code>, <code class="text-brand-300 font-mono">.pepk</code>) o archivos APK, se procesan localmente los siguientes elementos:
         </p>
         <ul class="list-disc list-inside space-y-1.5 mt-2 text-gray-400">
-          <li>Alias y nombres identificadores de la clave.</li>
-          <li>Contraseñas de acceso y de desbloqueo de clave.</li>
-          <li>Valores de Distinguished Name (DN): CN, OU, O, L, ST, C.</li>
-          <li>Huellas digitales (SHA-256, SHA-1, MD5) y certificados X.509.</li>
-          <li>Cadenas codificadas en Base64 para integración continua (CI/CD).</li>
+          <li>Alias y nombres identificadores de los certificados.</li>
+          <li>Contraseñas de acceso al almacén de claves y contraseñas individuales de alias.</li>
+          <li>Valores de Distinguished Name (X.500 DN): CN, OU, O, L, ST, C.</li>
+          <li>Huellas digitales criptográficas (SHA-256, SHA-1, MD5) y certificados X.509.</li>
+          <li>Cadenas binarias codificadas en Base64 para integración continua (CI/CD).</li>
+          <li>Binarios de paquetes APK cargados para análisis forense de firmas (v1, v2, v3).</li>
         </ul>
         <p class="mt-3">
-          <strong>Tratamiento:</strong> Estos datos se almacenan exclusivamente en la base de datos local SQLite (Room) de tu propio dispositivo Android. Ninguna contraseña o clave privada es enviada a servidores externos bajo ninguna circunstancia.
+          <strong>Almacenamiento y Ciclo de Vida:</strong> Estos datos se guardan única y exclusivamente en la base de datos local SQLite (mediante la biblioteca Room) protegida por el sandbox del sistema operativo Android. Ninguna clave privada o secreto sale jamás de tu dispositivo sin tu acción deliberada de exportación mediante el sistema de archivos del SO.
         </p>
       </section>
 
       <!-- Section 2 -->
       <section class="border-t border-gray-800/80 pt-6" id="offline-guarantee">
-        <h2 class="text-xl font-bold text-white mb-3">2. Ausencia Total de Telemetría y Rastreadores</h2>
+        <h2 class="text-xl font-bold text-white mb-3">2. Ausencia Absoluta de Telemetría, Analítica y Rastreadores</h2>
         <p>
-          Para garantizar la máxima seguridad e independencia:
+          Para salvaguardar la confidencialidad de tus proyectos y llaves maestras de publicación:
         </p>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
           <div class="p-4 rounded-xl bg-oled-900 border border-gray-800">
-            <h3 class="font-bold text-white text-sm">❌ Sin Analíticas</h3>
-            <p class="text-xs text-gray-400 mt-1">No incluimos Google Analytics, Firebase Analytics, Mixpanel ni rastreadores de comportamiento.</p>
+            <h3 class="font-bold text-white text-sm">❌ Cero Analíticas de Uso</h3>
+            <p class="text-xs text-gray-400 mt-1">No integramos Google Analytics, Firebase Analytics, Segment, Mixpanel ni ningún SDK de tracking de comportamiento.</p>
           </div>
           <div class="p-4 rounded-xl bg-oled-900 border border-gray-800">
-            <h3 class="font-bold text-white text-sm">❌ Sin Crash Reporting Externo</h3>
-            <p class="text-xs text-gray-400 mt-1">No se envían volcados de memoria ni reportes de fallo automáticos a servidores de terceros.</p>
+            <h3 class="font-bold text-white text-sm">❌ Cero Reportes de Crash Remotos</h3>
+            <p class="text-xs text-gray-400 mt-1">No se transmiten volcados de memoria ni reportes de excepción a servidores externos (sin Sentry ni Crashlytics).</p>
           </div>
           <div class="p-4 rounded-xl bg-oled-900 border border-gray-800">
-            <h3 class="font-bold text-white text-sm">❌ Sin Publicidad</h3>
-            <p class="text-xs text-gray-400 mt-1">La aplicación no cuenta con SDKs de anuncios (AdMob, Unity Ads, etc.) ni rastreo de identificadores publicitarios.</p>
+            <h3 class="font-bold text-white text-sm">❌ Cero Redes Publicitarias</h3>
+            <p class="text-xs text-gray-400 mt-1">La aplicación no posee anuncios, identificadores publicitarios (GAID) ni SDKs de monetización invasiva.</p>
           </div>
           <div class="p-4 rounded-xl bg-oled-900 border border-gray-800">
-            <h3 class="font-bold text-white text-sm">❌ Sin Servicios Obligatorios de Google</h3>
-            <p class="text-xs text-gray-400 mt-1">Completamente funcional en dispositivos libres de Google Play Services (AOSP, LineageOS, GrapheneOS).</p>
+            <h3 class="font-bold text-white text-sm">❌ Sin Dependencia de Google Services</h3>
+            <p class="text-xs text-gray-400 mt-1">100% funcional en ROMs libres de servicios propietarios de Google (AOSP, GrapheneOS, LineageOS, CalyxOS).</p>
           </div>
         </div>
       </section>
 
       <!-- Section 3 -->
       <section class="border-t border-gray-800/80 pt-6">
-        <h2 class="text-xl font-bold text-white mb-3">3. Permisos del Dispositivo</h2>
+        <h2 class="text-xl font-bold text-white mb-3">3. Permisos del Dispositivo y Privilegio Mínimo</h2>
         <p>
-          Signet está diseñada bajo el principio de privilegio mínimo:
+          Signet opera estrictamente bajo el principio de privilegio mínimo de Android:
         </p>
         <ul class="list-disc list-inside space-y-2 mt-2 text-gray-400">
-          <li><strong>Storage Access Framework (SAF):</strong> Utilizamos el selector de documentos estándar de Android para exportar e importar archivos sin requerir permisos invasivos de lectura global del almacenamiento.</li>
-          <li><strong>FileProvider:</strong> Empleado exclusivamente cuando el usuario solicita explícitamente compartir un keystore mediante la hoja de compartir nativa del sistema operativo.</li>
+          <li><strong>Storage Access Framework (SAF):</strong> Se utiliza el selector nativo de documentos del sistema para guardar o cargar archivos de forma explícita, evitando solicitar permisos globales invasivos de lectura/escritura en el almacenamiento.</li>
+          <li><strong>FileProvider Seguro:</strong> Empleado temporalmente y de forma aislada únicamente cuando solicitas de forma explícita compartir un archivo mediante el menú estándar del sistema operativo.</li>
         </ul>
       </section>
 
       <!-- Section 4 -->
       <section class="border-t border-gray-800/80 pt-6">
-        <h2 class="text-xl font-bold text-white mb-3">4. Respaldos ZIP y Seguridad Anti-Manipulación</h2>
+        <h2 class="text-xl font-bold text-white mb-3">4. Seguridad en Respaldos ZIP y Verificación HMAC</h2>
         <p>
-          Los paquetes de respaldo <code class="text-brand-300 font-mono">.zip</code> generados por Signet contienen una firma digital <strong class="text-brand-300">HMAC-SHA256</strong> en su manifiesto. Este mecanismo se procesa íntegramente de manera local para certificar que el archivo no fue modificado externamente antes de ser restaurado.
+          Los paquetes de respaldo <code class="text-brand-300 font-mono">.zip</code> generados por Signet incorporan un manifiesto con firma digital <strong class="text-brand-300">HMAC-SHA256</strong>. La clave y validación de esta firma se ejecutan localmente para detectar adulteraciones o corrupciones en el archivo antes de permitir su restauración.
         </p>
       </section>
 
       <!-- Section 5 -->
       <section class="border-t border-gray-800/80 pt-6">
-        <h2 class="text-xl font-bold text-white mb-3">5. Auditoría y Código Abierto</h2>
+        <h2 class="text-xl font-bold text-white mb-3">5. Auditoría Independiente y Código Abierto</h2>
         <p>
-          Cualquier usuario o desarrollador puede auditar de forma independiente el código fuente completo de la aplicación en nuestro repositorio público para verificar la veracidad de esta política:
-        </p>
-        <p class="mt-2">
-          Licencia: <strong>GNU General Public License v3.0 (GPL v3)</strong>.
+          La transparencia es verificable. Todo el código fuente de Signet está publicado bajo la licencia <strong>GNU General Public License v3.0 (GPL v3)</strong>, permitiendo a cualquier auditor o desarrollador examinar la inexistencia de llamadas de red o extracción de datos.
         </p>
       </section>
 
       <!-- Section 6 -->
       <section class="border-t border-gray-800/80 pt-6">
-        <h2 class="text-xl font-bold text-white mb-3">6. Cambios en esta Política</h2>
+        <h2 class="text-xl font-bold text-white mb-3">6. Vigencia y Actualizaciones de la Política</h2>
         <p>
-          Cualquier modificación futura a este documento se reflejará con una actualización de fecha en esta página web y en el repositorio del proyecto. Dado que Signet no recopila datos de contacto, te sugerimos revisar periódicamente esta página o los changelogs de versiones.
+          Esta política fue redactada y entró en vigor el <strong>16 de agosto de 2026</strong>. Cualquier actualización sustancial futura será publicada en este sitio web y en el repositorio oficial del proyecto. Al ser una aplicación estrictamente offline que no recopila correos electrónicos ni información de contacto, te invitamos a consultar periódicamente este documento.
         </p>
       </section>
 

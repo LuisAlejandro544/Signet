@@ -26,7 +26,7 @@ Aunque no se aceptan Pull Requests de código por ahora, tu retroalimentación e
 
 * **Reportar Problemas (Issues)**: Si encuentras un fallo visual, un error en la generación criptográfica o un problema de compatibilidad con versiones de Android (Android 8 a Android 15), puedes abrir un Issue detallando el dispositivo y los pasos para reproducirlo.
 * **Sugerencias de Funcionalidades**: Si tienes ideas para nuevos formatos o workflows de CI/CD, puedes compartirlas en la sección de discusiones o issues.
-* **Probar la App**: Descargar y probar los APKs generados en plataformas como Uptodown, F-Droid o GitHub Releases.
+* **Probar la App**: Descargar y probar los APKs generados en plataformas como Uptodown o GitHub Releases.
 
 ---
 

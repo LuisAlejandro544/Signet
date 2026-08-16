@@ -58,3 +58,34 @@ data class KeystoreDetails(
     val certificatePem: String,
     val createdAt: Long = System.currentTimeMillis()
 )
+
+data class ApkCertificateInfo(
+    val sha256Fingerprint: String,
+    val sha1Fingerprint: String,
+    val md5Fingerprint: String,
+    val subjectDn: String,
+    val issuerDn: String,
+    val validFrom: Long,
+    val validUntil: Long,
+    val serialNumber: String,
+    val signatureScheme: String
+)
+
+data class ApkInfo(
+    val fileName: String,
+    val fileSizeBytes: Long,
+    val packageName: String?,
+    val versionName: String?,
+    val versionCode: Long?,
+    val certificates: List<ApkCertificateInfo>,
+    val signatureSchemesFound: List<String>
+)
+
+data class ApkMatchResult(
+    val isMatch: Boolean,
+    val apkInfo: ApkInfo,
+    val targetKeystoreName: String,
+    val matchedAlias: String?,
+    val matchedFingerprintSha256: String?,
+    val reasonMessage: String
+)

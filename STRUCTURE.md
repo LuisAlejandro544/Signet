@@ -14,6 +14,7 @@ app/
 │   │   ├── java/com/example/
 │   │   │   ├── MainActivity.kt                  # Punto de entrada de la actividad, Navigation y tema reactivo
 │   │   │   ├── crypto/
+│   │   │   │   ├── ApkMatcher.kt                # Validador forense de firmas APK vs Keystore (v1 JAR, v2/v3 Signing Block)
 │   │   │   │   ├── KeystoreGenerator.kt         # Motor criptográfico: X.509, BouncyCastle, hashes, PEM y Base64
 │   │   │   │   ├── PasswordGenerator.kt         # Generador criptográfico CSPRNG de contraseñas ultra seguras y cálculo de entropía
 │   │   │   │   ├── PepkGenerator.kt             # Cifrado híbrido PEPK (RSA-OAEP + AES-GCM) para Google Play App Signing
@@ -26,9 +27,9 @@ app/
 │   │   │   │   │   ├── KeystoreDao.kt            # Operaciones DAO (insert, query, delete)
 │   │   │   │   │   └── KeystoreEntity.kt         # Entidad de persistencia de keystores con Base64 y credenciales
 │   │   │   │   └── model/
-│   │   │   │       └── KeystoreModels.kt        # Modelos de dominio (KeystoreConfig, KeystoreDetails, etc.)
+│   │   │   │       └── KeystoreModels.kt        # Modelos de dominio (KeystoreConfig, KeystoreDetails, ApkInfo, ApkMatchResult, etc.)
 │   │   │   └── ui/
-│   │   │       ├── KeystoreViewModel.kt         # ViewModel central: StateFlows, tema, validaciones y UI state
+│   │   │       ├── KeystoreViewModel.kt         # ViewModel central: StateFlows, tema, validaciones, APK Matcher y UI state
 │   │   │       ├── MainScreen.kt                # Barra de navegación de 4 pestañas y contenedor de vistas
 │   │   │       ├── components/
 │   │   │       │   ├── KeystoreDetailsSheet.kt  # BottomSheet orquestador de exportación SAF, compartir y detalles
@@ -47,7 +48,9 @@ app/
 │   │   │       │   │   ├── KeystoreCredentialsForm.kt    # Formato, contraseñas, medidor de entropía y generador CSPRNG
 │   │   │       │   │   ├── KeystoreValiditySection.kt    # Slider interactivo de años, chips y selector de algoritmo
 │   │   │       │   │   └── KeystoreDnFields.kt           # Formulario X.500 con distinción de obligatorios Google y opcionales
-│   │   │       │   ├── InspectScreen.kt         # Pantalla de análisis e inspección de archivos externos
+│   │   │       │   ├── InspectScreen.kt         # Pantalla de análisis e inspección de archivos externos y subpestañas
+│   │   │       │   ├── inspect/
+│   │   │       │   │   └── ApkMatcherSection.kt     # Interfaz interactiva de validación forense APK vs Keystore
 │   │   │       │   ├── SavedKeystoresScreen.kt  # Pantalla de historial de keystores guardados
 │   │   │       │   └── SettingsScreen.kt        # Pantalla de configuración visual (Temas, Material You, OLED)
 │   │   │       └── theme/
@@ -58,55 +61,48 @@ app/
 │   │   └── res/                                 # Recursos visuales, strings y drawables
 │   └── test/
 │       └── java/com/example/
-│           └── ExampleRobolectricTest.kt        # Tests unitarios con Robolectric para generación, contraseñas y validación
+│           └── ExampleRobolectricTest.kt        # Suite de pruebas unitarias Robolectric (Keystore, ZIP restore, PEPK, APK Matcher)
 ├── .github/
 │   └── workflows/
-│       ├── build-debug-apk.yml                  # Compilación manual (workflow_dispatch) de APK Debug con generación de clave en runner y caché de Gradle
-│       ├── cli-interoperability-test.yml        # Validación cruzada de Keystores y firmas v1/v2/v3 con keytool y apksigner oficial
-│       ├── emulator-e2e-test.yml                # Pruebas E2E en emulador real KVM en runner con validación de ZIPs y reporte JSON a Telegram
-│       ├── security-scan.yml                    # Auditoría de seguridad silenciosa (modo stealth) y envío de reporte JSON a Telegram
-│       └── sync-zip.yml                         # Automatización de sincronización desde zip
-├── scripts/
-│   ├── cli_interoperability_test.py             # Suite de validación cruzada Signet <-> keytool / Google apksigner
-│   ├── run_e2e_test.sh                          # Script ejecutable de inicialización y ejecución en emulador KVM
-│   └── e2e_emulator_test.py                     # Suite de pruebas E2E, validación HMAC anti-tampering y generación de JSON
-├── web/                                         # Portal web oficial, Términos y Política de Privacidad (Astro + Tailwind para Cloudflare Pages)
-│   ├── public/                                  # Activos estáticos (favicon.svg, robots.txt)
-│   ├── src/
-│   │   ├── components/                          # Componentes UI (Navbar, Footer, Hero, Features, SecurityPillars, DownloadSection)
-│   │   ├── layouts/                             # Layout base (Layout.astro)
-│   │   ├── pages/                               # Rutas y páginas (index.astro, privacy.astro, terms.astro, 404.astro)
-│   │   └── styles/                              # Estilos globales y utilidades Tailwind (global.css)
-│   ├── astro.config.mjs                         # Configuración de Astro con Tailwind y Cloudflare Pages
-│   ├── tailwind.config.mjs                      # Paleta de colores Dark/OLED y tipografía
-│   ├── wrangler.toml                            # Configuración de despliegue Cloudflare Pages
-│   └── package.json                             # Dependencias del frontend estático
-├── zip/                                         # Carpeta para archivos comprimidos
-├── LICENSE                                      # Licencia GNU General Public License v3.0 (GPL v3)
-├── CONTRIBUTING.md                             # Directrices de contribución y políticas del repositorio
-├── commit_message.txt                           # Mensaje de commit predeterminado
-└── metadata.json                                # Metadatos de la plataforma AI Studio
+│       ├── build-debug-apk.yml                  # Compilación y despacho confidencial de APK Debug
+│       ├── security-scan.yml                    # Auditoría de seguridad estática en modo Stealth
+│       ├── emulator-e2e-test.yml                # Pruebas E2E en emulador nativo Android KVM
+│       ├── cli-interoperability-test.yml        # Validación cruzada CLI con keytool y Google apksigner
+│       └── sync-zip.yml                         # Respaldo automático
+└── web/                                         # Portal web estático (Astro 5 + Tailwind CSS para Cloudflare Pages)
+    ├── src/
+    │   ├── layouts/Layout.astro                 # Plantilla principal con metadata SEO y tema OLED
+    │   ├── components/                          # Navbar, Hero, Features, SecurityPillars, DownloadSection, Footer
+    │   └── pages/
+    │       ├── index.astro                      # Página de inicio con descarga de APK e información del proyecto
+    │       ├── privacy.astro                    # Política de privacidad (Cero recolección, offline, vigencia 16-08-2026)
+    │       ├── terms.astro                      # Términos y condiciones detallados (13 secciones GPL v3, vigencia 16-08-2026)
+    │       └── 404.astro                        # Página 404 personalizada
+    ├── wrangler.toml                            # Configuración de despliegue en Cloudflare Pages
+    └── astro.config.mjs                         # Configuración de Astro con integración Tailwind CSS
 ```
 
 ---
 
-## 🔄 Flujo de Datos
+## 🔄 Flujo de Datos y Operaciones Clave
 
-```
-[UI Composables] (GenerateScreen, SavedKeystoresScreen, InspectScreen, SettingsScreen)
-       │
-       ▼ (Eventos / Formularios / Tema)
-[KeystoreViewModel] (MutableStateFlow / UI States / ThemeState)
-       │
-       ├──► [PasswordGenerator] (CSPRNG, Entropía Shannon, Caracteres Seguros Terminal/Gradle)
-       │
-       ├──► [KeystoreGenerator & SnippetGenerator] (Criptografía X.509, BouncyCastle, Hashes, Base64, Templates CI/CD)
-       │
-       ├──► [SharedPreferences] (Persistencia de Modo de Pantalla y Paleta de Color)
-       │
-       ▼ (Persistencia)
-[KeystoreRepository]
-       │
-       ▼
-[AppDatabase / Room DAO] ◄──► [SQLite Local Storage]
-```
+### 1. Validación Forense de APK vs Keystore (APK Matcher)
+1. **Selección del APK**: El usuario proporciona un archivo `.apk` mediante Android SAF.
+2. **Extracción y Parsing Multi-Esquema**:
+   - `ApkMatcher` examina primero el bloque **APK Signing Block** (v2 y v3) buscando el ID de bloque `0x7109871a` y extrayendo los certificados X.509 de los signers.
+   - De forma concurrente o fallback, examina los archivos PKCS#7 en `META-INF/*.RSA`, `META-INF/*.DSA` o `META-INF/*.EC` (v1 JAR Signature).
+   - Extrae metadatos del paquete (`packageName`, `versionName`, `versionCode`).
+3. **Cruce de Huellas Digitales**:
+   - Se calculan las huellas SHA-256 de todos los certificados detectados en el APK y se contrastan con la huella del Keystore seleccionado (almacenado en Signet o externo).
+4. **Diagnóstico**:
+   - Se emite un dictamen visual inmediato: Coincidencia confirmada o Alerta de incompatibilidad de actualización.
+
+### 2. Generación de Keystore
+1. `GenerateScreen` recopila la configuración validada.
+2. `KeystoreGenerator` genera el par de claves mediante BouncyCastle y construye el certificado X.509.
+3. Se calcula el hash SHA-256, SHA-1, MD5 y se codifica el binario en Base64.
+4. `KeystoreRepository` persiste la entidad en la base de datos Room.
+
+### 3. Respaldos ZIP & Anti-Tampering
+1. `SignetBackupManager.createBackupZip` empaqueta el binario `.jks`/`.keystore`, credenciales, `key.properties`, `base64.txt` y genera el manifiesto `signet-backup.json` firmado con HMAC-SHA256.
+2. `SignetBackupManager.restoreFromZip` valida exhaustivamente la integridad criptográfica antes de escribir o importar en Room.

@@ -42,7 +42,7 @@ Cuando se active una tarea, opera bajo la mentalidad del rol correspondiente:
    - Garantizar compatibilidad estricta con firmas APK de Android (v1, v2, v3).
 
 2. **Distribución & Ecosistema**:
-   - La aplicación está preparada tanto para tiendas oficiales como para distribución de APKs en plataformas de terceros (Uptodown, F-Droid, GitHub Releases).
+   - La aplicación está preparada tanto para tiendas oficiales como para distribución de APKs en plataformas de terceros (Uptodown, GitHub Releases).
    - El soporte de Base64 debe mantenerse siempre funcional para permitir integración inmediata con pipelines de CI/CD (GitHub Actions, Bitrise, Fastlane).
 
 3. **Verificación Continua**:

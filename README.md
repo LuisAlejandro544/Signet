@@ -1,6 +1,6 @@
 # 🔐 Signet (Android KeyStore & Certificate Tool)
 
-Generador y administrador profesional de Keystores (`.jks` y `.keystore`) para Android en Jetpack Compose con arquitectura Material Design 3 y criptografía BouncyCastle. **Signet** permite crear, inspeccionar, exportar y convertir certificados a Base64 para CI/CD sin depender de Android Studio ni comandos manuales de terminal.
+Generador y administrador profesional de Keystores (`.jks` y `.keystore`) para Android en Jetpack Compose con arquitectura Material Design 3 y criptografía BouncyCastle. **Signet** permite crear, inspeccionar, validar coincidencia con APKs (APK Matcher), exportar y convertir certificados a Base64 para CI/CD sin depender de Android Studio ni comandos manuales de terminal.
 
 ---
 
@@ -13,6 +13,12 @@ Generador y administrador profesional de Keystores (`.jks` y `.keystore`) para A
   - **Validez de Certificado Personalizada & Deslizable**: Control interactivo mediante slider (1 a 100 años), indicador de días totales y atajos rápidos (1, 5, 10, 25, 30, 50, 100 años).
   - **Campos de Certificado con Guía de Identidad**: Distinción clara entre campos obligatorios por estándar Google/Android (`CN`, `O`) y opcionales (`OU`, `L`, `ST`, `C`), con aviso de soporte para datos inventados o seudónimos artísticos para preservar la privacidad.
   - Presets rápidos de 1 clic: *Google Play Release*, *Upload Key* y *Alta Seguridad*.
+
+- **Validador Forense APK vs Keystore (APK Matcher)**:
+  - **Detección Multi-Esquema**: Inspecciona y extrae automáticamente los certificados X.509 de archivos `.apk` firmados con **Esquema v1 (JAR / PKCS#7 en `META-INF`)**, **Esquema v2 (APK Signing Block)** y **Esquema v3**.
+  - **Lectura de Metadatos del APK**: Extrae el *Package Name*, *Version Name* y *Version Code* del paquete sin requerir herramientas externas.
+  - **Cruce Criptográfico Determinista**: Compara las huellas digitales SHA-256 de los certificados contenidos en el APK contra un Keystore seleccionado (guardado en Signet o archivo externo `.jks`).
+  - **Diagnóstico Preventivo de Actualización**: Alerta de forma inmediata si un APK podrá actualizarse con el Keystore o si causará un error `INSTALL_FAILED_UPDATE_INCOMPATIBLE` en dispositivos de usuarios finales.
 
 - **Personalización Visual & Pestaña de Configuración**:
   - **Material You**: Soporte completo para colores dinámicos sincronizados con el fondo de pantalla en Android 12+.
@@ -38,7 +44,7 @@ Generador y administrador profesional de Keystores (`.jks` y `.keystore`) para A
 
 - **Arquitectura Standalone & Cero Dependencias Innecesarias de Google Play**:
   - Aplicación 100% autónoma y offline-first sin servicios de Google Play innecesarios empaquetados.
-  - Diseñada para distribución universal sin restricciones: Uptodown, F-Droid, GitHub Releases y tiendas de terceros.
+  - Diseñada para distribución universal sin restricciones: Uptodown, GitHub Releases y tiendas de terceros.
 
 - **Inspección de Keystores Existentes**:
   - Lectura y extracción de certificados X.509 de archivos `.jks`, `.keystore` y `.p12`.
@@ -52,7 +58,9 @@ Generador y administrador profesional de Keystores (`.jks` y `.keystore`) para A
 
 - **Portal Web Oficial, Términos y Privacidad (`web/`)**:
   - Sitio web estático de alto rendimiento desarrollado en **Astro 5 + Tailwind CSS** optimizado para **Cloudflare Pages**.
-  - Documentación pública y páginas legales con declaración explícita de privacidad (`/privacy`) y términos de licencia GPL v3 (`/terms`).
+  - Documentación pública y páginas legales actualizadas al **16 de agosto de 2026**:
+    - **Política de Privacidad (`/privacy`)**: Declaración formal de **Cero Recolección de Datos**, arquitectura 100% offline, almacenamiento local exclusivo en Room, ausencia total de telemetría/analítica y principio de privilegio mínimo con Android SAF.
+    - **Términos y Condiciones (`/terms`)**: Marco legal exhaustivo de 13 secciones bajo la licencia **GNU GPL v3**, detallando la soberanía criptográfica absoluta del usuario, deberes de custodia y respaldo, seguridad de variables Base64 en CI/CD, carácter diagnóstico del APK Matcher, especificaciones de cifrado PEPK para Google Play, integridad anti-manipulación HMAC en respaldos ZIP, distribución en plataformas de terceros (Uptodown, GitHub Releases, APKs directos), exención de garantías ("AS IS") y limitaciones de responsabilidad.
 
 ---
 
@@ -64,6 +72,7 @@ Generador y administrador profesional de Keystores (`.jks` y `.keystore`) para A
 | **UI Framework Android** | Jetpack Compose con Material Design 3 & Material You |
 | **Persistencia** | Room Database (SQLite local offline-first) & SharedPreferences |
 | **Criptografía** | BouncyCastle (SpongyCastle/BC) X.509 PKCS#12 JCA & CSPRNG SecureRandom |
+| **Análisis de APKs** | Parser nativo de APK Signing Block (v2/v3) & CMS PKCS#7 (v1) |
 | **Arquitectura** | MVVM (Model - View - ViewModel) + Clean Architecture Modular |
 | **Testing** | Robolectric 4.14+ & JUnit 4 |
 | **Web & Legal (Cloudflare Pages)** | Astro 5, Tailwind CSS, TypeScript & Static HTML5 |
@@ -134,4 +143,3 @@ El repositorio cuenta con pipelines automatizados en GitHub Actions orientados a
 
 - **Licencia**: Este proyecto está publicado y licenciado bajo los términos de la **[GNU General Public License v3.0 (GPL v3)](LICENSE)**.
 - **Contribuciones**: Consulta **[CONTRIBUTING.md](CONTRIBUTING.md)** para más detalles sobre las políticas actuales del repositorio (actualmente bajo desarrollo enfocado sin admisión de PRs de terceros).
-
