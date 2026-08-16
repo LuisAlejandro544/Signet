@@ -411,8 +411,12 @@ object KeystoreGenerator {
                       # Decodifica el secreto Base64 generado por la app al archivo ${fileName}
                       echo "${'$'}KEYSTORE_BASE64" | base64 --decode > app/${fileName}
 
-                  - name: Grant Execute Permission to Gradlew
-                    run: chmod +x ./gradlew
+                  - name: Ensure Gradle Wrapper & Permissions
+                    run: |
+                      if [ ! -f "./gradlew" ]; then
+                        gradle wrapper --gradle-version 8.11.1
+                      fi
+                      chmod +x ./gradlew
 
                   - name: Build Release APK with Gradle
                     env:
