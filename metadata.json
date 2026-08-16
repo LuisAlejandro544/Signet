@@ -1,0 +1,6 @@
+{
+  "name": "Keystore Generator",
+  "description": "Generador de archivos keystore y certificados para firmar aplicaciones Android.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
