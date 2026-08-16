@@ -21,13 +21,18 @@ Generador y administrador profesional de Keystores (`.jks` y `.keystore`) para A
   - Persistencia automática de preferencias visuales en el dispositivo.
 
 - **Exportación, Respaldos ZIP & CI/CD**:
-  - **Paquetes de Respaldo Portables (.zip) con Firma Anti-Manipulación**: Exporta un archivo ZIP completo que contiene el binario del keystore (`.jks`/`.keystore`), credenciales en texto plano (`credentials.txt`), archivo `key.properties` para Gradle, `base64.txt` para pipelines de CI/CD y un manifiesto firmado (`signet-manifest.json`).
+  - **Generación y Exportación de Claves Cifradas para Google Play (.pepk)**:
+    - Motor nativo de cifrado híbrido **PEPK (Play Encrypt Private Key)** mediante **RSA-OAEP (SHA-256) + AES-256-GCM** para transferir de forma 100% segura claves privadas a **Google Play App Signing**.
+    - Soporte interactivo para cargar o pegar la clave pública `encryption_public_key.pem` de Google Play Console.
+    - **Exportación Dual Flexible**: Opción para exportar el archivo binario `.pepk` de forma individual o empaquetar un **Bundle ZIP Completo** que contiene el Keystore original (`.jks`/`.keystore`), el archivo `.pepk` cifrado, credenciales, `key.properties`, `base64.txt` y manifiesto firmado.
+    - Generador de comandos CLI oficiales para `pepk.jar` listos para copiar.
+  - **Paquetes de Respaldo Portables (.zip) con Firma Anti-Manipulación**: Exporta un archivo ZIP completo que contiene el binario del keystore (`.jks`/`.keystore`), credenciales en texto plano (`credentials.txt`), archivo `key.properties` para Gradle, `base64.txt` para pipelines de CI/CD, instrucciones y un manifiesto firmado (`signet-backup.json`).
   - **Mecanismo de Seguridad Criptográfica**: El manifiesto incluye una firma criptográfica HMAC-SHA256 y hash SHA-256 del binario. Si alguien altera las contraseñas, el alias o el archivo del keystore externamente, Signet rechazará automáticamente la restauración garantizando la integridad absoluta.
   - **Restauración Instantánea**: Permite restaurar el paquete ZIP completo con un solo toque incluso si la app fue desinstalada o reinstalada.
   - **Visualizador Interactivo de Código Gradle**: Genera y previsualiza directamente bloques listos para `app/build.gradle.kts` (Kotlin DSL) y `build.gradle` (Groovy) con soporte de variables de entorno (`KEYSTORE_PATH`, `KEYSTORE_PASSWORD`, etc.).
   - **Generador de Workflows para GitHub Actions**: Plantilla completa y optimizada `.github/workflows/android-build-and-sign.yml` para decodificar el keystore Base64 y firmar APKs de lanzamiento automáticamente en runners CI/CD.
   - Conversión instantánea a **Base64** para variables de entorno en pipelines de CI/CD (GitHub Actions `KEYSTORE_BASE64`, Fastlane, Bitrise, Codemagic).
-  - Comandos CLI para **`apksigner`** y **`zipalign`** con esquemas de firma v1, v2 y v3.
+  - Comandos CLI para **`apksigner`**, **`zipalign`** y **`pepk.jar`** con esquemas de firma v1, v2 y v3.
   - Exportación de archivo binario al almacenamiento del dispositivo mediante Android SAF (Storage Access Framework).
   - Compartir archivo directamente mediante el menú nativo de compartir de Android.
 
@@ -104,6 +109,18 @@ El repositorio cuenta con pipelines automatizados en GitHub Actions orientados a
   - `TELEGRAM_CHAT_ID_SECURITY_SCAN`: ID de chat de Telegram para recibir los reportes.
   - `TELEGRAM_API_ID_SECURITY_SCAN` / `TELEGRAM_API_HASH_SECURITY_SCAN`: Credenciales de Telegram MTProto (opcionales).
   - *Nota*: Si no se configuran específicamente, el flujo reutiliza automáticamente `TELEGRAM_BOT_TOKEN_DEBUG_APK` y `TELEGRAM_CHAT_ID_DEBUG_APK`.
+
+### 3. Pruebas E2E en Emulador Android Real KVM (`.github/workflows/emulator-e2e-test.yml`)
+- **Ejecución en Emulador Real**: Levanta un emulador Android oficial con aceleración por hardware KVM (`reactivecircus/android-emulator-runner`) en GitHub Actions (API 34 / Pixel 6).
+- **Validación Criptográfica & Anti-Tampering de ZIP**:
+  - Prueba la importación de respaldos ZIP legítimos generados por la app verificando la concordancia de la firma HMAC-SHA256.
+  - Evalúa la inyección de paquetes ZIP adulterados (tampered) comprobando que el motor de seguridad bloquea y rechaza inmediatamente cualquier archivo manipulado.
+- **Reporte JSON & Evidencia Visual**: Genera `emulator-e2e-report.json`, captura de pantalla (`emulator_screenshot.png`) y despacha los resultados a **Telegram** con enmascaramiento estricto de credenciales en logs (`::add-mask::`).
+- **Secretos en GitHub (reutilizables automáticamente)**:
+  - `TELEGRAM_BOT_TOKEN_E2E_EMULATOR` (o fallback a `TELEGRAM_BOT_TOKEN_DEBUG_APK`)
+  - `TELEGRAM_CHAT_ID_E2E_EMULATOR` (o fallback a `TELEGRAM_CHAT_ID_DEBUG_APK`)
+  - `TELEGRAM_API_ID_E2E_EMULATOR` (o fallback a `TELEGRAM_API_ID_DEBUG_APK`)
+  - `TELEGRAM_API_HASH_E2E_EMULATOR` (o fallback a `TELEGRAM_API_HASH_DEBUG_APK`)
 
 ---
 

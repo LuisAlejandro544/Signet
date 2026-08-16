@@ -152,4 +152,11 @@ object SnippetGenerator {
             apksigner verify --verbose --print-certs app-release-signed.apk
         """.trimIndent()
     }
+
+    /**
+     * Generates Google Play PEPK tool command snippet
+     */
+    fun generatePepkSnippet(fileName: String, alias: String): String {
+        return PepkGenerator.generatePepkCliCommand(fileName, alias)
+    }
 }

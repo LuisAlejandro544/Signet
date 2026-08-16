@@ -21,16 +21,25 @@ Plan estratégico de evolución técnica y funcionalidades para el proyecto **Si
   - [x] Mecanismo de verificación criptográfica HMAC-SHA256 para prevenir restauraciones de archivos manipulados o apócrifos.
   - [x] Restauración instantánea hacia la base de datos Room.
 - [x] Pestaña de Configuración con personalización de color, Material You, modo Negro 100% (AMOLED) y paletas de autor.
+- [x] **Generación y Exportación de Claves Cifradas para Google Play (.pepk)**:
+  - [x] Cifrado híbrido on-device con RSA-OAEP (SHA-256) + AES-256-GCM y paquete binario `.pepk`.
+  - [x] Selector y parser de claves públicas `encryption_public_key.pem` de Google Play Console.
+  - [x] Exportación dual: archivo binario `.pepk` suelto o **Paquete ZIP Completo** (Keystore + `.pepk` + credenciales + `key.properties` + `base64.txt`).
+  - [x] Generador de comandos CLI oficiales para `pepk.jar`.
 - [x] **Generador y Visualizador Interactivo de Snippets**:
   - [x] Visualizador interactivo de bloques `signingConfigs` para `build.gradle.kts` (Kotlin DSL) y `build.gradle` (Groovy).
   - [x] Generador de workflows automatizados para GitHub Actions (`.github/workflows/android-build-and-sign.yml`) con decodificación de `KEYSTORE_BASE64` y firma en runners.
-  - [x] Comandos CLI para `apksigner` y `zipalign`.
+  - [x] Comandos CLI para `apksigner`, `zipalign` y `pepk.jar`.
 - [x] Limpieza de dependencias innecesarias de Google Play para distribución universal (Uptodown, F-Droid, APKs).
 - [x] Publicación bajo licencia **GNU General Public License v3.0 (GPL v3)** y definición de directrices de contribución en `CONTRIBUTING.md`.
 - [x] Pipeline CI/CD en GitHub Actions manual (`build-debug-apk.yml` con `workflow_dispatch`) con descarga de código, caché de Gradle, generación de clave en runner y compilación de APK Debug.
 - [x] **Auditoría Automatizada de Seguridad en GitHub Actions (`security-scan.yml`)**:
   - [x] Escaneo confidencial en modo Stealth de vulnerabilidades en código Kotlin, Manifest, secretos y dependencias.
   - [x] Generación de reporte estructurado `vulnerabilities-report.json` y despacho privado a Telegram para consumo del asistente IA.
+- [x] **Pruebas E2E en Emulador Real KVM en GitHub Actions (`emulator-e2e-test.yml`)**:
+  - [x] Emulador Android nativo acelerado por hardware KVM (Pixel 6 / API 34).
+  - [x] Verificación de importación de paquetes ZIP legítimos vs rechazo estricto de paquetes adulterados (Anti-Tampering HMAC).
+  - [x] Generación de reporte JSON `emulator-e2e-report.json`, captura de pantalla del emulador y despacho confidencial a Telegram.
 - [x] Tests unitarios con Robolectric y soporte de CI/CD para repositorios.
 - [x] **Portal Web Oficial, Términos & Privacidad para Cloudflare Pages (`web/`)**:
   - [x] Sitio estático de alto rendimiento en **Astro 5 + Tailwind CSS** con tema OLED y Emerald.
@@ -46,7 +55,7 @@ Plan estratégico de evolución técnica y funcionalidades para el proyecto **Si
   - Firma de APKs desalineados con proceso automático de `zipalign`.
 - [ ] **Conversión de Formatos**:
   - Conversión bidireccional entre JKS/PKCS12 y PEM/CRT/KEY.
-  - Generación de claves de subida (.pepk) para Google Play App Signing.
+  - [x] Generación de claves de subida (.pepk) para Google Play App Signing (Completado ✅).
 
 ---
 

@@ -29,6 +29,7 @@ import com.example.ui.components.details.KeystoreCodeSnippetsCard
 import com.example.ui.components.details.KeystoreCredentialsCard
 import com.example.ui.components.details.KeystoreFingerprintsCard
 import com.example.ui.components.details.KeystoreHeaderSection
+import com.example.ui.components.details.PepkExportDialog
 import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileInputStream
@@ -47,6 +48,7 @@ fun KeystoreDetailsSheet(
     var showStorePassword by remember { mutableStateOf(false) }
     var showKeyPassword by remember { mutableStateOf(false) }
     var isBase64Expanded by remember { mutableStateOf(false) }
+    var showPepkDialog by remember { mutableStateOf(false) }
 
     // Resolve Base64 if not already present in details
     val base64String = remember(details) {
@@ -128,7 +130,7 @@ fun KeystoreDetailsSheet(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Header: Title, alias info, close and action buttons (ZIP Export, SAF & Share)
+            // Header: Title, alias info, close and action buttons (ZIP Export, PEPK, SAF & Share)
             KeystoreHeaderSection(
                 details = details,
                 onDismiss = {
@@ -137,6 +139,9 @@ fun KeystoreDetailsSheet(
                 onExportZipClick = {
                     val baseName = details.fileName.substringBeforeLast(".")
                     exportZipLauncher.launch("${baseName}-signet-bundle.zip")
+                },
+                onExportPepkClick = {
+                    showPepkDialog = true
                 },
                 onExportFileClick = {
                     exportFileLauncher.launch(details.fileName)
@@ -176,5 +181,12 @@ fun KeystoreDetailsSheet(
                 context = context
             )
         }
+    }
+
+    if (showPepkDialog) {
+        PepkExportDialog(
+            details = details,
+            onDismiss = { showPepkDialog = false }
+        )
     }
 }

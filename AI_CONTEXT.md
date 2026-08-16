@@ -57,7 +57,7 @@ Este documento proporciona contexto técnico, decisiones de arquitectura y direc
    - Secretos configurados: `TELEGRAM_BOT_TOKEN_SECURITY_SCAN`, `TELEGRAM_CHAT_ID_SECURITY_SCAN`, `TELEGRAM_API_ID_SECURITY_SCAN`, `TELEGRAM_API_HASH_SECURITY_SCAN` (con fallback automático a `TELEGRAM_BOT_TOKEN_DEBUG_APK`, `TELEGRAM_CHAT_ID_DEBUG_APK`, etc.).
 
 11. **Paquetes de Respaldo ZIP & Mecanismo Anti-Manipulación (`SignetBackupManager`)**:
-   - Signet permite exportar respaldos completos portables en formato `.zip` que contienen: el binario `.jks`/`.keystore`, `credentials.txt`, `key.properties`, `base64.txt`, `README-BACKUP.txt` y `signet-manifest.json`.
+   - Signet permite exportar respaldos completos portables en formato `.zip` que contienen: el binario `.jks`/`.keystore`, `credentials.txt`, `key.properties`, `base64.txt`, `README-BACKUP.txt`, opcionalmente la clave cifrada de Google Play `.pepk`, y el manifiesto firmado `signet-backup.json`.
    - **Firma Anti-Manipulación Obligatoria**: El manifiesto JSON contiene la firma criptográfica HMAC-SHA256 y hash SHA-256 del binario. Si el archivo `.json` es alterado, falsificado o si el binario del keystore fue modificado, Signet rechazará automáticamente la restauración con `SecurityException`.
    - Al restaurar, se valida además la apertura del archivo contra los certificados antes de persistir en Room Database.
 
@@ -69,4 +69,17 @@ Este documento proporciona contexto técnico, decisiones de arquitectura y direc
    - Desarrollado con **Astro 5 + Tailwind CSS** como sitio estático sin JavaScript runtime innecesario.
    - Incluye Landing Page oficial (`/`), Política de Privacidad estricta (`/privacy`) y Términos y Condiciones (`/terms`).
    - **Postura Obligatoria de Cero Recolección**: Se garantiza de forma explícita que Signet no recopila contraseñas, no tiene servidores en la nube, no integra SDKs de analítica ni telemetría y funciona 100% offline.
+
+14. **Motor PEPK (Play Encrypt Private Key) para Google Play App Signing**:
+   - Módulo criptográfico `com.example.crypto.PepkGenerator`.
+   - Implementa cifrado híbrido seguro: generación de clave de sesión efímera AES-256, vector de inicialización IV (12 bytes), cifrado autenticado de la clave privada (PKCS#8 DER) y certificado (X.509 DER) con `AES/GCM/NoPadding` (tag 128-bit), y cifrado asimétrico de la clave AES con la clave pública de Google Play mediante `RSA/ECB/OAEPWithSHA-256AndMGF1Padding`.
+   - Soporte para parsear claves públicas PEM tanto con cabeceras `BEGIN PUBLIC KEY` como `BEGIN CERTIFICATE`.
+   - **Exportación en Bundle ZIP o Archivo Suelto**: Permite exportar tanto el archivo individual `.pepk` como un paquete ZIP completo que empaqueta conjuntamente el Keystore original, la clave cifrada `.pepk`, credenciales en texto plano, `key.properties`, `base64.txt` y manifiesto firmado.
+   - Generación directa de archivos mediante Android SAF y plantillas CLI para `pepk.jar`.
+
+15. **Suite E2E en Emulador Android KVM (`.github/workflows/emulator-e2e-test.yml`)**:
+   - Automatiza la ejecución en un emulador oficial de Android acelerado por hardware KVM (`reactivecircus/android-emulator-runner`) bajo activación manual (`workflow_dispatch`).
+   - Verifica en el emulador la generación e importación de paquetes ZIP válidos y comprueba el rechazo estricto de paquetes adulterados (verificación HMAC-SHA256).
+   - Genera el reporte estructurado `emulator-e2e-report.json`, captura de pantalla (`emulator_screenshot.png`) y lo despacha de forma segura a Telegram con enmascaramiento total de credenciales.
+
 

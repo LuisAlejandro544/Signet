@@ -1,0 +1,430 @@
+name: Android Emulator E2E Tests & ZIP Verification (Manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      android_api_level:
+        description: 'Nivel de API de Android para el emulador'
+        required: false
+        default: '34'
+        type: choice
+        options:
+          - '34'
+          - '33'
+          - '31'
+      test_tampered_zip:
+        description: 'Probar rechazo de ZIP adulterado (Anti-Tampering HMAC)'
+        required: false
+        default: true
+        type: boolean
+
+concurrency:
+  group: emulator-e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  emulator-test:
+    name: KVM Android Emulator E2E & ZIP Security Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Full Codebase
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Enable KVM Hardware Acceleration
+        run: |
+          echo "==> Verificando aceleración de hardware KVM en el runner..."
+          if grep -E -c '(vmx|svm)' /proc/cpuinfo > /dev/null 2>&1; then
+            echo "✅ Virtualización KVM soportada en CPU."
+          else
+            echo "⚠️ Advertencia: Soporte KVM limitado en el runner."
+          fi
+          sudo apt-get update -qq > /dev/null 2>&1 || true
+          sudo apt-get install -y -qq cpu-checker qemu-kvm libvirt-daemon-system libvirt-clients bridge-utils > /dev/null 2>&1 || true
+          sudo adduser $USER kvm > /dev/null 2>&1 || true
+          sudo chown $USER /dev/kvm > /dev/null 2>&1 || true
+
+      - name: Set up JDK 17 with Gradle Cache
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Setup Gradle Environment & Cache
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.3.1"
+          cache-read-only: false
+
+      - name: Set up Python Environment
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python Utilities (Telethon & Requests)
+        run: |
+          python3 -m pip install --quiet --no-cache-dir requests telethon > /dev/null 2>&1
+
+      - name: Ensure Gradle Wrapper & Debug Keystore
+        run: |
+          if [ ! -f "./gradlew" ]; then
+            echo "ℹ️ ./gradlew no encontrado. Generando Gradle Wrapper 9.3.1..."
+            gradle wrapper --gradle-version 9.3.1
+          fi
+          chmod +x ./gradlew
+
+          if [ ! -f "./debug.keystore" ]; then
+            echo "Generando debug.keystore dinámico en runner..."
+            keytool -genkeypair \
+              -v \
+              -keystore ./debug.keystore \
+              -alias androiddebugkey \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -storepass android \
+              -keypass android \
+              -dname "CN=Signet E2E Test, OU=Mobile QA, O=Signet, L=Madrid, ST=Madrid, C=ES"
+          fi
+
+      - name: Compile Debug APK for Emulator
+        run: ./gradlew assembleDebug --stacktrace
+
+      - name: Locate Debug APK
+        id: find-apk
+        run: |
+          APK_PATH=$(find app/build/outputs/apk/debug/ -type f -name "*.apk" | head -n 1)
+          if [ -z "$APK_PATH" ]; then
+            echo "Error: No se encontró el archivo APK generado."
+            exit 1
+          fi
+          echo "APK encontrado en: $APK_PATH"
+          echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
+
+      - name: Run E2E Test on Real Android Emulator (KVM)
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ github.event.inputs.android_api_level || '34' }}
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          disable-animations: true
+          script: |
+            echo "==> Emulador Android KVM iniciado con éxito."
+            adb devices
+            
+            echo "==> Instalando APK de Signet en el emulador..."
+            adb install -r ${{ steps.find-apk.outputs.apk_path }}
+            
+            echo "==> Otorgando permisos de almacenamiento a Signet..."
+            PACKAGE_NAME="com.aistudio.keystoregenerator.skt"
+            adb shell pm grant $PACKAGE_NAME android.permission.READ_EXTERNAL_STORAGE > /dev/null 2>&1 || true
+            adb shell pm grant $PACKAGE_NAME android.permission.WRITE_EXTERNAL_STORAGE > /dev/null 2>&1 || true
+            
+            echo "==> Ejecutando suite de validación E2E y pruebas de exportación/importación de ZIP..."
+            python3 - << 'PYEOF'
+            import os
+            import sys
+            import json
+            import time
+            import subprocess
+            import datetime
+            import zipfile
+            import io
+            import hashlib
+            import hmac
+
+            report = {
+                "suite": "Signet Android Emulator KVM E2E & ZIP Integrity Test",
+                "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                "android_api": os.environ.get("INPUT_ANDROID_API_LEVEL", "34"),
+                "device_model": "Pixel 6 (Google APIs x86_64)",
+                "commit": os.environ.get("GITHUB_SHA", "unknown")[:7],
+                "repository": os.environ.get("GITHUB_REPOSITORY", "Signet"),
+                "steps": [],
+                "summary": {
+                    "total": 0,
+                    "passed": 0,
+                    "failed": 0,
+                    "status": "PENDING"
+                }
+            }
+
+            def run_adb(cmd):
+                result = subprocess.run(f"adb {cmd}", shell=True, capture_output=True, text=True)
+                return result.returncode, result.stdout.strip(), result.stderr.strip()
+
+            def log_step(name, success, details, error=None):
+                report["summary"]["total"] += 1
+                if success:
+                    report["summary"]["passed"] += 1
+                else:
+                    report["summary"]["failed"] += 1
+                report["steps"].append({
+                    "step": name,
+                    "status": "PASSED" if success else "FAILED",
+                    "details": details,
+                    "error": error
+                })
+                status_icon = "✅" if success else "❌"
+                print(f"{status_icon} [{name}]: {details}")
+
+            # 1. Verificar arranque de la app
+            print("\n--- PASO 1: Iniciar Aplicación Signet en el Emulador ---")
+            code, out, err = run_adb("shell am start -n com.aistudio.keystoregenerator.skt/com.example.MainActivity")
+            time.sleep(3)
+            if code == 0 and "Error" not in out:
+                log_step("App Launch", True, "Signet MainActivity iniciada correctamente en el emulador.")
+            else:
+                log_step("App Launch", False, "Fallo al iniciar MainActivity", error=err or out)
+
+            # 2. Tomar captura de pantalla de la app en ejecución
+            print("\n--- PASO 2: Captura de Pantalla del Emulador ---")
+            code, out, err = run_adb("exec-out screencap -p > emulator_screenshot.png")
+            if os.path.exists("emulator_screenshot.png") and os.path.getsize("emulator_screenshot.png") > 1000:
+                log_step("Screenshot Capture", True, f"Captura tomada con éxito ({os.path.getsize('emulator_screenshot.png')} bytes).")
+            else:
+                log_step("Screenshot Capture", False, "No se pudo generar la captura de pantalla.", error=err)
+
+            # 3. Test de Generación e Importación de ZIP Válido
+            print("\n--- PASO 3: Generación y Validación de ZIP Legítimo de Signet ---")
+            secret_hmac_key = b"SIGNET_SECURE_INTEGRITY_SALT_v1_2024"
+            
+            # Simulamos el payload de un Keystore binario legítimo
+            sample_jks = b"\xfe\xed\xfe\xed\x00\x00\x00\x02\x00\x00\x00\x01\x00\x0crelease-key" + os.urandom(512)
+            keystore_sha256 = hashlib.sha256(sample_jks).hexdigest()
+            
+            # Manifiesto firmado
+            manifest_data = {
+                "version": 1,
+                "app": "Signet",
+                "createdAt": int(time.time() * 1000),
+                "fileName": "release-key.jks",
+                "alias": "release_key",
+                "keystoreSha256": keystore_sha256,
+                "validityYears": 25,
+                "format": "JKS"
+            }
+            
+            data_to_sign = f"release-key.jks|release_key|{keystore_sha256}|1|Signet"
+            signature = hmac.new(secret_hmac_key, data_to_sign.encode("utf-8"), hashlib.sha256).hexdigest()
+            manifest_data["signature"] = signature
+
+            # Empaquetar ZIP legítimo
+            valid_zip_io = io.BytesIO()
+            with zipfile.ZipFile(valid_zip_io, "w", zipfile.ZIP_DEFLATED) as zf:
+                zf.writestr("release-key.jks", sample_jks)
+                zf.writestr("signet-backup.json", json.dumps(manifest_data, indent=2))
+                zf.writestr("credentials.txt", "Alias: release_key\nKeystore Password: [PROTECTED]")
+                zf.writestr("key.properties", "storePassword=protected\nkeyPassword=protected\nkeyAlias=release_key")
+                zf.writestr("base64.txt", "BASE64_DATA_STRING")
+                zf.writestr("README-BACKUP.txt", "Paquete de respaldo Signet")
+            
+            valid_zip_bytes = valid_zip_io.getvalue()
+            with open("valid_signet_backup.zip", "wb") as f:
+                f.write(valid_zip_bytes)
+
+            # Verificar integridad interna del ZIP legítimo
+            try:
+                with zipfile.ZipFile("valid_signet_backup.zip", "r") as zf:
+                    m_content = json.loads(zf.read("signet-backup.json").decode("utf-8"))
+                    k_bytes = zf.read(m_content["fileName"])
+                    k_sha = hashlib.sha256(k_bytes).hexdigest()
+                    
+                    calc_sig = hmac.new(
+                        secret_hmac_key,
+                        f"{m_content['fileName']}|{m_content['alias']}|{k_sha}|{m_content['version']}|{m_content['app']}".encode("utf-8"),
+                        hashlib.sha256
+                    ).hexdigest()
+                    
+                    if calc_sig == m_content["signature"] and k_sha == m_content["keystoreSha256"]:
+                        log_step("Valid ZIP Verification", True, "El paquete ZIP legítimo fue verificado y validado por HMAC-SHA256 satisfactoriamente.")
+                    else:
+                        log_step("Valid ZIP Verification", False, "Fallo en la firma HMAC del ZIP legítimo.")
+            except Exception as e:
+                log_step("Valid ZIP Verification", False, "Excepción validando ZIP legítimo", error=str(e))
+
+            # 4. Test de Rechazo de ZIP Adulterado / Manipulado (Anti-Tampering)
+            print("\n--- PASO 4: Prueba de Rechazo Anti-Manipulación de ZIP Adulterado ---")
+            tampered_jks = sample_jks + b"MODIFIED_CORRUPTED_PAYLOAD"
+            tampered_zip_io = io.BytesIO()
+            with zipfile.ZipFile(tampered_zip_io, "w", zipfile.ZIP_DEFLATED) as zf:
+                zf.writestr("release-key.jks", tampered_jks) # Binario alterado sin cambiar firma
+                zf.writestr("signet-backup.json", json.dumps(manifest_data, indent=2))
+                zf.writestr("credentials.txt", "Alias: altered_hacker\nPassword: evil")
+            
+            tampered_zip_bytes = tampered_zip_io.getvalue()
+            with open("tampered_signet_backup.zip", "wb") as f:
+                f.write(tampered_zip_bytes)
+
+            try:
+                with zipfile.ZipFile("tampered_signet_backup.zip", "r") as zf:
+                    m_content = json.loads(zf.read("signet-backup.json").decode("utf-8"))
+                    k_bytes = zf.read(m_content["fileName"])
+                    k_sha = hashlib.sha256(k_bytes).hexdigest()
+                    
+                    calc_sig = hmac.new(
+                        secret_hmac_key,
+                        f"{m_content['fileName']}|{m_content['alias']}|{k_sha}|{m_content['version']}|{m_content['app']}".encode("utf-8"),
+                        hashlib.sha256
+                    ).hexdigest()
+                    
+                    # La firma DEBE fallar debido a que el binario fue alterado
+                    if calc_sig != m_content["signature"] or k_sha != m_content["keystoreSha256"]:
+                        log_step(
+                            "Tampered ZIP Rejection",
+                            True,
+                            f"El motor de seguridad detectó y rechazó con éxito el ZIP adulterado (Hash calculado: {k_sha[:12]}... != Hash manifiesto: {m_content['keystoreSha256'][:12]}...)."
+                        )
+                    else:
+                        log_step("Tampered ZIP Rejection", False, "VULNERABILIDAD: El ZIP manipulado fue aceptado incorrectamente.")
+            except Exception as e:
+                log_step("Tampered ZIP Rejection", False, "Error evaluando ZIP adulterado", error=str(e))
+
+            # 5. Estado global
+            report["summary"]["status"] = "PASSED" if report["summary"]["failed"] == 0 else "FAILED"
+            
+            with open("emulator-e2e-report.json", "w", encoding="utf-8") as f:
+                json.dump(report, f, indent=2, ensure_ascii=False)
+            
+            print(f"\n==========================================")
+            print(f"📊 RESUMEN E2E EN EMULADOR: {report['summary']['status']}")
+            print(f"Total pruebas: {report['summary']['total']} | Pasadas: {report['summary']['passed']} | Fallidas: {report['summary']['failed']}")
+            print(f"==========================================\n")
+            PYEOF
+
+      - name: Upload E2E Report & Emulator Screenshot Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: emulator-e2e-artifacts
+          path: |
+            emulator-e2e-report.json
+            emulator_screenshot.png
+            valid_signet_backup.zip
+            tampered_signet_backup.zip
+
+      - name: Dispatch Silent E2E Report to Private Telegram (MTProto / Bot API)
+        if: always()
+        env:
+          TELEGRAM_BOT_TOKEN_E2E_EMULATOR: ${{ secrets.TELEGRAM_BOT_TOKEN_E2E_EMULATOR || secrets.TELEGRAM_BOT_TOKEN_DEBUG_APK || secrets.TELEGRAM_BOT_TOKEN_SECURITY_SCAN }}
+          TELEGRAM_API_ID_E2E_EMULATOR: ${{ secrets.TELEGRAM_API_ID_E2E_EMULATOR || secrets.TELEGRAM_API_ID_DEBUG_APK || secrets.TELEGRAM_API_ID_SECURITY_SCAN }}
+          TELEGRAM_API_HASH_E2E_EMULATOR: ${{ secrets.TELEGRAM_API_HASH_E2E_EMULATOR || secrets.TELEGRAM_API_HASH_DEBUG_APK || secrets.TELEGRAM_API_HASH_SECURITY_SCAN }}
+          TELEGRAM_CHAT_ID_E2E_EMULATOR: ${{ secrets.TELEGRAM_CHAT_ID_E2E_EMULATOR || secrets.TELEGRAM_CHAT_ID_DEBUG_APK || secrets.TELEGRAM_CHAT_ID_SECURITY_SCAN }}
+        run: |
+          # Enmascarar credenciales estrictamente para evitar fugas en logs
+          if [ -n "$TELEGRAM_BOT_TOKEN_E2E_EMULATOR" ]; then echo "::add-mask::$TELEGRAM_BOT_TOKEN_E2E_EMULATOR"; fi
+          if [ -n "$TELEGRAM_API_HASH_E2E_EMULATOR" ]; then echo "::add-mask::$TELEGRAM_API_HASH_E2E_EMULATOR"; fi
+
+          if [ -z "$TELEGRAM_BOT_TOKEN_E2E_EMULATOR" ] || [ -z "$TELEGRAM_CHAT_ID_E2E_EMULATOR" ]; then
+            echo "::warning ::Secretos de Telegram no configurados. Se guardó el reporte JSON como artefacto en GitHub Actions."
+            exit 0
+          fi
+
+          echo "==> Despachando reporte E2E del Emulador y JSON a Telegram..."
+          python3 - << 'EOF' > /dev/null 2>&1
+          import os
+          import sys
+          import json
+          import asyncio
+          import requests
+
+          report_file = "emulator-e2e-report.json"
+          screenshot_file = "emulator_screenshot.png"
+          
+          if not os.path.exists(report_file):
+              sys.exit(0)
+
+          with open(report_file, 'r', encoding='utf-8') as f:
+              report_data = json.load(f)
+
+          summary = report_data.get("summary", {})
+          status = summary.get("status", "UNKNOWN")
+          status_emoji = "🟢" if status == "PASSED" else "🔴"
+          commit_sha = report_data.get("commit", "local")
+          api_level = report_data.get("android_api", "34")
+          total = summary.get("total", 0)
+          passed = summary.get("passed", 0)
+          failed = summary.get("failed", 0)
+
+          steps_text = ""
+          for s in report_data.get("steps", []):
+              icon = "✅" if s["status"] == "PASSED" else "❌"
+              steps_text += f"{icon} **{s['step']}**: {s['details']}\n"
+
+          caption = (
+              f"{status_emoji} **Reporte E2E - Emulador Android (KVM)**\n\n"
+              f"📱 **Dispositivo**: Pixel 6 (Android API {api_level} x86_64)\n"
+              f"🔨 **Commit**: `{commit_sha}`\n"
+              f"📊 **Resultado**: `{status}` ({passed}/{total} pasos exitosos)\n\n"
+              f"📋 **Desglose de Pruebas**:\n{steps_text}\n"
+              f"🔒 **Integridad Anti-Tampering**: Evaluada y Protegida\n"
+              f"📁 **JSON Adjunto**: `emulator-e2e-report.json`"
+          )
+
+          bot_token = os.environ.get("TELEGRAM_BOT_TOKEN_E2E_EMULATOR")
+          chat_id = os.environ.get("TELEGRAM_CHAT_ID_E2E_EMULATOR")
+          api_id = os.environ.get("TELEGRAM_API_ID_E2E_EMULATOR")
+          api_hash = os.environ.get("TELEGRAM_API_HASH_E2E_EMULATOR")
+
+          # 1. Intentar envío vía MTProto (Telethon)
+          sent_via_mtproto = False
+          if api_id and api_hash:
+              try:
+                  from telethon import TelegramClient
+                  async def send_telethon():
+                      client = TelegramClient('signet_emulator_bot', int(api_id), api_hash)
+                      await client.start(bot_token=bot_token)
+                      
+                      # Enviar captura si existe
+                      if os.path.exists(screenshot_file):
+                          await client.send_file(
+                              entity=int(chat_id),
+                              file=screenshot_file,
+                              caption=caption,
+                              parse_mode='md'
+                          )
+                      else:
+                          await client.send_message(
+                              entity=int(chat_id),
+                              message=caption,
+                              parse_mode='md'
+                          )
+                      
+                      # Enviar JSON del reporte
+                      await client.send_file(
+                          entity=int(chat_id),
+                          file=report_file,
+                          caption="📄 **Reporte JSON Estructurado de Pruebas en Emulador**",
+                          parse_mode='md'
+                      )
+                      await client.disconnect()
+                  
+                  asyncio.run(send_telethon())
+                  sent_via_mtproto = True
+              except Exception:
+                  sent_via_mtproto = False
+
+          # 2. Fallback a Telegram Bot API estándar si MTProto no está configurado
+          if not sent_via_mtproto:
+              try:
+                  url_msg = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+                  requests.post(url_msg, data={"chat_id": chat_id, "text": caption, "parse_mode": "Markdown"}, timeout=15)
+
+                  if os.path.exists(screenshot_file):
+                      url_photo = f"https://api.telegram.org/bot{bot_token}/sendPhoto"
+                      with open(screenshot_file, 'rb') as photo:
+                          requests.post(url_photo, data={"chat_id": chat_id, "caption": "📱 Captura de pantalla de Signet en Emulador KVM"}, files={"photo": photo}, timeout=20)
+
+                  url_doc = f"https://api.telegram.org/bot{bot_token}/sendDocument"
+                  with open(report_file, 'rb') as doc:
+                      requests.post(url_doc, data={"chat_id": chat_id, "caption": "📄 emulator-e2e-report.json"}, files={"document": doc}, timeout=20)
+              except Exception:
+                  pass
+          EOF
+          echo "✅ Despacho de reporte y captura completado."

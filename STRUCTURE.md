@@ -16,8 +16,9 @@ app/
 │   │   │   ├── crypto/
 │   │   │   │   ├── KeystoreGenerator.kt         # Motor criptográfico: X.509, BouncyCastle, hashes, PEM y Base64
 │   │   │   │   ├── PasswordGenerator.kt         # Generador criptográfico CSPRNG de contraseñas ultra seguras y cálculo de entropía
-│   │   │   │   ├── SignetBackupManager.kt       # Gestor de paquetes ZIP: exportación, firma HMAC anti-manipulación y restauración
-│   │   │   │   └── SnippetGenerator.kt          # Generador modular de snippets: Gradle KTS, Groovy, GitHub Actions & apksigner
+│   │   │   │   ├── PepkGenerator.kt             # Cifrado híbrido PEPK (RSA-OAEP + AES-GCM) para Google Play App Signing
+│   │   │   │   ├── SignetBackupManager.kt       # Gestor de paquetes ZIP: exportación (.jks + .pepk bundle), firma HMAC anti-manipulación y restauración
+│   │   │   │   └── SnippetGenerator.kt          # Generador modular de snippets: Gradle KTS, Groovy, GitHub Actions, apksigner & pepk
 │   │   │   ├── data/
 │   │   │   │   ├── KeystoreRepository.kt        # Repositorio que orquesta base de datos y operaciones
 │   │   │   │   ├── local/
@@ -37,7 +38,8 @@ app/
 │   │   │       │       ├── KeystoreCredentialsCard.kt    # Tarjeta de credenciales con visibilidad y copia en un toque
 │   │   │       │       ├── KeystoreBase64Card.kt         # Visualizador de Base64 para variables de entorno y CI/CD
 │   │   │       │       ├── KeystoreFingerprintsCard.kt   # Huellas SHA-256, SHA-1, MD5 y datos X.509
-│   │   │       │       └── KeystoreCodeSnippetsCard.kt   # Visor interactivo de código Gradle, Groovy, YAML y CLI
+│   │   │       │       ├── KeystoreCodeSnippetsCard.kt   # Visor interactivo de código Gradle, Groovy, YAML, CLI y PEPK
+│   │   │       │       └── PepkExportDialog.kt           # Diálogo de generación y exportación (.pepk individual o Bundle ZIP con Keystore)
 │   │   │       ├── screens/
 │   │   │       │   ├── GenerateScreen.kt        # Pantalla principal de generación
 │   │   │       │   ├── generate/
@@ -60,6 +62,7 @@ app/
 ├── .github/
 │   └── workflows/
 │       ├── build-debug-apk.yml                  # Compilación manual (workflow_dispatch) de APK Debug con generación de clave en runner y caché de Gradle
+│       ├── emulator-e2e-test.yml                # Pruebas E2E en emulador real KVM en runner con validación de ZIPs y reporte JSON a Telegram
 │       ├── security-scan.yml                    # Auditoría de seguridad silenciosa (modo stealth) y envío de reporte JSON a Telegram
 │       └── sync-zip.yml                         # Automatización de sincronización desde zip
 ├── web/                                         # Portal web oficial, Términos y Política de Privacidad (Astro + Tailwind para Cloudflare Pages)

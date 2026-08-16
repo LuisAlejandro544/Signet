@@ -30,9 +30,14 @@ object SignetBackupManager {
 
     /**
      * Creates a complete, signed ZIP backup containing the keystore file, signed manifest,
-     * credentials, key.properties, base64 string, and instructions.
+     * credentials, key.properties, base64 string, instructions, and optionally an encrypted .pepk key.
      */
-    fun createBackupZip(details: KeystoreDetails, keystoreBytes: ByteArray): ByteArray {
+    fun createBackupZip(
+        details: KeystoreDetails,
+        keystoreBytes: ByteArray,
+        pepkBytes: ByteArray? = null,
+        pepkFileName: String? = null
+    ): ByteArray {
         val baos = ByteArrayOutputStream()
         ZipOutputStream(baos).use { zos ->
             val cleanKeystoreName = if (details.fileName.isNotBlank()) details.fileName else "release-key.jks"
@@ -42,28 +47,42 @@ object SignetBackupManager {
             zos.write(keystoreBytes)
             zos.closeEntry()
 
+            // 2. PEPK Encrypted Key if provided
+            val cleanPepkName = if (pepkBytes != null && pepkBytes.isNotEmpty()) {
+                val name = if (!pepkFileName.isNullOrBlank()) {
+                    pepkFileName
+                } else {
+                    val baseAlias = details.alias.ifBlank { "release-key" }.replace("[^a-zA-Z0-9_-]".toRegex(), "_")
+                    "${baseAlias}_encrypted_key.pepk"
+                }
+                zos.putNextEntry(ZipEntry(name))
+                zos.write(pepkBytes)
+                zos.closeEntry()
+                name
+            } else null
+
             // Calculate Keystore SHA-256 for integrity binding
             val keystoreSha256 = calculateSha256(keystoreBytes)
 
-            // 2. Signed JSON Manifest (signet-backup.json)
+            // 3. Signed JSON Manifest (signet-backup.json)
             val manifestJson = buildSignedManifest(details, cleanKeystoreName, keystoreSha256)
             zos.putNextEntry(ZipEntry(MANIFEST_FILE_NAME))
             zos.write(manifestJson.toByteArray(Charsets.UTF_8))
             zos.closeEntry()
 
-            // 3. credentials.txt
-            val credentialsText = buildCredentialsText(details, cleanKeystoreName)
+            // 4. credentials.txt
+            val credentialsText = buildCredentialsText(details, cleanKeystoreName, hasPepk = cleanPepkName != null)
             zos.putNextEntry(ZipEntry("credentials.txt"))
             zos.write(credentialsText.toByteArray(Charsets.UTF_8))
             zos.closeEntry()
 
-            // 4. key.properties (Standard for Android Gradle & Flutter projects)
+            // 5. key.properties (Standard for Android Gradle & Flutter projects)
             val keyPropertiesText = buildKeyProperties(details, cleanKeystoreName)
             zos.putNextEntry(ZipEntry("key.properties"))
             zos.write(keyPropertiesText.toByteArray(Charsets.UTF_8))
             zos.closeEntry()
 
-            // 5. base64.txt (For CI/CD GitHub Actions / Bitrise / Fastlane)
+            // 6. base64.txt (For CI/CD GitHub Actions / Bitrise / Fastlane)
             val base64Content = if (details.base64Content.isNotBlank()) {
                 details.base64Content
             } else {
@@ -73,8 +92,8 @@ object SignetBackupManager {
             zos.write(base64Content.toByteArray(Charsets.UTF_8))
             zos.closeEntry()
 
-            // 6. README-BACKUP.txt
-            val readmeText = buildReadmeBackup(details, cleanKeystoreName)
+            // 7. README-BACKUP.txt
+            val readmeText = buildReadmeBackup(details, cleanKeystoreName, cleanPepkName)
             zos.putNextEntry(ZipEntry("README-BACKUP.txt"))
             zos.write(readmeText.toByteArray(Charsets.UTF_8))
             zos.closeEntry()
@@ -335,10 +354,24 @@ object SignetBackupManager {
         return digest.joinToString("") { "%02X".format(it) }
     }
 
-    private fun buildCredentialsText(details: KeystoreDetails, keystoreFileName: String): String {
+    private fun buildCredentialsText(
+        details: KeystoreDetails,
+        keystoreFileName: String,
+        hasPepk: Boolean = false
+    ): String {
         val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss z", Locale.ROOT)
         val validFromStr = dateFormat.format(Date(details.validFrom))
         val validUntilStr = dateFormat.format(Date(details.validUntil))
+
+        val pepkNote = if (hasPepk) {
+            """
+            ------------------------------------------------------------------------
+            GOOGLE PLAY APP SIGNING (PEPK)
+            ------------------------------------------------------------------------
+            Este paquete ZIP incluye tu clave de subida cifrada (.pepk) lista para
+            ser importada en Google Play Console (Configuración > Firma de apps).
+            """.trimIndent() + "\n\n"
+        } else ""
 
         return """
             ========================================================================
@@ -366,7 +399,7 @@ object SignetBackupManager {
             Emisor       : ${details.issuerDn}
             Nº Serie     : ${details.serialNumber}
             
-            ========================================================================
+            $pepkNote========================================================================
             INSTRUCCIONES DE RESTAURACIÓN:
             Este archivo ZIP puede restaurarse directamente en Signet (Android / PC)
             utilizando la función 'Restaurar Respaldo (.zip)'.
@@ -389,7 +422,15 @@ object SignetBackupManager {
         """.trimIndent()
     }
 
-    private fun buildReadmeBackup(details: KeystoreDetails, keystoreFileName: String): String {
+    private fun buildReadmeBackup(
+        details: KeystoreDetails,
+        keystoreFileName: String,
+        pepkFileName: String? = null
+    ): String {
+        val pepkLine = if (!pepkFileName.isNullOrBlank()) {
+            "\n6. $pepkFileName -> Clave privada cifrada con la clave pública de Google Play (PEPK) para Google Play App Signing."
+        } else ""
+
         return """
             ========================================================================
             PAQUETE DE RESPALDO DE FIRMA ANDROID - SIGNET
@@ -400,7 +441,7 @@ object SignetBackupManager {
             2. signet-backup.json -> Manifiesto firmado criptográficamente para restauración instantánea en Signet.
             3. credentials.txt -> Resumen legible con claves y huellas SHA-256.
             4. key.properties -> Archivo de configuración listo para Gradle / Flutter.
-            5. base64.txt -> Llave codificada en Base64 para GitHub Actions / CI/CD secrets.
+            5. base64.txt -> Llave codificada en Base64 para GitHub Actions / CI/CD secrets.$pepkLine
             
             ¿Cómo restaurar este respaldo si reinstalas la app o cambias de dispositivo?
             - Abre Signet.

@@ -13,11 +13,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -37,6 +39,7 @@ fun KeystoreHeaderSection(
     details: KeystoreDetails,
     onDismiss: () -> Unit,
     onExportZipClick: () -> Unit,
+    onExportPepkClick: () -> Unit,
     onExportFileClick: () -> Unit,
     onShareClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -88,7 +91,7 @@ fun KeystoreHeaderSection(
             }
         }
 
-        // Action Buttons: ZIP Package (Full Backup), Plain File & Share
+        // Action Buttons: ZIP Package, PEPK for Google Play, Plain File & Share
         Column(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -106,6 +109,18 @@ fun KeystoreHeaderSection(
                 Icon(Icons.Default.Archive, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
                 Text("Exportar Paquete ZIP (Llave + Claves + Respaldo)", fontWeight = FontWeight.SemiBold)
+            }
+
+            FilledTonalButton(
+                onClick = onExportPepkClick,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("export_pepk_button"),
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Exportar para Google Play (.pepk)", fontWeight = FontWeight.SemiBold)
             }
 
             Row(
