@@ -65,7 +65,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.KeystoreDetails
 import com.example.ui.KeystoreViewModel
-import com.example.ui.RestoreUiState
+import com.example.ui.state.RestoreUiState
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale

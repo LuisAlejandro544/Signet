@@ -124,10 +124,11 @@ jobs:
               
               commit_sha = os.environ.get('GITHUB_SHA', 'local')[:7]
               caption = (
-                  f"📦 **Signet Debug APK**\n"
+                  f"📦 **Signet Debug APK** (Canal `.debug`)\n"
+                  f"🏷️ **Versión**: `1.0.0-D` (`com.signet.app.debug`)\n"
                   f"🔨 **Commit**: `{commit_sha}`\n"
                   f"⚡ **Canal**: MTProto Telethon (Soporte hasta 2GB)\n"
-                  f"🔒 **Estado**: Firmado y listo para pruebas privadas"
+                  f"🔒 **Estado**: Firmado con debug.keystore dinámico en runner"
               )
               
               print(f"Subiendo archivo {apk_path} a Telegram...")

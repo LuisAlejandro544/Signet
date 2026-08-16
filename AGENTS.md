@@ -59,3 +59,11 @@ Cuando se active una tarea, opera bajo la mentalidad del rol correspondiente:
 6. **Consumo de Reportes de Seguridad Automatizados (`vulnerabilities-report.json`)**:
    - Cuando el usuario proporcione un informe JSON generado por el workflow `.github/workflows/security-scan.yml`, el agente actuará bajo los roles **El Detective** y **El Constructor** para diagnosticar y subsanar quirúrgicamente cada hallazgo reportado según su ID, CWE y ruta de archivo exacta.
 
+7. **Estrategia de Canales de Lanzamiento y Versionado**:
+   - Respetar la nomenclatura y sufijos de paquetes:
+     * `.debug` -> `com.signet.app.debug` / `1.0.0-D` (canal exclusivo interno de depuración vía GitHub Actions).
+     * `.dev` -> `com.signet.app.dev` / `1.0.0.dev` (canal pre-alpha para pruebas tempranas de nuevas funciones, firmado por el desarrollador).
+     * `.beta` -> `com.signet.app.beta` / `1.0.0-B` (canal beta de herramientas pulidas candidatas a definitivas).
+     * `.estable` -> `com.signet.app` / `1.0.0-E` (canal definitivo de producción para tiendas de terceros).
+   - Las firmas para `.dev`, `.beta` y `.estable` se administran mediante GitHub Secrets.
+

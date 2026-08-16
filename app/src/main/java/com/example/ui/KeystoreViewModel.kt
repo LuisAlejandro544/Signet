@@ -5,16 +5,19 @@ import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.crypto.ApkMatcher
-import com.example.crypto.KeystoreGenerator
 import com.example.crypto.PasswordGenerator
 import com.example.data.KeystoreRepository
 import com.example.data.local.AppDatabase
-import com.example.data.model.ApkInfo
-import com.example.data.model.ApkMatchResult
 import com.example.data.model.DistinguishedName
 import com.example.data.model.KeyAlgorithm
 import com.example.data.model.KeystoreConfig
 import com.example.data.model.KeystoreDetails
+import com.example.ui.preferences.AppPreferencesManager
+import com.example.ui.state.ApkMatcherUiState
+import com.example.ui.state.FormState
+import com.example.ui.state.GenerationUiState
+import com.example.ui.state.InspectorUiState
+import com.example.ui.state.RestoreUiState
 import com.example.ui.theme.ColorPalette
 import com.example.ui.theme.ThemeMode
 import com.example.ui.theme.ThemeState
@@ -25,73 +28,17 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
-data class FormState(
-    val fileName: String = "release-key",
-    val fileExtension: String = "jks", // "jks" or "keystore"
-    val storePassword: String = "",
-    val confirmPassword: String = "",
-    val isStorePasswordVisible: Boolean = false,
-    val alias: String = "key0",
-    val keyPassword: String = "",
-    val isKeyPasswordVisible: Boolean = false,
-    val useSamePassword: Boolean = true,
-    val validityYears: Int = 25,
-    val algorithm: KeyAlgorithm = KeyAlgorithm.RSA_2048,
-    val commonName: String = "",
-    val organizationalUnit: String = "",
-    val organization: String = "",
-    val locality: String = "",
-    val state: String = "",
-    val countryCode: String = "",
-    val isAdvancedDnExpanded: Boolean = true
-) {
-    val fullFileName: String
-        get() {
-            val cleanName = fileName.trim()
-                .removeSuffix(".jks")
-                .removeSuffix(".keystore")
-                .removeSuffix(".p12")
-            val base = if (cleanName.isBlank()) "release-key" else cleanName
-            return "$base.$fileExtension"
-        }
-}
-
-sealed interface GenerationUiState {
-    object Idle : GenerationUiState
-    object Generating : GenerationUiState
-    data class Success(val details: KeystoreDetails) : GenerationUiState
-    data class Error(val message: String) : GenerationUiState
-}
-
-sealed interface RestoreUiState {
-    object Idle : RestoreUiState
-    object Restoring : RestoreUiState
-    data class Success(val details: KeystoreDetails) : RestoreUiState
-    data class Error(val message: String) : RestoreUiState
-}
-
-sealed interface InspectorUiState {
-    object Idle : InspectorUiState
-    object Loading : InspectorUiState
-    data class Success(val items: List<KeystoreDetails>) : InspectorUiState
-    data class Error(val message: String) : InspectorUiState
-}
-
-sealed interface ApkMatcherUiState {
-    object Idle : ApkMatcherUiState
-    object Loading : ApkMatcherUiState
-    data class Success(
-        val apkInfo: ApkInfo,
-        val matchResult: ApkMatchResult?
-    ) : ApkMatcherUiState
-    data class Error(val message: String) : ApkMatcherUiState
-}
+// Typealiases for seamless backward compatibility
+typealias FormState = com.example.ui.state.FormState
+typealias GenerationUiState = com.example.ui.state.GenerationUiState
+typealias RestoreUiState = com.example.ui.state.RestoreUiState
+typealias InspectorUiState = com.example.ui.state.InspectorUiState
+typealias ApkMatcherUiState = com.example.ui.state.ApkMatcherUiState
 
 class KeystoreViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val prefs = application.getSharedPreferences("keystore_generator_prefs", Context.MODE_PRIVATE)
+    private val preferencesManager = AppPreferencesManager(application)
 
     private val repository: KeystoreRepository = KeystoreRepository(
         AppDatabase.getDatabase(application)
@@ -122,20 +69,21 @@ class KeystoreViewModel(application: Application) : AndroidViewModel(application
     private val _selectedKeystoreForDetail = MutableStateFlow<KeystoreDetails?>(null)
     val selectedKeystoreForDetail: StateFlow<KeystoreDetails?> = _selectedKeystoreForDetail.asStateFlow()
 
-    // Theme state with saved preferences
-    private val _themeState = MutableStateFlow(loadInitialThemeState())
+    // Theme state backed by AppPreferencesManager
+    private val _themeState = MutableStateFlow(preferencesManager.loadThemeState())
     val themeState: StateFlow<ThemeState> = _themeState.asStateFlow()
 
     // Onboarding and Terms acceptance state
-    private val _isOnboardingCompleted = MutableStateFlow(prefs.getBoolean(PREF_ONBOARDING_COMPLETED, false))
+    private val _isOnboardingCompleted = MutableStateFlow(preferencesManager.isOnboardingCompleted())
     val isOnboardingCompleted: StateFlow<Boolean> = _isOnboardingCompleted.asStateFlow()
 
     fun completeOnboarding() {
-        prefs.edit().putBoolean(PREF_ONBOARDING_COMPLETED, true).apply()
+        preferencesManager.setOnboardingCompleted(true)
         _isOnboardingCompleted.value = true
     }
 
     fun resetOnboarding() {
+        preferencesManager.setOnboardingCompleted(false)
         _isOnboardingCompleted.value = false
     }
 
@@ -150,37 +98,18 @@ class KeystoreViewModel(application: Application) : AndroidViewModel(application
 
     companion object {
         const val PREF_ONBOARDING_COMPLETED = "onboarding_completed"
-        const val URL_TERMS = "https://signet-web.luisalejandrososacamacho9.workers.dev/terms/"
-        const val URL_PRIVACY = "https://signet-web.luisalejandrososacamacho9.workers.dev/privacy/"
-    }
-
-    private fun loadInitialThemeState(): ThemeState {
-        val savedModeName = prefs.getString("theme_mode", ThemeMode.SYSTEM.name) ?: ThemeMode.SYSTEM.name
-        val savedPaletteName = prefs.getString("color_palette", ColorPalette.DYNAMIC.name) ?: ColorPalette.DYNAMIC.name
-
-        val mode = try {
-            ThemeMode.valueOf(savedModeName)
-        } catch (_: Exception) {
-            ThemeMode.SYSTEM
-        }
-
-        val palette = try {
-            ColorPalette.valueOf(savedPaletteName)
-        } catch (_: Exception) {
-            ColorPalette.DYNAMIC
-        }
-
-        return ThemeState(themeMode = mode, colorPalette = palette)
+        const val URL_TERMS = AppPreferencesManager.URL_TERMS
+        const val URL_PRIVACY = AppPreferencesManager.URL_PRIVACY
     }
 
     fun setThemeMode(mode: ThemeMode) {
         _themeState.value = _themeState.value.copy(themeMode = mode)
-        prefs.edit().putString("theme_mode", mode.name).apply()
+        preferencesManager.saveThemeMode(mode)
     }
 
     fun setColorPalette(palette: ColorPalette) {
         _themeState.value = _themeState.value.copy(colorPalette = palette)
-        prefs.edit().putString("color_palette", palette.name).apply()
+        preferencesManager.saveColorPalette(palette)
     }
 
     fun setSelectedTab(index: Int) {
@@ -244,7 +173,7 @@ class KeystoreViewModel(application: Application) : AndroidViewModel(application
     fun generateKeystore(context: Context) {
         val form = _formState.value
 
-        // Validate
+        // Validate inputs
         if (form.fileName.isBlank()) {
             _generationState.value = GenerationUiState.Error("Por favor ingresa un nombre para el archivo keystore.")
             return

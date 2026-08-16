@@ -59,6 +59,12 @@ Plan estratégico de evolución técnica y funcionalidades para el proyecto **Si
   - [x] Pantallas de bienvenida (`WelcomeScreen`) de 4 pasos explicando las capacidades del sistema y la privacidad 100% offline.
   - [x] Consentimiento informado y aceptación de Términos y Privacidad en el primer arranque.
   - [x] Acceso directo en `SettingsScreen` a las URLs de Términos y Privacidad del portal web y botón para repasar la bienvenida.
+- [x] **Estrategia Multi-Canal de Distribución y Versionado Semántico**:
+  - [x] Canal **.debug** (`com.signet.app.debug` / `1.0.0-D`): Compilación y pruebas internas del desarrollador vía workflow `build-debug-apk.yml`.
+  - [x] Canal **.dev** (`com.signet.app.dev` / `1.0.0.dev`): Pre-alpha para pruebas tempranas de nuevas funciones experimentales.
+  - [x] Canal **.beta** (`com.signet.app.beta` / `1.0.0-B`): Beta con herramientas pulidas candidatas a definitivas.
+  - [x] Canal **.estable** (`com.signet.app` / `1.0.0-E`): Versión final sólida y libre de errores críticos para tiendas de terceros (Uptodown, GitHub Releases).
+  - [x] Esquema preparado para gestión soberana de firmas criptográficas mediante GitHub Secrets.
 
 ---
 

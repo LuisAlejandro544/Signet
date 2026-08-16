@@ -1,34 +1,40 @@
-feat(onboarding): implementar flujo interactivo de bienvenida, enlaces legales y consentimiento de términos
+refactor(modular): modularización y desacoplamiento de KeystoreViewModel, KeystoreGenerator y suite de tests
 
-- Diseñar e implementar `WelcomeScreen.kt` como experiencia de primera ejecución en 4 etapas mediante `HorizontalPager`:
-  * Presentación integral de la suite Signet (Generador RSA/EC, contraseñas CSPRNG, validador APK Matcher y respaldos ZIP con firma HMAC).
-  * Explicación explícita del modelo de privacidad 100% on-device (sin servidores, sin telemetría ni analíticas).
-  * Bloque de consentimiento informado con casilla obligatoria de aceptación de Términos y Condiciones y Política de Privacidad antes de ingresar.
-- Integrar gestión reactiva de estado en `KeystoreViewModel` (`isOnboardingCompleted`, `completeOnboarding()`, `resetOnboarding()`) con persistencia en `SharedPreferences`.
-- Configurar condicional de navegación en `MainActivity.kt` para mostrar `WelcomeScreen` en el primer inicio y dar paso a `MainScreen` una vez aceptado.
-- Enriquecer `SettingsScreen.kt` con la sección oficial "Marco Legal y Políticas de Uso":
-  * Acceso directo en el navegador a los Términos y Condiciones (`https://signet-web.luisalejandrososacamacho9.workers.dev/terms/`).
-  * Acceso directo a la Política de Privacidad (`https://signet-web.luisalejandrososacamacho9.workers.dev/privacy/`).
-  * Botón interactivo para reabrir y repasar la guía explicativa de bienvenida e introducción en cualquier momento.
-- Añadir pruebas unitarias en `ExampleRobolectricTest.kt` para validar la transición de estados de onboarding y la consistencia de las constantes de URLs legales.
-- Sincronizar y actualizar la documentación en `README.md`, `ROADMAP.md`, `AI_CONTEXT.md` y `STRUCTURE.md`.
+- Modularizar el núcleo de presentación en `com.example.ui`:
+  * `ui/state/FormState.kt`: Modelo inmutable para los campos del formulario de generación, alias, validez y parámetros X.500.
+  * `ui/state/KeystoreUiStates.kt`: Contratos sellados (`GenerationUiState`, `RestoreUiState`, `InspectorUiState`, `ApkMatcherUiState`) para un manejo estricto y desacoplado del estado en Compose.
+  * `ui/preferences/AppPreferencesManager.kt`: Encapsulación independiente de la persistencia de preferencias en `SharedPreferences` (modo de tema, paleta cromática, estado de onboarding y constantes de URLs legales).
+  * `ui/KeystoreViewModel.kt`: Reducir responsabilidades y simplificar el ViewModel central como orquestador reactivo limpio, manteniendo aliases compatibles con las vistas existentes.
 
-refactor(modular): modularización y desacoplamiento de SettingsScreen, SignetBackupManager y ApkMatcher
+- Modularizar el motor de certificados y análisis X.509 en `com.example.crypto.x509`:
+  * `X509CertificateUtils.kt`: Utilidades aisladas para el cálculo de huellas digitales criptográficas (SHA-256, SHA-1, MD5) y formateo de certificados X.509 en formato PEM estándar (RFC 7468).
+  * `X509CertificateInspector.kt`: Motor de lectura e inspección de certificados en almacenes PKCS12, JKS y BKS, separando la lógica de parsing forense de la creación de claves.
+  * `KeystoreGenerator.kt`: Enfocar exclusivamente en la generación de pares de claves (RSA 2048/4096 y EC P-256) y empaquetado PKCS#12, delegando la inspección y utilidades en submódulos especializados.
 
-- Modularizar la interfaz de configuración en el paquete `com.example.ui.screens.settings`:
-  * `SettingsHeaderCard.kt`: Tarjeta de encabezado con descripción y estilo M3.
-  * `ThemeModeSection.kt`: Selector de modos de pantalla (Claro, Oscuro, Negro 100% AMOLED y Sistema).
-  * `ColorPaletteSection.kt`: Selector de acentos cromáticos y soporte para Material You (Android 12+).
-  * `LegalLinksSection.kt`: Botones de acceso al marco jurídico web y relanzamiento de la guía de bienvenida.
-  * `DistributionInfoSection.kt`: Metadatos de licencia GPL v3, modo offline y compatibilidad con tiendas APK.
-  * Simplificar `SettingsScreen.kt` como orquestador limpio y conciso.
-- Desacoplar el subsistema de respaldos y verificación criptográfica en `com.example.crypto.backup`:
-  * `BackupTemplates.kt`: Generación modular de `credentials.txt`, `key.properties` y `README-BACKUP.txt`.
-  * `BackupIntegrityVerifier.kt`: Cálculo de hash SHA-256, firma HMAC-SHA256 y verificación estricta anti-manipulación.
-  * `SignetBackupManager.kt`: Fachada orquestadora para compresión y descompresión ZIP atómica.
-- Desacoplar el motor forense de análisis de APK en `com.example.crypto.apk`:
-  * `ApkSigningBlockParser.kt`: Extracción directa de certificados para esquemas v2 y v3 en el APK Signing Block.
-  * `ApkV1SignatureParser.kt`: Extracción de certificados PKCS#7 en `META-INF/` mediante BouncyCastle CMS.
-  * `AxmlManifestParser.kt`: Extracción rápida de `packageName` desde el string pool binario de AndroidManifest.xml.
-  * `ApkMatcher.kt`: Fachada orquestadora de análisis y cruce de huellas con keystores.
-- Actualizar `STRUCTURE.md` con el nuevo árbol de archivos modular y flujo de responsabilidades.
+- Desacoplar y modularizar la suite de pruebas unitarias Robolectric en suites especializadas por dominio:
+  * `crypto/KeystoreGeneratorTest.kt`: Pruebas unitarias de generación RSA/EC, verificación de Base64 e inspección de certificados X.509.
+  * `crypto/PasswordGeneratorTest.kt`: Pruebas de generación CSPRNG, cálculo de bits de entropía y clasificación de fortaleza de contraseñas.
+  * `crypto/SignetBackupIntegrityTest.kt`: Pruebas de creación de paquetes ZIP, restauración atómica y rechazo estricto por manipulación de manifiesto o binario con HMAC-SHA256.
+  * `crypto/PepkGeneratorTest.kt`: Pruebas de cifrado híbrido PEPK (RSA-OAEP + AES-GCM) para Google Play App Signing y desencriptación con clave privada.
+  * `crypto/ApkMatcherTest.kt`: Pruebas de análisis sintético de APK, extracción multi-esquema y detección de coincidencia/discrepancia de firmas.
+  * `crypto/SnippetGeneratorTest.kt`: Pruebas de plantillas de configuración de firma (Gradle Kotlin DSL, Groovy, GitHub Actions, apksigner y pepk).
+  * `ui/KeystoreViewModelTest.kt`: Pruebas de ciclo de vida de onboarding, endpoints legales y aplicación de presets de configuración.
+  * `ExampleRobolectricTest.kt`: Suite simplificada de integración y pruebas de humo end-to-end.
+
+- Actualizar `STRUCTURE.md` reflejando la nueva arquitectura modular de UI, Criptografía y Testing.
+
+feat(release): implementar estrategia multi-canal de versiones, sufijos de package y gestión de firmas
+
+- Configurar sistema de 4 canales de lanzamiento con sufijos de applicationId y tags de versión diferenciados:
+  * `.debug`: `com.signet.app.debug` / `1.0.0-D` — Canal interno de depuración y pruebas privadas del desarrollador, compilado automáticamente vía GitHub Actions (`build-debug-apk.yml`) con firma dinámica de depuración (`debug.keystore`).
+  * `.dev`: `com.signet.app.dev` / `1.0.0.dev` — Canal Pre-Alpha para pruebas comunitarias de funciones tempranas y experimentales, preparado para firma personalizada con GitHub Secrets.
+  * `.beta`: `com.signet.app.beta` / `1.0.0-B` — Canal Beta para validación de herramientas consolidadas y candidatas a definitivas, firmado con GitHub Secrets.
+  * `.estable`: `com.signet.app` (o `.estable`) / `1.0.0-E` — Canal de producción con herramientas 100% pulidas para distribución en tiendas de terceros (Uptodown, GitHub Releases) y firmado con GitHub Secrets.
+
+- Ajustes en Gradle y UI:
+  * `app/build.gradle.kts`: Configuración de `versionName = "1.0.0"` y buildType `debug` con `applicationIdSuffix = ".debug"` y `versionNameSuffix = "-D"`.
+  * `DistributionInfoSection.kt`: Visualización reactiva y dinámica de la versión utilizando `BuildConfig.VERSION_NAME`.
+  * `.github/workflows/build-debug-apk.yml`: Actualización de la cabecera de notificación en Telegram con el identificador del canal `.debug` (`v1.0.0-D` / `com.signet.app.debug`).
+
+- Documentación y Gobernanza:
+  * Actualizar `README.md`, `ROADMAP.md`, `STRUCTURE.md`, `AI_CONTEXT.md` y `AGENTS.md` con la taxonomía completa de canales, tags de versión y estrategia de firmas.

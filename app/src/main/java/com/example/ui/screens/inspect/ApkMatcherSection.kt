@@ -80,8 +80,8 @@ import androidx.compose.ui.unit.sp
 import com.example.crypto.KeystoreGenerator
 import com.example.data.model.ApkMatchResult
 import com.example.data.model.KeystoreDetails
-import com.example.ui.ApkMatcherUiState
 import com.example.ui.KeystoreViewModel
+import com.example.ui.state.ApkMatcherUiState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

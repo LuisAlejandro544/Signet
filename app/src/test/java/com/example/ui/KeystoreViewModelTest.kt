@@ -1,0 +1,75 @@
+package com.example.ui
+
+import android.app.Application
+import androidx.test.core.app.ApplicationProvider
+import com.example.data.model.KeyAlgorithm
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36])
+class KeystoreViewModelTest {
+
+    @Test
+    fun `onboarding state and legal URL endpoints verification`() {
+        val application = ApplicationProvider.getApplicationContext<Application>()
+        val viewModel = KeystoreViewModel(application)
+
+        // Verify initial onboarding state
+        assertNotNull(viewModel.isOnboardingCompleted.value)
+
+        // Complete onboarding
+        viewModel.completeOnboarding()
+        assertTrue(viewModel.isOnboardingCompleted.value)
+
+        // Reset onboarding
+        viewModel.resetOnboarding()
+        assertFalse(viewModel.isOnboardingCompleted.value)
+
+        // Verify URLs
+        assertEquals(
+            "https://signet-web.luisalejandrososacamacho9.workers.dev/terms/",
+            KeystoreViewModel.URL_TERMS
+        )
+        assertEquals(
+            "https://signet-web.luisalejandrososacamacho9.workers.dev/privacy/",
+            KeystoreViewModel.URL_PRIVACY
+        )
+    }
+
+    @Test
+    fun `presets and form validations update state correctly`() {
+        val application = ApplicationProvider.getApplicationContext<Application>()
+        val viewModel = KeystoreViewModel(application)
+
+        // Apply release preset
+        viewModel.applyPreset("release")
+        val formRelease = viewModel.formState.value
+        assertEquals("release-key", formRelease.fileName)
+        assertEquals("jks", formRelease.fileExtension)
+        assertEquals("key0", formRelease.alias)
+        assertEquals(25, formRelease.validityYears)
+        assertEquals(KeyAlgorithm.RSA_2048, formRelease.algorithm)
+
+        // Apply rsa4096 preset
+        viewModel.applyPreset("rsa4096")
+        val form4096 = viewModel.formState.value
+        assertEquals("app-high-security", form4096.fileName)
+        assertEquals("keystore", form4096.fileExtension)
+        assertEquals("release", form4096.alias)
+        assertEquals(KeyAlgorithm.RSA_4096, form4096.algorithm)
+
+        // Password generation
+        viewModel.generateRandomPassword(24)
+        val formWithPwd = viewModel.formState.value
+        assertEquals(24, formWithPwd.storePassword.length)
+        assertEquals(formWithPwd.storePassword, formWithPwd.confirmPassword)
+        assertTrue(formWithPwd.isStorePasswordVisible)
+    }
+}

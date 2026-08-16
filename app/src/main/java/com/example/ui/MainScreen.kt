@@ -38,6 +38,7 @@ import com.example.ui.screens.GenerateScreen
 import com.example.ui.screens.InspectScreen
 import com.example.ui.screens.SavedKeystoresScreen
 import com.example.ui.screens.SettingsScreen
+import com.example.ui.state.GenerationUiState
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)

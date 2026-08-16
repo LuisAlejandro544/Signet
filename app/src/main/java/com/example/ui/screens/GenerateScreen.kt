@@ -37,8 +37,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.GenerationUiState
 import com.example.ui.KeystoreViewModel
+import com.example.ui.state.GenerationUiState
 import com.example.ui.screens.generate.GeneratePresetsSection
 import com.example.ui.screens.generate.KeystoreCredentialsForm
 import com.example.ui.screens.generate.KeystoreDnFields

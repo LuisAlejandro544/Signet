@@ -72,3 +72,9 @@ Este documento proporciona contexto técnico, decisiones de arquitectura y direc
     - En el primer inicio, presenta una experiencia guiada de 4 etapas que detalla las características de la suite, garantiza la privacidad offline y solicita la aceptación expresa de los Términos y la Privacidad antes de acceder a la aplicación principal.
     - `SettingsScreen` contiene accesos directos interactivos a los URLs legales y permite reiniciar la guía con `resetOnboarding()`.
 
+14. **Canales de Lanzamiento, Sufijos de Package y Versionado**:
+    - **Canal `.debug`**: ID `com.signet.app.debug`, versión `1.0.0-D`. Canal interno exclusivo de desarrollo; se compila mediante GitHub Actions (`build-debug-apk.yml`) con firma dinámica de depuración.
+    - **Canal `.dev`**: ID `com.signet.app.dev`, versión `1.0.0.dev`. Canal Pre-Alpha para pruebas comunitarias de funciones en desarrollo temprano. Se firma mediante GitHub Secrets.
+    - **Canal `.beta`**: ID `com.signet.app.beta`, versión `1.0.0-B`. Canal Beta para validación de funciones maduras y candidatas a definitivas. Se firma mediante GitHub Secrets.
+    - **Canal `.estable`**: ID `com.signet.app` (o `.estable`), versión `1.0.0-E`. Canal de producción con herramientas 100% pulidas para distribución general en tiendas de terceros (Uptodown, GitHub Releases). Se firma mediante GitHub Secrets.
+

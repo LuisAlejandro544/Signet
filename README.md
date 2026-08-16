@@ -70,6 +70,21 @@ Generador y administrador profesional de Keystores (`.jks` y `.keystore`) para A
 
 ---
 
+## 🏷️ Canales de Lanzamiento, Identificadores y Nomenclatura de Versiones
+
+Signet adopta un sistema estructurado de canales de desarrollo y distribución que permite la coexistencia simultánea de compilaciones en el mismo dispositivo y una gestión estricta del ciclo de vida del software:
+
+| Canal | Sufijo / Package ID | Etiqueta de Versión | Firma y Origen | Propósito y Estabilidad |
+|---|---|---|---|---|
+| **Exclusivo Debug (`.debug`)** | `com.signet.app.debug` | `1.0.0-D` | Dinámica en runner (`debug.keystore`) | **Canal interno de desarrollo**: Funciones en pruebas privadas por el desarrollador antes de llegar a `.dev`. Generado exclusivamente por el workflow de GitHub Actions (`build-debug-apk.yml`). |
+| **Pre-Alpha (`.dev`)** | `com.signet.app.dev` | `1.0.0.dev` | Firma personalizada (GitHub Secrets) | **Canal de innovación activa**: Nuevas herramientas en desarrollo temprano. Pensada para evaluación comunitaria; puede ser inestable y las funciones pueden variar o eliminarse. |
+| **Beta (`.beta`)** | `com.signet.app.beta` | `1.0.0-B` | Firma personalizada (GitHub Secrets) | **Canal de consolidación**: Funciones y herramientas ya pulidas y candidatas a definitivas. Evaluación de estabilidad previa al lanzamiento público final. |
+| **Estable (`.estable`)** | `com.signet.app` / `com.signet.app.estable` | `1.0.0-E` | Firma de producción (GitHub Secrets) | **Canal definitivo de producción**: Versión final 100% pulida, optimizada y libre de errores críticos para tiendas de terceros (Uptodown, GitHub Releases). |
+
+> **Nota Criptográfica sobre Firmas CI/CD**: Las claves de firma para los canales `.dev`, `.beta` y `.estable` se administran de forma soberana a través de **GitHub Secrets**, garantizando que los binarios públicos mantengan trazabilidad y seguridad inquebrantable.
+
+---
+
 ## 🛠️ Stack Tecnológico
 
 | Capa | Tecnología |

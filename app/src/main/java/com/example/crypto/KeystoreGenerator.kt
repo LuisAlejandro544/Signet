@@ -1,8 +1,8 @@
 package com.example.crypto
 
 import android.content.Context
-import android.util.Base64
-import com.example.data.model.DistinguishedName
+import com.example.crypto.x509.X509CertificateInspector
+import com.example.crypto.x509.X509CertificateUtils
 import com.example.data.model.KeyAlgorithm
 import com.example.data.model.KeystoreConfig
 import com.example.data.model.KeystoreDetails
@@ -19,7 +19,6 @@ import java.math.BigInteger
 import java.security.KeyPair
 import java.security.KeyPairGenerator
 import java.security.KeyStore
-import java.security.MessageDigest
 import java.security.SecureRandom
 import java.security.Security
 import java.security.cert.X509Certificate
@@ -27,9 +26,12 @@ import java.security.spec.ECGenParameterSpec
 import java.util.Date
 import java.util.Locale
 
+/**
+ * Generator for cryptographic Android PKCS#12 signing keystores and certificates.
+ */
 object KeystoreGenerator {
 
-    private val bcProvider: BouncyCastleProvider by lazy {
+    val bcProvider: BouncyCastleProvider by lazy {
         val provider = BouncyCastleProvider()
         try {
             Security.removeProvider(BouncyCastleProvider.PROVIDER_NAME)
@@ -171,13 +173,12 @@ object KeystoreGenerator {
 
         val base64String = java.util.Base64.getEncoder().encodeToString(keystoreBytes)
 
-        // 7. Compute Fingerprints
+        // 7. Compute Fingerprints and PEM
         val certEncoded = x509Cert.encoded
-        val sha256 = calculateFingerprint(certEncoded, "SHA-256")
-        val sha1 = calculateFingerprint(certEncoded, "SHA-1")
-        val md5 = calculateFingerprint(certEncoded, "MD5")
-
-        val pem = buildPemCertificate(certEncoded)
+        val sha256 = X509CertificateUtils.calculateFingerprint(certEncoded, "SHA-256")
+        val sha1 = X509CertificateUtils.calculateFingerprint(certEncoded, "SHA-1")
+        val md5 = X509CertificateUtils.calculateFingerprint(certEncoded, "MD5")
+        val pem = X509CertificateUtils.buildPemCertificate(certEncoded)
 
         return KeystoreDetails(
             fileName = sanitizedFileName,
@@ -202,89 +203,21 @@ object KeystoreGenerator {
     }
 
     /**
-     * Inspects an existing keystore stream and extracts certificate fingerprints & info
+     * Inspects an existing keystore stream and extracts certificate fingerprints & info.
      */
     fun inspectKeystore(inputStream: InputStream, password: String): List<KeystoreDetails> {
-        return inspectKeystore(inputStream.readBytes(), password)
+        return X509CertificateInspector.inspectKeystore(inputStream, password, bcProvider)
     }
 
     /**
-     * Inspects an existing keystore byte array and extracts certificate fingerprints & info
+     * Inspects an existing keystore byte array and extracts certificate fingerprints & info.
      */
     fun inspectKeystore(bytes: ByteArray, password: String): List<KeystoreDetails> {
-        val results = mutableListOf<KeystoreDetails>()
-        val types = listOf("PKCS12", "JKS", "BKS")
-        var loadedKeyStore: KeyStore? = null
-
-        // Try supported keystore types
-        for (type in types) {
-            try {
-                val ks = KeyStore.getInstance(type)
-                ks.load(bytes.inputStream(), password.toCharArray())
-                loadedKeyStore = ks
-                break
-            } catch (_: Exception) {
-                try {
-                    val ks = KeyStore.getInstance(type, bcProvider)
-                    ks.load(bytes.inputStream(), password.toCharArray())
-                    loadedKeyStore = ks
-                    break
-                } catch (_: Exception) {
-                    // Try next format
-                }
-            }
-        }
-
-        if (loadedKeyStore == null) {
-            throw IllegalArgumentException("No se pudo abrir el archivo keystore. Verifica que la contraseña sea correcta o que el formato sea PKCS12 / JKS.")
-        }
-
-        val aliases = loadedKeyStore.aliases()
-        while (aliases.hasMoreElements()) {
-            val alias = aliases.nextElement()
-            val cert = loadedKeyStore.getCertificate(alias) as? X509Certificate ?: continue
-
-            val certEncoded = cert.encoded
-            val sha256 = calculateFingerprint(certEncoded, "SHA-256")
-            val sha1 = calculateFingerprint(certEncoded, "SHA-1")
-            val md5 = calculateFingerprint(certEncoded, "MD5")
-            val pem = buildPemCertificate(certEncoded)
-
-            val b64 = java.util.Base64.getEncoder().encodeToString(bytes)
-
-            results.add(
-                KeystoreDetails(
-                    fileName = "keystore_inspeccionado",
-                    alias = alias,
-                    filePath = "",
-                    fileSizeBytes = bytes.size.toLong(),
-                    storePassword = password,
-                    keyPassword = password,
-                    base64Content = b64,
-                    sha256Fingerprint = sha256,
-                    sha1Fingerprint = sha1,
-                    md5Fingerprint = md5,
-                    validFrom = cert.notBefore.time,
-                    validUntil = cert.notAfter.time,
-                    algorithm = cert.publicKey.algorithm,
-                    subjectDn = cert.subjectX500Principal.name,
-                    issuerDn = cert.issuerX500Principal.name,
-                    serialNumber = cert.serialNumber.toString(16).uppercase(Locale.ROOT),
-                    certificatePem = pem,
-                    createdAt = System.currentTimeMillis()
-                )
-            )
-        }
-
-        if (results.isEmpty()) {
-            throw IllegalArgumentException("El keystore no contiene certificados X.509 válidos.")
-        }
-
-        return results
+        return X509CertificateInspector.inspectKeystore(bytes, password, bcProvider)
     }
 
     /**
-     * Generates a strong random password using CSPRNG
+     * Generates a strong random password using CSPRNG.
      */
     fun generateRandomPassword(length: Int = 20): String {
         return PasswordGenerator.generate(length = length)
@@ -294,50 +227,46 @@ object KeystoreGenerator {
      * Formats bytes to hexadecimal colon-separated fingerprint: AA:BB:CC:...
      */
     fun calculateFingerprint(bytes: ByteArray, algorithm: String): String {
-        val md = MessageDigest.getInstance(algorithm)
-        val digest = md.digest(bytes)
-        return digest.joinToString(":") { byte -> "%02X".format(byte) }
+        return X509CertificateUtils.calculateFingerprint(bytes, algorithm)
     }
 
     /**
-     * Formats X.509 certificate to PEM format
+     * Formats X.509 certificate to PEM format.
      */
     fun buildPemCertificate(certBytes: ByteArray): String {
-        val base64 = Base64.encodeToString(certBytes, Base64.NO_WRAP)
-        val chunks = base64.chunked(64).joinToString("\n")
-        return "-----BEGIN CERTIFICATE-----\n$chunks\n-----END CERTIFICATE-----"
+        return X509CertificateUtils.buildPemCertificate(certBytes)
     }
 
     /**
-     * Generates Gradle build.gradle.kts (Kotlin DSL) signing config snippet
+     * Generates Gradle build.gradle.kts (Kotlin DSL) signing config snippet.
      */
     fun generateGradleKtsSnippet(fileName: String, alias: String): String {
         return SnippetGenerator.generateGradleKtsSnippet(fileName, alias)
     }
 
     /**
-     * Generates Gradle build.gradle (Groovy DSL) signing config snippet
+     * Generates Gradle build.gradle (Groovy DSL) signing config snippet.
      */
     fun generateGradleGroovySnippet(fileName: String, alias: String): String {
         return SnippetGenerator.generateGradleGroovySnippet(fileName, alias)
     }
 
     /**
-     * Generates a ready-to-use GitHub Actions workflow file for automated building and signing
+     * Generates a ready-to-use GitHub Actions workflow file for automated building and signing.
      */
     fun generateGitHubActionsWorkflow(fileName: String, alias: String): String {
         return SnippetGenerator.generateGitHubActionsWorkflow(fileName, alias)
     }
 
     /**
-     * Generates Gradle build.gradle.kts signing config snippet (Alias for generateGradleKtsSnippet)
+     * Generates Gradle build.gradle.kts signing config snippet (Alias for generateGradleKtsSnippet).
      */
     fun generateGradleSnippet(fileName: String, alias: String): String {
         return SnippetGenerator.generateGradleKtsSnippet(fileName, alias)
     }
 
     /**
-     * Generates CLI apksigner command snippet
+     * Generates CLI apksigner command snippet.
      */
     fun generateApksignerSnippet(fileName: String, alias: String): String {
         return SnippetGenerator.generateApksignerSnippet(fileName, alias)

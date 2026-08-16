@@ -115,7 +115,7 @@ fun DistributionInfoSection(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Signet v1.0.0",
+                    text = "Signet v${com.example.BuildConfig.VERSION_NAME}",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary

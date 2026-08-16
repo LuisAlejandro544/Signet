@@ -19,13 +19,16 @@ app/
 │   │   │   │   │   ├── ApkSigningBlockParser.kt # Parser binario de bajo nivel para esquemas v2 y v3 (APK Signing Block)
 │   │   │   │   │   ├── ApkV1SignatureParser.kt  # Extractor de firmas PKCS#7 en META-INF mediante BouncyCastle CMS (v1 JAR)
 │   │   │   │   │   └── AxmlManifestParser.kt    # Extractor de packageName desde el string pool binario de AndroidManifest.xml
-│   │   │   │   ├── KeystoreGenerator.kt         # Motor criptográfico: X.509, BouncyCastle, hashes, PEM y Base64
+│   │   │   │   ├── KeystoreGenerator.kt         # Motor criptográfico de generación de pares de claves y empaquetado PKCS#12
 │   │   │   │   ├── PasswordGenerator.kt         # Generador criptográfico CSPRNG de contraseñas ultra seguras y cálculo de entropía
 │   │   │   │   ├── PepkGenerator.kt             # Cifrado híbrido PEPK (RSA-OAEP + AES-GCM) para Google Play App Signing
 │   │   │   │   ├── SignetBackupManager.kt       # Fachada orquestadora de exportación ZIP y restauración de respaldos
 │   │   │   │   ├── backup/
 │   │   │   │   │   ├── BackupTemplates.kt       # Generador de plantillas de texto (credentials.txt, key.properties, README-BACKUP.txt)
 │   │   │   │   │   └── BackupIntegrityVerifier.kt # Cálculo de SHA-256, firma HMAC-SHA256 y verificación de integridad anti-tamper
+│   │   │   │   ├── x509/
+│   │   │   │   │   ├── X509CertificateInspector.kt # Inspección y lectura de certificados en almacenes PKCS12, JKS y BKS
+│   │   │   │   │   └── X509CertificateUtils.kt    # Utilidades de cálculo de huellas digitales y formateo PEM estándar
 │   │   │   │   └── SnippetGenerator.kt          # Generador modular de snippets: Gradle KTS, Groovy, GitHub Actions, apksigner & pepk
 │   │   │   ├── data/
 │   │   │   │   ├── KeystoreRepository.kt        # Repositorio que orquesta base de datos y operaciones
@@ -36,7 +39,7 @@ app/
 │   │   │   │   └── model/
 │   │   │   │       └── KeystoreModels.kt        # Modelos de dominio (KeystoreConfig, KeystoreDetails, ApkInfo, ApkMatchResult, etc.)
 │   │   │   └── ui/
-│   │   │       ├── KeystoreViewModel.kt         # ViewModel central: StateFlows, tema, validaciones, APK Matcher y UI state
+│   │   │       ├── KeystoreViewModel.kt         # ViewModel central desacoplado: StateFlows, validaciones y orquestación
 │   │   │       ├── MainScreen.kt                # Barra de navegación de 4 pestañas y contenedor de vistas
 │   │   │       ├── components/
 │   │   │       │   ├── KeystoreDetailsSheet.kt  # BottomSheet orquestador de exportación SAF, compartir y detalles
@@ -47,7 +50,9 @@ app/
 │   │   │       │       ├── KeystoreBase64Card.kt         # Visualizador de Base64 para variables de entorno y CI/CD
 │   │   │       │       ├── KeystoreFingerprintsCard.kt   # Huellas SHA-256, SHA-1, MD5 y datos X.509
 │   │   │       │       ├── KeystoreCodeSnippetsCard.kt   # Visor interactivo de código Gradle, Groovy, YAML, CLI y PEPK
-│   │   │       │       └── PepkExportDialog.kt           # Diálogo de generación y exportación (.pepk individual o Bundle ZIP con Keystore)
+│   │   │       │       └── PepkExportDialog.kt           # Diálogo de generación y exportación (.pepk individual o Bundle ZIP)
+│   │   │       ├── preferences/
+│   │   │       │   └── AppPreferencesManager.kt # Gestor modular de preferencias de usuario (tema, paleta y estado de bienvenida)
 │   │   │       ├── screens/
 │   │   │       │   ├── WelcomeScreen.kt         # Pantallas interactivas de bienvenida, explicación de capacidades y aceptación legal
 │   │   │       │   ├── GenerateScreen.kt        # Pantalla principal de generación
@@ -67,6 +72,9 @@ app/
 │   │   │       │       ├── ColorPaletteSection.kt        # Selector de paleta de acentos y Material You (Android 12+)
 │   │   │       │       ├── LegalLinksSection.kt          # Accesos a Términos, Privacidad y guía de bienvenida
 │   │   │       │       └── DistributionInfoSection.kt    # Resumen de criptografía offline, soporte de tiendas y GPL v3
+│   │   │       ├── state/
+│   │   │       │   ├── FormState.kt             # Modelo inmutable de estado del formulario de generación de keystore
+│   │   │       │   └── KeystoreUiStates.kt      # Contratos sellados de estado de UI (Generation, Restore, Inspector, ApkMatcher)
 │   │   │       └── theme/
 │   │   │           ├── Color.kt                 # Paleta de colores M3 (Emerald, Purple, Amber, Teal, Crimson, Mono)
 │   │   │           ├── ThemeConfig.kt           # Enums ThemeMode (Claro, Oscuro, Negro 100%) y ColorPalette
@@ -75,7 +83,16 @@ app/
 │   │   └── res/                                 # Recursos visuales, strings y drawables
 │   └── test/
 │       └── java/com/example/
-│           └── ExampleRobolectricTest.kt        # Suite de pruebas unitarias Robolectric (Keystore, ZIP restore, PEPK, APK Matcher)
+│           ├── ExampleRobolectricTest.kt        # Suite de pruebas de humo e integración end-to-end
+│           ├── crypto/
+│           │   ├── ApkMatcherTest.kt            # Pruebas de análisis forense y detección de coincidencia de firmas
+│           │   ├── KeystoreGeneratorTest.kt     # Pruebas de generación RSA 2048, EC P256 e inspección
+│           │   ├── PasswordGeneratorTest.kt     # Pruebas de contraseñas CSPRNG, cálculo de entropía y clasificación
+│           │   ├── PepkGeneratorTest.kt         # Pruebas de cifrado híbrido PEPK y exportación en ZIP
+│           │   ├── SignetBackupIntegrityTest.kt # Pruebas de integridad de respaldos ZIP y rechazo de manipulación HMAC
+│           │   └── SnippetGeneratorTest.kt      # Pruebas de generación de código Gradle, Groovy, GitHub Actions y apksigner
+│           └── ui/
+│               └── KeystoreViewModelTest.kt     # Pruebas de estado de onboarding, endpoints legales y presets
 ├── .github/
 │   └── workflows/
 │       ├── build-debug-apk.yml                  # Compilación y despacho confidencial de APK Debug
@@ -115,12 +132,23 @@ app/
 ### 2. Generación de Keystore
 1. `GenerateScreen` recopila la configuración validada mediante sus submódulos (`GeneratePresetsSection`, `KeystoreCredentialsForm`, `KeystoreValiditySection`, `KeystoreDnFields`).
 2. `KeystoreGenerator` genera el par de claves mediante BouncyCastle y construye el certificado X.509.
-3. Se calcula el hash SHA-256, SHA-1, MD5 y se codifica el binario en Base64.
+3. `X509CertificateUtils` calcula los hashes SHA-256, SHA-1, MD5 y formatea el certificado en PEM estándar.
 4. `KeystoreRepository` persiste la entidad en la base de datos Room.
 
-### 3. Respaldos ZIP & Anti-Tampering Modular
+### 3. Inspección y Extracción de Certificados X.509
+1. `X509CertificateInspector` procesa flujos de bytes de almacenes de claves soportando PKCS12, JKS y BKS.
+2. Extrae cadenas de certificados X.509, fechas de validez, identificadores de emisor/sujeto y números de serie.
+3. Utiliza `X509CertificateUtils` para el cálculo normalizado de huellas digitales.
+
+### 4. Respaldos ZIP & Anti-Tampering Modular
 1. `SignetBackupManager.createBackupZip`:
    - Delega la construcción de archivos textuales en `BackupTemplates` (`credentials.txt`, `key.properties`, `README-BACKUP.txt`).
    - Delega la generación y firma criptográfica HMAC-SHA256 del manifiesto `signet-backup.json` en `BackupIntegrityVerifier`.
 2. `SignetBackupManager.restoreFromZip`:
    - Valida la integridad del archivo binario y del manifiesto contra la firma HMAC mediante `BackupIntegrityVerifier` antes de persistir o desbloquear.
+
+### 5. Estrategia Multi-Canal y Versionado Semántico
+- **`.debug` (`com.signet.app.debug` / `1.0.0-D`)**: Compilación interna y automática vía GitHub Actions (`build-debug-apk.yml`) firmada con `debug.keystore`.
+- **`.dev` (`com.signet.app.dev` / `1.0.0.dev`)**: Pre-alpha para pruebas de funciones en desarrollo temprano firmadas por el desarrollador.
+- **`.beta` (`com.signet.app.beta` / `1.0.0-B`)**: Versión beta con herramientas pulidas candidatas a definitivas.
+- **`.estable` (`com.signet.app` / `1.0.0-E`)**: Versión definitiva de producción para tiendas de terceros (Uptodown, GitHub Releases).
