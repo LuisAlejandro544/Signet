@@ -28,6 +28,9 @@ Plan estratégico de evolución técnica y funcionalidades para el proyecto **Si
 - [x] Limpieza de dependencias innecesarias de Google Play para distribución universal (Uptodown, F-Droid, APKs).
 - [x] Publicación bajo licencia **GNU General Public License v3.0 (GPL v3)** y definición de directrices de contribución en `CONTRIBUTING.md`.
 - [x] Pipeline CI/CD en GitHub Actions manual (`build-debug-apk.yml` con `workflow_dispatch`) con descarga de código, caché de Gradle, generación de clave en runner y compilación de APK Debug.
+- [x] **Auditoría Automatizada de Seguridad en GitHub Actions (`security-scan.yml`)**:
+  - [x] Escaneo confidencial en modo Stealth de vulnerabilidades en código Kotlin, Manifest, secretos y dependencias.
+  - [x] Generación de reporte estructurado `vulnerabilities-report.json` y despacho privado a Telegram para consumo del asistente IA.
 - [x] Tests unitarios con Robolectric y soporte de CI/CD para repositorios.
 - [x] **Portal Web Oficial, Términos & Privacidad para Cloudflare Pages (`web/`)**:
   - [x] Sitio estático de alto rendimiento en **Astro 5 + Tailwind CSS** con tema OLED y Emerald.

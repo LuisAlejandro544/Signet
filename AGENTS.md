@@ -56,3 +56,6 @@ Cuando se active una tarea, opera bajo la mentalidad del rol correspondiente:
    - El proyecto se distribuye bajo la licencia **GNU General Public License v3.0 (GPL v3)** (`LICENSE`).
    - Respetar las directrices de `CONTRIBUTING.md` manteniendo el desarrollo enfocado y seguro.
 
+6. **Consumo de Reportes de Seguridad Automatizados (`vulnerabilities-report.json`)**:
+   - Cuando el usuario proporcione un informe JSON generado por el workflow `.github/workflows/security-scan.yml`, el agente actuará bajo los roles **El Detective** y **El Constructor** para diagnosticar y subsanar quirúrgicamente cada hallazgo reportado según su ID, CWE y ruta de archivo exacta.
+

@@ -1,16 +1,8 @@
-fix(restore): corregir cierre prematuro de InputStream al restaurar e inspeccionar respaldos ZIP
+feat(ci): agregar workflow de auditoría de seguridad silenciosa manual y reporte confidencial a Telegram
 
-- Leer los bytes del archivo binario sincrónicamente en el ContentResolver antes de despachar a corrutinas
-- Evitar excepción 'Stream Closed' producida por el cierre anticipado del bloque use {} en la UI
-- Agregar soporte y sobrecargas de ByteArray en SignetBackupManager, KeystoreRepository y KeystoreViewModel
-- Solucionar restauración de paquetes de respaldo anti-manipulación e inspección de certificados externos
-
-feat(web): integrar portal oficial en Astro y Tailwind para Cloudflare Pages
-
-- Crear módulo web estático de alto rendimiento con Astro 5, Tailwind CSS y soporte de Cloudflare Pages (wrangler.toml)
-- Diseñar Landing Page oficial responsiva con descarga de APKs, características criptográficas y pilares de seguridad
-- Implementar Política de Privacidad estricta (/privacy) con declaración explícita de Cero Recolección de Datos y Cero Telemetría
-- Implementar Términos y Condiciones (/terms) bajo licencia GNU General Public License v3.0 (GPL v3)
-- Actualizar documentación del proyecto (README.md, STRUCTURE.md, ROADMAP.md, AI_CONTEXT.md)
-
-
+- Implementar `.github/workflows/security-scan.yml` activado exclusivamente bajo demanda manual (`workflow_dispatch`) con escaneo estático en modo Stealth (cero exposición de logs en runners de GitHub)
+- Analizar código Kotlin, Manifest, dependencias, secretos hardcodeados y primitivas criptográficas
+- Generar reporte consolidado `vulnerabilities-report.json` y despacharlo adjunto a Telegram junto con un resumen ejecutivo en texto
+- Soportar secretos dedicados (`TELEGRAM_BOT_TOKEN_SECURITY_SCAN`, `TELEGRAM_CHAT_ID_SECURITY_SCAN`) con fallback automático a credenciales de Debug APK
+- Actualizar documentación del proyecto en README.md, STRUCTURE.md, AI_CONTEXT.md, ROADMAP.md y AGENTS.md
+- Mantener configuración de Cloudflare Pages y compatibilidad con sincronización de código y despliegues

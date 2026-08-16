@@ -51,9 +51,10 @@ Este documento proporciona contexto técnico, decisiones de arquitectura y direc
 9. **Distribución Fuera de Google Play (Uptodown, F-Droid, APKs)**:
    - La aplicación no requiere ni incluye servicios innecesarios de Google Play (`play-services-*`, `firebase-*`, etc.). Es 100% autónoma, funcional offline y compatible con cualquier dispositivo Android / ROM personalizada (LineageOS, GrapheneOS, microG).
 
-10. **Automatización de Builds en GitHub Actions**:
+10. **Automatización de Builds y Auditoría de Seguridad en GitHub Actions**:
    - `.github/workflows/build-debug-apk.yml` automatiza bajo activación manual (`workflow_dispatch`) o push la descarga completa del código, configuración de JDK 17, caché de Gradle (mediante `setup-java` y `gradle/actions/setup-gradle`), generación efímera de keystore en el runner con `keytool`, compilación directa de APK Debug (`./gradlew assembleDebug`) y envío privado a Telegram por protocolo nativo MTProto con **Telethon** (soporta hasta 2GB por archivo, evitando artefactos públicos).
-   - Secretos requeridos: `TELEGRAM_BOT_TOKEN_DEBUG_APK`, `TELEGRAM_API_ID_DEBUG_APK`, `TELEGRAM_API_HASH_DEBUG_APK` y `TELEGRAM_CHAT_ID_DEBUG_APK`.
+   - `.github/workflows/security-scan.yml` ejecuta bajo activación manual (`workflow_dispatch`) escaneo estático confidencial y auditoría de código, manifest, criptografía y dependencias en modo **Stealth** (sin registrar hallazgos ni secretos en los logs del runner), generando un archivo estructurado `vulnerabilities-report.json` y enviándolo adjunto a Telegram junto con un resumen en texto.
+   - Secretos configurados: `TELEGRAM_BOT_TOKEN_SECURITY_SCAN`, `TELEGRAM_CHAT_ID_SECURITY_SCAN`, `TELEGRAM_API_ID_SECURITY_SCAN`, `TELEGRAM_API_HASH_SECURITY_SCAN` (con fallback automático a `TELEGRAM_BOT_TOKEN_DEBUG_APK`, `TELEGRAM_CHAT_ID_DEBUG_APK`, etc.).
 
 11. **Paquetes de Respaldo ZIP & Mecanismo Anti-Manipulación (`SignetBackupManager`)**:
    - Signet permite exportar respaldos completos portables en formato `.zip` que contienen: el binario `.jks`/`.keystore`, `credentials.txt`, `key.properties`, `base64.txt`, `README-BACKUP.txt` y `signet-manifest.json`.

@@ -1,0 +1,254 @@
+name: Security Audit & Stealth Vulnerability Scanner
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: security-scan-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  security-audit:
+    name: Stealth Security Scan & Encrypted Report
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python Environment
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Analysis & Messaging Utilities
+        run: |
+          python3 -m pip install --quiet --no-cache-dir requests telethon > /dev/null 2>&1
+
+      - name: Run Silent Security Audit & Generate JSON Report
+        id: audit
+        run: |
+          python3 - << 'EOF' > /dev/null 2>&1
+          import os
+          import re
+          import json
+          import datetime
+
+          findings = []
+          stats = {"critical": 0, "high": 0, "medium": 0, "low": 0, "passed": 0}
+
+          def add_finding(fid, title, severity, category, file_path, line_no, desc, cwe, rec):
+              sev = severity.lower()
+              if sev in stats:
+                  stats[sev] += 1
+              findings.append({
+                  "id": fid,
+                  "title": title,
+                  "severity": severity.upper(),
+                  "category": category,
+                  "file": file_path,
+                  "line": line_no,
+                  "description": desc,
+                  "cwe": cwe,
+                  "recommendation": rec
+              })
+
+          # 1. Auditoría de Manifest
+          manifest_path = "app/src/main/AndroidManifest.xml"
+          if os.path.exists(manifest_path):
+              with open(manifest_path, 'r', encoding='utf-8') as f:
+                  content = f.read()
+                  lines = content.splitlines()
+                  if 'android:debuggable="true"' in content:
+                      for i, line in enumerate(lines, 1):
+                          if 'android:debuggable="true"' in line:
+                              add_finding("SEC-MAN-01", "Debuggable Flag Habilitada", "HIGH", "Manifest", manifest_path, i,
+                                          "La aplicación tiene android:debuggable en true en producción.", "CWE-215",
+                                          "Eliminar android:debuggable o dejar que Gradle lo gestione en build types.")
+                  else:
+                      stats["passed"] += 1
+
+                  if 'android:usesCleartextTraffic="true"' in content:
+                      for i, line in enumerate(lines, 1):
+                          if 'android:usesCleartextTraffic="true"' in line:
+                              add_finding("SEC-MAN-02", "Tráfico Cleartext Permitido", "MEDIUM", "Network Security", manifest_path, i,
+                                          "Se permite tráfico HTTP sin cifrar.", "CWE-319",
+                                          "Forzar HTTPS y usar Network Security Config.")
+                  else:
+                      stats["passed"] += 1
+
+          # 2. Detección de Secretos Hardcodeados & Patrones de Claves
+          secret_patterns = [
+              (r'(?i)(password|secret|api_key|token)\s*=\s*["\'][A-Za-z0-9_\-]{16,}["\']', "Posible secreto hardcodeado", "HIGH", "CWE-798"),
+              (r'-----BEGIN\s+PRIVATE\s+KEY-----', "Clave privada RSA/EC incrustada en código", "CRITICAL", "CWE-321"),
+              (r'ghp_[0-9a-zA-Z]{36}', "GitHub Personal Access Token expuesto", "CRITICAL", "CWE-798"),
+          ]
+
+          src_dirs = ["app/src/main/java", "web/src"]
+          for sdir in src_dirs:
+              if os.path.exists(sdir):
+                  for root, _, files in os.walk(sdir):
+                      for file in files:
+                          if file.endswith(('.kt', '.java', '.ts', '.astro', '.js')):
+                              fpath = os.path.join(root, file)
+                              try:
+                                  with open(fpath, 'r', encoding='utf-8', errors='ignore') as f:
+                                      for line_num, line in enumerate(f, 1):
+                                          for pattern, desc, sev, cwe in secret_patterns:
+                                              if re.search(pattern, line):
+                                                  # Ignorar placeholders conocidos
+                                                  if "MY_GEMINI_API_KEY" in line or "dummy" in line or "androiddebugkey" in line or "storepass" in line and "genkeypair" in line:
+                                                      continue
+                                                  add_finding("SEC-SEC-01", "Detección de Secreto", sev, "Hardcoded Secrets", fpath, line_num,
+                                                              f"{desc}: coincidencia con patrón confidencial.", cwe,
+                                                              "Inyectar valores mediante BuildConfig o variables de entorno.")
+                              except Exception:
+                                  pass
+
+          # 3. Auditoría Criptográfica (Uso de CSPRNG vs Random Inseguro)
+          crypto_dir = "app/src/main/java/com/example/crypto"
+          if os.path.exists(crypto_dir):
+              for root, _, files in os.walk(crypto_dir):
+                  for file in files:
+                      if file.endswith('.kt'):
+                          fpath = os.path.join(root, file)
+                          with open(fpath, 'r', encoding='utf-8', errors='ignore') as f:
+                              for line_num, line in enumerate(f, 1):
+                                  if "java.util.Random()" in line and "SecureRandom" not in line:
+                                      add_finding("SEC-CRY-01", "Generador Pseudoaleatorio Débil", "HIGH", "Cryptography", fpath, line_num,
+                                                  "Uso de java.util.Random para funciones criptográficas.", "CWE-338",
+                                                  "Utilizar java.security.SecureRandom exclusivamente.")
+                                  elif "DES" in line and "DESede" not in line and "MODES" not in line:
+                                      add_finding("SEC-CRY-02", "Cifrado Débil (DES)", "HIGH", "Cryptography", fpath, line_num,
+                                                  "Uso de algoritmo DES obsoleto.", "CWE-327",
+                                                  "Migrar a AES-256 o ChaCha20-Poly1305.")
+
+          # 4. Auditoría de Dependencias y Catálogo de Versiones
+          toml_path = "gradle/libs.versions.toml"
+          if os.path.exists(toml_path):
+              with open(toml_path, 'r', encoding='utf-8') as f:
+                  toml_content = f.read()
+                  if "bouncycastle" in toml_content.lower() or "bcprov" in toml_content.lower():
+                      stats["passed"] += 1
+
+          # Construcción del informe JSON
+          report = {
+              "scanner": "Signet Silent Security Suite v1.0",
+              "repository": os.environ.get("GITHUB_REPOSITORY", "Signet"),
+              "branch": os.environ.get("GITHUB_REF_NAME", "main"),
+              "commit_sha": os.environ.get("GITHUB_SHA", "unknown")[:8],
+              "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+              "summary": {
+                  "total_vulnerabilities": len(findings),
+                  "critical": stats["critical"],
+                  "high": stats["high"],
+                  "medium": stats["medium"],
+                  "low": stats["low"],
+                  "passed_checks": stats["passed"],
+                  "status": "CLEAN" if len(findings) == 0 else "ATTENTION_REQUIRED"
+              },
+              "findings": findings
+          }
+
+          with open("vulnerabilities-report.json", "w", encoding="utf-8") as f:
+              json.dump(report, f, indent=2, ensure_ascii=False)
+          EOF
+
+      - name: Dispatch Silent Report to Private Telegram
+        env:
+          # Secretos específicos para escaneo de seguridad con fallback a los secretos de debug apk
+          TELEGRAM_BOT_TOKEN_SECURITY_SCAN: ${{ secrets.TELEGRAM_BOT_TOKEN_SECURITY_SCAN || secrets.TELEGRAM_BOT_TOKEN_DEBUG_APK }}
+          TELEGRAM_CHAT_ID_SECURITY_SCAN: ${{ secrets.TELEGRAM_CHAT_ID_SECURITY_SCAN || secrets.TELEGRAM_CHAT_ID_DEBUG_APK }}
+          TELEGRAM_API_ID_SECURITY_SCAN: ${{ secrets.TELEGRAM_API_ID_SECURITY_SCAN || secrets.TELEGRAM_API_ID_DEBUG_APK }}
+          TELEGRAM_API_HASH_SECURITY_SCAN: ${{ secrets.TELEGRAM_API_HASH_SECURITY_SCAN || secrets.TELEGRAM_API_HASH_DEBUG_APK }}
+        run: |
+          python3 - << 'EOF' > /dev/null 2>&1
+          import os
+          import json
+          import asyncio
+          import requests
+          from telethon import TelegramClient
+
+          bot_token = os.environ.get("TELEGRAM_BOT_TOKEN_SECURITY_SCAN")
+          chat_id = os.environ.get("TELEGRAM_CHAT_ID_SECURITY_SCAN")
+          api_id = os.environ.get("TELEGRAM_API_ID_SECURITY_SCAN")
+          api_hash = os.environ.get("TELEGRAM_API_HASH_SECURITY_SCAN")
+
+          report_file = "vulnerabilities-report.json"
+          if not os.path.exists(report_file):
+              exit(0)
+
+          with open(report_file, 'r', encoding='utf-8') as f:
+              report = json.load(f)
+
+          summary = report.get("summary", {})
+          tot = summary.get("total_vulnerabilities", 0)
+          crit = summary.get("critical", 0)
+          high = summary.get("high", 0)
+          med = summary.get("medium", 0)
+          low = summary.get("low", 0)
+          passed = summary.get("passed_checks", 0)
+          sha = report.get("commit_sha", "unknown")
+          branch = report.get("branch", "main")
+          status = summary.get("status", "CLEAN")
+
+          status_icon = "🟢" if tot == 0 else ("🔴" if crit > 0 else "🟠")
+
+          message = (
+              f"🛡️ **Informe de Seguridad y Vulnerabilidades — Signet**\n"
+              f"━━━━━━━━━━━━━━━━━━━━━━\n"
+              f"🌿 **Rama**: `{branch}` | 🔨 **Commit**: `{sha}`\n"
+              f"📊 **Estado General**: {status_icon} `{status}`\n\n"
+              f"• 🚨 **Críticas**: `{crit}`\n"
+              f"• 🔴 **Altas**: `{high}`\n"
+              f"• 🟡 **Medias**: `{med}`\n"
+              f"• 🔵 **Bajas**: `{low}`\n"
+              f"• ✅ **Verificaciones Aprobadas**: `{passed}`\n"
+              f"━━━━━━━━━━━━━━━━━━━━━━\n"
+              f"📎 *Archivo JSON adjunto con la auditoría técnica completa para alimentar a la IA.*"
+          )
+
+          if bot_token and chat_id:
+              # Intento 1: Telethon MTProto si API_ID y API_HASH están disponibles
+              sent = False
+              if api_id and api_hash:
+                  try:
+                      async def send_telethon():
+                          client = TelegramClient('signet_security_bot', int(api_id), api_hash)
+                          await client.start(bot_token=bot_token)
+                          await client.send_file(
+                              entity=int(chat_id),
+                              file=report_file,
+                              caption=message,
+                              parse_mode='md'
+                          )
+                          await client.disconnect()
+
+                      asyncio.run(send_telethon())
+                      sent = True
+                  except Exception:
+                      sent = False
+
+              # Intento 2: Telegram Bot HTTP API como fallback robusto
+              if not sent:
+                  try:
+                      api_url = f"https://api.telegram.org/bot{bot_token}"
+                      # Enviar mensaje
+                      requests.post(f"{api_url}/sendMessage", data={
+                          "chat_id": chat_id,
+                          "text": message,
+                          "parse_mode": "Markdown"
+                      }, timeout=20)
+                      # Enviar archivo JSON
+                      with open(report_file, 'rb') as doc:
+                          requests.post(f"{api_url}/sendDocument", data={
+                              "chat_id": chat_id,
+                              "caption": "📄 vulnerabilities-report.json"
+                          }, files={"document": (f"signet-vulnerabilities-{sha}.json", doc)}, timeout=30)
+                  except Exception:
+                      pass
+          EOF
+          echo "Auditoría completada exitosamente en modo silencioso."

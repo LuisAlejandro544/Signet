@@ -83,16 +83,27 @@ gradle :app:testDebugUnitTest
 
 ---
 
-## 🤖 CI/CD y Envío Privado a Telegram
+## 🤖 CI/CD, Seguridad y Envío Privado a Telegram
 
-El repositorio cuenta con un pipeline de GitHub Actions (`.github/workflows/build-debug-apk.yml`) que compila, firma y envía automáticamente el APK de depuración directamente a tu cuenta privada de **Telegram** mediante el protocolo nativo MTProto con **Telethon** (soportando archivos de hasta **2 GB**):
+El repositorio cuenta con pipelines automatizados en GitHub Actions orientados a la privacidad y seguridad:
 
-- **Sin exposición pública**: No se guardan artefactos ni binarios en los registros públicos de GitHub.
-- **Configuración de Secretos en GitHub**:
+### 1. Compilación y Envío de APK Debug (`.github/workflows/build-debug-apk.yml`)
+- Compila, firma y envía automáticamente el APK de depuración directamente a tu cuenta privada de **Telegram** mediante el protocolo nativo MTProto con **Telethon** (soportando archivos de hasta **2 GB**).
+- **Sin exposición pública**: No se guardan binarios ni artefactos en los registros públicos de GitHub.
+- **Secretos en GitHub**:
   - `TELEGRAM_BOT_TOKEN_DEBUG_APK`: Token del bot proporcionado por `@BotFather`.
   - `TELEGRAM_API_ID_DEBUG_APK`: ID de la aplicación de desarrollo en `my.telegram.org`.
   - `TELEGRAM_API_HASH_DEBUG_APK`: Hash de la aplicación en `my.telegram.org`.
   - `TELEGRAM_CHAT_ID_DEBUG_APK`: Tu identificador personal de Telegram.
+
+### 2. Auditoría Silenciosa de Vulnerabilidades (`.github/workflows/security-scan.yml`)
+- Activación **estrictamente manual (`workflow_dispatch`)** y ejecución en modo **Stealth (cero fugas en los logs del runner)** de seguridad en código Kotlin, Manifest, criptografía BouncyCastle, secretos y dependencias.
+- Genera un reporte exhaustivo estructurado en `vulnerabilities-report.json` y lo despacha de forma privada a **Telegram** con un resumen ejecutivo en texto y el archivo `.json` descargable listo para alimentar directamente al asistente de IA.
+- **Secretos en GitHub (con fallback automático a los secretos de Debug APK)**:
+  - `TELEGRAM_BOT_TOKEN_SECURITY_SCAN`: Token del bot para auditorías de seguridad.
+  - `TELEGRAM_CHAT_ID_SECURITY_SCAN`: ID de chat de Telegram para recibir los reportes.
+  - `TELEGRAM_API_ID_SECURITY_SCAN` / `TELEGRAM_API_HASH_SECURITY_SCAN`: Credenciales de Telegram MTProto (opcionales).
+  - *Nota*: Si no se configuran específicamente, el flujo reutiliza automáticamente `TELEGRAM_BOT_TOKEN_DEBUG_APK` y `TELEGRAM_CHAT_ID_DEBUG_APK`.
 
 ---
 

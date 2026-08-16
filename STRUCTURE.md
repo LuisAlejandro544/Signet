@@ -60,6 +60,7 @@ app/
 ├── .github/
 │   └── workflows/
 │       ├── build-debug-apk.yml                  # Compilación manual (workflow_dispatch) de APK Debug con generación de clave en runner y caché de Gradle
+│       ├── security-scan.yml                    # Auditoría de seguridad silenciosa (modo stealth) y envío de reporte JSON a Telegram
 │       └── sync-zip.yml                         # Automatización de sincronización desde zip
 ├── web/                                         # Portal web oficial, Términos y Política de Privacidad (Astro + Tailwind para Cloudflare Pages)
 │   ├── public/                                  # Activos estáticos (favicon.svg, robots.txt)
