@@ -78,3 +78,10 @@ Este documento proporciona contexto técnico, decisiones de arquitectura y direc
     - **Canal `.beta`**: ID `com.signet.app.beta`, versión `1.0.0-B`. Canal Beta para validación de funciones maduras y candidatas a definitivas. Se firma mediante GitHub Secrets.
     - **Canal `.estable`**: ID `com.signet.app` (o `.estable`), versión `1.0.0-E`. Canal de producción con herramientas 100% pulidas para distribución general en tiendas de terceros (Uptodown, GitHub Releases). Se firma mediante GitHub Secrets.
 
+15. **Pipeline de Compilación y Publicación Beta (`build-release-apk.yml`)**:
+    - Workflow activado por creación/publicación de Pre-Releases en GitHub o tags `v*` (especialmente `v1.0.0-B`).
+    - Soporta secretos dedicados para el canal Beta: `KEYSTORE_BETA_BASE64` (o `KEYSTORE_BASE64`), `KEYSTORE_BETA_PASSWORD` (o `KEYSTORE_PASSWORD`), `KEY_ALIAS_BETA` (o `KEY_ALIAS`) y `KEY_PASSWORD_BETA` (o `KEY_PASSWORD`).
+    - Decodifica el keystore en `app/signet-beta-key.jks`, compila con R8 (`isMinifyEnabled = true`, `isShrinkResources = true`) aplicando las reglas de `app/proguard-rules.pro`.
+    - Genera el checksum SHA-256 y adjunta automáticamente el APK firmado a los assets del Pre-Release de GitHub.
+    - Registro de versiones documentado en `Changelog-release.md`.
+

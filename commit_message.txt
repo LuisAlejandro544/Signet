@@ -1,40 +1,43 @@
-refactor(modular): modularización y desacoplamiento de KeystoreViewModel, KeystoreGenerator y suite de tests
+ci(release): implementar workflow de compilación, optimización R8 y publicación de APK Release & Pre-Release Beta
 
-- Modularizar el núcleo de presentación en `com.example.ui`:
-  * `ui/state/FormState.kt`: Modelo inmutable para los campos del formulario de generación, alias, validez y parámetros X.500.
-  * `ui/state/KeystoreUiStates.kt`: Contratos sellados (`GenerationUiState`, `RestoreUiState`, `InspectorUiState`, `ApkMatcherUiState`) para un manejo estricto y desacoplado del estado en Compose.
-  * `ui/preferences/AppPreferencesManager.kt`: Encapsulación independiente de la persistencia de preferencias en `SharedPreferences` (modo de tema, paleta cromática, estado de onboarding y constantes de URLs legales).
-  * `ui/KeystoreViewModel.kt`: Reducir responsabilidades y simplificar el ViewModel central como orquestador reactivo limpio, manteniendo aliases compatibles con las vistas existentes.
+- Crear pipeline automatizado en `.github/workflows/build-release-apk.yml` ("Release & Pre-Release APK"):
+  * Activación automática al publicar o crear Pre-Releases en GitHub, al crear tags semánticos (`v*`, `v1.0.0-B`, `v*-dev`, `v*-E`) o manualmente vía `workflow_dispatch`.
+  * Configuración de JDK 17 con caché de Gradle integrado para compilaciones ultrarrápidas.
+  * Extracción segura y decodificación del Keystore desde el secreto `KEYSTORE_BASE64` en `app/signet-beta-key.jks`, con mecanismo de contingencia para builds en entornos locales/CI.
+  * Inyección segura de credenciales de firma (`KEYSTORE_PATH`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`).
+  * Generación del hash criptográfico SHA-256 (`.sha256`) para verificación de integridad por parte del usuario.
+  * Publicación automática del APK firmado como artefacto del workflow y como archivo adjunto en los assets del Pre-Release de GitHub (`softprops/action-gh-release@v2`).
 
-- Modularizar el motor de certificados y análisis X.509 en `com.example.crypto.x509`:
-  * `X509CertificateUtils.kt`: Utilidades aisladas para el cálculo de huellas digitales criptográficas (SHA-256, SHA-1, MD5) y formateo de certificados X.509 en formato PEM estándar (RFC 7468).
-  * `X509CertificateInspector.kt`: Motor de lectura e inspección de certificados en almacenes PKCS12, JKS y BKS, separando la lógica de parsing forense de la creación de claves.
-  * `KeystoreGenerator.kt`: Enfocar exclusivamente en la generación de pares de claves (RSA 2048/4096 y EC P-256) y empaquetado PKCS#12, delegando la inspección y utilidades en submódulos especializados.
+- Configuración de Gradle y optimización R8/ProGuard:
+  * `app/build.gradle.kts`: Configuración del bloque `signingConfigs.create("release")` conectado a variables de entorno con fallbacks robustos.
+  * `app/build.gradle.kts`: Habilitación de `isMinifyEnabled = true` y `isShrinkResources = true` en el buildType `release`.
+  * `app/proguard-rules.pro`: Definición de reglas de conservación para BouncyCastle, Room Database, Kotlin Coroutines y modelos de datos de Signet.
 
-- Desacoplar y modularizar la suite de pruebas unitarias Robolectric en suites especializadas por dominio:
-  * `crypto/KeystoreGeneratorTest.kt`: Pruebas unitarias de generación RSA/EC, verificación de Base64 e inspección de certificados X.509.
-  * `crypto/PasswordGeneratorTest.kt`: Pruebas de generación CSPRNG, cálculo de bits de entropía y clasificación de fortaleza de contraseñas.
-  * `crypto/SignetBackupIntegrityTest.kt`: Pruebas de creación de paquetes ZIP, restauración atómica y rechazo estricto por manipulación de manifiesto o binario con HMAC-SHA256.
-  * `crypto/PepkGeneratorTest.kt`: Pruebas de cifrado híbrido PEPK (RSA-OAEP + AES-GCM) para Google Play App Signing y desencriptación con clave privada.
-  * `crypto/ApkMatcherTest.kt`: Pruebas de análisis sintético de APK, extracción multi-esquema y detección de coincidencia/discrepancia de firmas.
-  * `crypto/SnippetGeneratorTest.kt`: Pruebas de plantillas de configuración de firma (Gradle Kotlin DSL, Groovy, GitHub Actions, apksigner y pepk).
-  * `ui/KeystoreViewModelTest.kt`: Pruebas de ciclo de vida de onboarding, endpoints legales y aplicación de presets de configuración.
-  * `ExampleRobolectricTest.kt`: Suite simplificada de integración y pruebas de humo end-to-end.
+- Actualización de documentación y changelog:
+  * Crear `Changelog-release.md` para el registro oficial de notas de la versión y changelogs de los Pre-Releases y Releases.
+  * `README.md`: Nueva sección de CI/CD para compilación y firma de releases y pre-releases con lista de secretos específicos para el canal Beta (`KEYSTORE_BETA_BASE64`, `KEYSTORE_BETA_PASSWORD`, `KEY_ALIAS_BETA`, `KEY_PASSWORD_BETA`).
+  * `ROADMAP.md`: Registro del hito completado de CI/CD para Pre-Releases de la versión Beta.
+  * `STRUCTURE.md`: Incorporación del nuevo workflow y del changelog en el árbol del proyecto y documentación de arquitectura.
+  * `AI_CONTEXT.md` y `AGENTS.md`: Incorporación de las especificaciones de CI/CD, secretos por canal y registro de lanzamientos.
 
-- Actualizar `STRUCTURE.md` reflejando la nueva arquitectura modular de UI, Criptografía y Testing.
+refactor(ui): modularizar pantallas WelcomeScreen, SavedKeystoresScreen e InspectScreen
 
-feat(release): implementar estrategia multi-canal de versiones, sufijos de package y gestión de firmas
+- Modularización de `WelcomeScreen.kt` (reducción de 643 a ~130 líneas):
+  * `ui/screens/welcome/WelcomeModels.kt`: Modelos de datos (`OnboardingPageData`) y lista constante de diapositivas.
+  * `ui/screens/welcome/OnboardingPageItem.kt`: Componente de presentación de icono hero, beneficios y descripciones.
+  * `ui/screens/welcome/LegalConsentCard.kt`: Tarjeta legal con accesos a Términos/Privacidad y checkbox de consentimiento.
+  * `ui/screens/welcome/OnboardingNavigationFooter.kt`: Indicadores de puntos y controles de navegación Atrás/Siguiente/Comenzar.
 
-- Configurar sistema de 4 canales de lanzamiento con sufijos de applicationId y tags de versión diferenciados:
-  * `.debug`: `com.signet.app.debug` / `1.0.0-D` — Canal interno de depuración y pruebas privadas del desarrollador, compilado automáticamente vía GitHub Actions (`build-debug-apk.yml`) con firma dinámica de depuración (`debug.keystore`).
-  * `.dev`: `com.signet.app.dev` / `1.0.0.dev` — Canal Pre-Alpha para pruebas comunitarias de funciones tempranas y experimentales, preparado para firma personalizada con GitHub Secrets.
-  * `.beta`: `com.signet.app.beta` / `1.0.0-B` — Canal Beta para validación de herramientas consolidadas y candidatas a definitivas, firmado con GitHub Secrets.
-  * `.estable`: `com.signet.app` (o `.estable`) / `1.0.0-E` — Canal de producción con herramientas 100% pulidas para distribución en tiendas de terceros (Uptodown, GitHub Releases) y firmado con GitHub Secrets.
+- Modularización de `SavedKeystoresScreen.kt` (reducción de 425 a ~100 líneas):
+  * `ui/screens/saved/SavedKeystoresHeader.kt`: Banner de restauración de respaldos ZIP.
+  * `ui/screens/saved/KeystoreCardItem.kt`: Tarjeta interactiva con credenciales, huella SHA-256 rápida y acciones.
+  * `ui/screens/saved/EmptySavedKeystoresView.kt`: Estado vacío ilustrado con opciones de creación y restauración.
+  * `ui/screens/saved/SavedKeystoresDialogs.kt`: Diálogos modales para eliminación, progreso y errores de integridad HMAC.
 
-- Ajustes en Gradle y UI:
-  * `app/build.gradle.kts`: Configuración de `versionName = "1.0.0"` y buildType `debug` con `applicationIdSuffix = ".debug"` y `versionNameSuffix = "-D"`.
-  * `DistributionInfoSection.kt`: Visualización reactiva y dinámica de la versión utilizando `BuildConfig.VERSION_NAME`.
-  * `.github/workflows/build-debug-apk.yml`: Actualización de la cabecera de notificación en Telegram con el identificador del canal `.debug` (`v1.0.0-D` / `com.signet.app.debug`).
+- Modularización de `InspectScreen.kt` (reducción de 326 a ~60 líneas):
+  * `ui/screens/inspect/KeystoreInspectorSection.kt`: Formulario de carga con selector de archivos SAF, contraseña y visualización.
+  * `ui/screens/inspect/CertificateDetailsResultCard.kt`: Tarjeta de presentación de certificados X.509 y huellas criptográficas.
+  * Mantenimiento e integración del validador forense `ApkMatcherSection.kt`.
 
-- Documentación y Gobernanza:
-  * Actualizar `README.md`, `ROADMAP.md`, `STRUCTURE.md`, `AI_CONTEXT.md` y `AGENTS.md` con la taxonomía completa de canales, tags de versión y estrategia de firmas.
+- Actualización de `STRUCTURE.md` para reflejar la nueva jerarquía de paquetes (`welcome/`, `saved/`, `inspect/`).
+

@@ -64,6 +64,7 @@ Plan estratégico de evolución técnica y funcionalidades para el proyecto **Si
   - [x] Canal **.dev** (`com.signet.app.dev` / `1.0.0.dev`): Pre-alpha para pruebas tempranas de nuevas funciones experimentales.
   - [x] Canal **.beta** (`com.signet.app.beta` / `1.0.0-B`): Beta con herramientas pulidas candidatas a definitivas.
   - [x] Canal **.estable** (`com.signet.app` / `1.0.0-E`): Versión final sólida y libre de errores críticos para tiendas de terceros (Uptodown, GitHub Releases).
+  - [x] Workflow automatizado de CI/CD para compilación, ofuscación R8/ProGuard, firma y publicación de APKs en GitHub Pre-Releases (`build-release-apk.yml`).
   - [x] Esquema preparado para gestión soberana de firmas criptográficas mediante GitHub Secrets.
 
 ---

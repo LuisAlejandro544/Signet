@@ -54,17 +54,29 @@ app/
 │   │   │       ├── preferences/
 │   │   │       │   └── AppPreferencesManager.kt # Gestor modular de preferencias de usuario (tema, paleta y estado de bienvenida)
 │   │   │       ├── screens/
-│   │   │       │   ├── WelcomeScreen.kt         # Pantallas interactivas de bienvenida, explicación de capacidades y aceptación legal
+│   │   │       │   ├── WelcomeScreen.kt         # Orquestador ligero de bienvenida, explicación de capacidades y navegación
+│   │   │       │   ├── welcome/
+│   │   │       │   │   ├── WelcomeModels.kt              # Estructuras de datos y constantes de las pantallas de bienvenida
+│   │   │       │   │   ├── OnboardingPageItem.kt         # Renderizado de tarjeta hero, beneficios e iconos temáticos
+│   │   │       │   │   ├── LegalConsentCard.kt           # Tarjeta de enlaces a Términos/Privacidad y aceptación checkbox
+│   │   │       │   │   └── OnboardingNavigationFooter.kt # Paginador de puntos y botones Atrás/Siguiente/Comenzar
 │   │   │       │   ├── GenerateScreen.kt        # Pantalla principal de generación
 │   │   │       │   ├── generate/
 │   │   │       │   │   ├── GeneratePresetsSection.kt     # Chips de plantillas rápidas (Release, Upload, RSA 4096)
 │   │   │       │   │   ├── KeystoreCredentialsForm.kt    # Formato, contraseñas, medidor de entropía y generador CSPRNG
 │   │   │       │   │   ├── KeystoreValiditySection.kt    # Slider interactivo de años, chips y selector de algoritmo
 │   │   │       │   │   └── KeystoreDnFields.kt           # Formulario X.500 con distinción de obligatorios Google y opcionales
-│   │   │       │   ├── InspectScreen.kt         # Pantalla de análisis e inspección de archivos externos y subpestañas
+│   │   │       │   ├── InspectScreen.kt         # Orquestador con TabRow para inspección de archivos y validación APK
 │   │   │       │   ├── inspect/
-│   │   │       │   │   └── ApkMatcherSection.kt     # Interfaz interactiva de validación forense APK vs Keystore
-│   │   │       │   ├── SavedKeystoresScreen.kt  # Pantalla de historial de keystores guardados
+│   │   │       │   │   ├── KeystoreInspectorSection.kt   # Formulario de carga de archivo externo, contraseña y visor
+│   │   │       │   │   ├── CertificateDetailsResultCard.kt # Tarjeta de visualización de certificados X.509 y huellas
+│   │   │       │   │   └── ApkMatcherSection.kt          # Interfaz interactiva de validación forense APK vs Keystore
+│   │   │       │   ├── SavedKeystoresScreen.kt  # Orquestador de historial de almacenes de claves guardados
+│   │   │       │   ├── saved/
+│   │   │       │   │   ├── SavedKeystoresHeader.kt       # Banner de restauración de respaldos ZIP
+│   │   │       │   │   ├── KeystoreCardItem.kt           # Tarjeta de keystore con credenciales, huella SHA-256 y acciones
+│   │   │       │   │   ├── EmptySavedKeystoresView.kt    # Vista vacía amigable con llamadas a la acción
+│   │   │       │   │   └── SavedKeystoresDialogs.kt      # Diálogos de eliminación, progreso y errores de integridad
 │   │   │       │   ├── SettingsScreen.kt        # Pantalla de configuración modular
 │   │   │       │   └── settings/
 │   │   │       │       ├── SettingsHeaderCard.kt         # Tarjeta de encabezado y resumen visual
@@ -93,9 +105,11 @@ app/
 │           │   └── SnippetGeneratorTest.kt      # Pruebas de generación de código Gradle, Groovy, GitHub Actions y apksigner
 │           └── ui/
 │               └── KeystoreViewModelTest.kt     # Pruebas de estado de onboarding, endpoints legales y presets
+├── Changelog-release.md                 # Historial detallado de notas de la versión y changelogs para releases
 ├── .github/
 │   └── workflows/
-│       ├── build-debug-apk.yml                  # Compilación y despacho confidencial de APK Debug
+│       ├── build-debug-apk.yml                  # Compilación y despacho confidencial de APK Debug (Canal .debug)
+│       ├── build-release-apk.yml                # Compilación, R8 ProGuard, firma y publicación de APK Pre-Release (Canal .beta)
 │       ├── security-scan.yml                    # Auditoría de seguridad estática en modo Stealth
 │       ├── emulator-e2e-test.yml                # Pruebas E2E en emulador nativo Android KVM
 │       ├── cli-interoperability-test.yml        # Validación cruzada CLI con keytool y Google apksigner

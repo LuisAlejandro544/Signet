@@ -158,6 +158,18 @@ El repositorio cuenta con pipelines automatizados en GitHub Actions orientados a
 - **Reporte JSON & Despacho a Telegram**: Genera `cli-interop-report.json` con desglose paso a paso y lo despacha de forma confidencial a Telegram.
 - **Secretos en GitHub**: Soporta secretos dedicados `TELEGRAM_BOT_TOKEN_CLI_INTEROP` / `TELEGRAM_CHAT_ID_CLI_INTEROP` o fallback automático a los secretos principales.
 
+### 5. Compilación y Firma de APK Release / Pre-Release (`.github/workflows/build-release-apk.yml`)
+- **Pipeline Automatizado de Lanzamiento Beta**: Se activa automáticamente al publicar o crear un Pre-Release en GitHub, al empujar tags semánticos (ej. `v1.0.0-B`, `v*`), o de forma manual con `workflow_dispatch`.
+- **Optimización R8 / ProGuard**: Ofusca y comprime recursos (`isMinifyEnabled = true`, `isShrinkResources = true`) preservando BouncyCastle, Room y componentes de presentación.
+- **Firma Criptográfica Segura**: Decodifica el almacén JKS/PKCS12 a partir de secretos en Base64 e inyecta las credenciales de firma en tiempo de compilación.
+- **Publicación Automática**: Adjunta el binario `Signet-v*-release-signed.apk` junto a su checksum `SHA-256` en los assets del Pre-Release de GitHub y como artefacto del workflow.
+- **Secretos en GitHub Requeridos para el Canal Beta**:
+  - `KEYSTORE_BETA_BASE64` (o `KEYSTORE_BASE64`): Contenido en Base64 del archivo Keystore de firma Beta (generado por la propia app Signet).
+  - `KEYSTORE_BETA_PASSWORD` (o `KEYSTORE_PASSWORD`): Contraseña maestra del archivo Keystore Beta.
+  - `KEY_ALIAS_BETA` (o `KEY_ALIAS`): Alias de la clave de firma (por defecto: `signet-beta`).
+  - `KEY_PASSWORD_BETA` (o `KEY_PASSWORD`): Contraseña específica del alias Beta.
+- **Registro de Versiones**: Consulta [Changelog-release.md](Changelog-release.md) para el historial detallado de notas de lanzamiento.
+
 ---
 
 ## 📜 Licencia & Contribuciones

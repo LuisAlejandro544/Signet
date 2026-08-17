@@ -65,5 +65,5 @@ Cuando se active una tarea, opera bajo la mentalidad del rol correspondiente:
      * `.dev` -> `com.signet.app.dev` / `1.0.0.dev` (canal pre-alpha para pruebas tempranas de nuevas funciones, firmado por el desarrollador).
      * `.beta` -> `com.signet.app.beta` / `1.0.0-B` (canal beta de herramientas pulidas candidatas a definitivas).
      * `.estable` -> `com.signet.app` / `1.0.0-E` (canal definitivo de producción para tiendas de terceros).
-   - Las firmas para `.dev`, `.beta` y `.estable` se administran mediante GitHub Secrets.
+   - Las firmas para `.dev`, `.beta` y `.estable` se administran mediante GitHub Secrets (`KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`) consumidas por el workflow `.github/workflows/build-release-apk.yml`.
 
