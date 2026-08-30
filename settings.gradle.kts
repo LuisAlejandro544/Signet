@@ -25,3 +25,4 @@ dependencyResolutionManagement {
 rootProject.name = "Signet"
 
 include(":app")
+include(":desktop")

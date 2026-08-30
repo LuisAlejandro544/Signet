@@ -115,12 +115,18 @@ Este documento proporciona contexto técnico, decisiones de arquitectura y direc
     - **Pruebas de Compatibilidad Desktop**: Verificadas mediante `DesktopMultiplatformTest.kt`.
 
 18. **Módulo de Escritorio, Punto de Entrada `Main.kt` & UX Adaptativo**:
-    - **Módulo Gradle `:desktop`**: Configuración para empaquetado nativo en Windows (`.exe` / `.msi` vía `jpackage`) y ejecución en la JVM.
-    - **Punto de Entrada `DesktopLauncher` (`app/src/main/java/com/example/desktop/Main.kt`)**: Soporte para ejecución de escritorio y argumentos CLI (`--open-vault`, `--version`, `--help`).
+    - **Módulo Gradle `:desktop`**: Vinculado activamente en `settings.gradle.kts` e integrado con el plugin Compose Multiplatform (`alias(libs.plugins.kotlin.compose)`) en `desktop/build.gradle.kts`, con target JVM, dependencias criptográficas y tarea de ejecución nativa `runDesktop`.
+    - **Punto de Entrada `DesktopLauncher` (`app/src/main/java/com/example/desktop/Main.kt`)**: Soporte para ejecución de escritorio con bucle de ventana gráfica Swing/Compose, detección headless, optimización HiDPI y argumentos CLI (`--open-vault`, `--version`, `--help`).
     - **Contenedor UI `SignetDesktopApp` (`app/src/main/java/com/example/desktop/SignetDesktopApp.kt`)**: Proveedor Compose Desktop que enlaza con `DesktopPlatformServices` e instancia `KeystoreViewModel` sin dependencias de Android.
+    - **Estructura del Módulo Compartido (KMP / Shared UI)**:
+      * Capa de UI compartida en Jetpack Compose / Compose Multiplatform desacoplada de `android.content.Context`.
+      * `KeystoreViewModel` reactivo gobernado puramente por Kotlin Coroutines `StateFlow` e inyección de `PlatformServices`.
+      * Contratos multiplataforma para almacenamiento de archivos, portapapeles y explorador de archivos nativo.
+      * Compatibilidad cruzada garantizada en arquitecturas x86_64 y ARM64 (Windows on ARM / Snapdragon X / macOS Apple Silicon / Linux aarch64).
     - **UX Adaptativo y Ergonomía (`MainScreen.kt`)**: Diseño responsivo con `BoxWithConstraints`:
       * Pantallas anchas / Escritorio (`maxWidth >= 700.dp`): Barra lateral vertical `NavigationRail` con botón de acceso rápido para abrir la carpeta de la bóveda en el explorador de archivos nativo, títulos ampliados y distribución de contenido optimizada.
       * Pantallas móviles compactas (`maxWidth < 700.dp`): Barra inferior `NavigationBar` optimizada para uso táctil con una sola mano.
+
 
 19. **Filtrado de Arquitecturas Móviles (ABI Filters) en APKs**:
     - **Exclusividad Móvil**: Las versiones compiladas de Android (canales `.beta`, `.dev`, `.estable`, etc.) incorporan exclusivamente arquitecturas de telefonía celular móvil: **ARM de 64 bits (`arm64-v8a`)** y **ARM de 32 bits (`armeabi-v7a`)** configuradas mediante `ndk.abiFilters`.

@@ -71,8 +71,15 @@ Generador y administrador profesional de Keystores (`.jks` y `.keystore`) para A
   - Garantía de Cero Recolección de Datos: ninguna clave, contraseña o huella digital sale jamás del silicio de tu dispositivo.
 
 - **🖥️ Arquitectura Multiplataforma & Soporte para Windows / Desktop**:
-  - **Módulo de Escritorio Nativo (`:desktop`)**: Configuración Gradle para empaquetado nativo en Windows (`.exe` / `.msi` vía `jpackage`) y ejecución en la JVM con punto de entrada `Main.kt` (`DesktopLauncher`).
+  - **Módulo de Escritorio Nativo (`:desktop`)**: Vinculado en `settings.gradle.kts` e integrado con Compose Multiplatform en `desktop/build.gradle.kts` para empaquetado nativo en Windows (`.exe` / `.msi` vía `jpackage`), ejecución JVM y tarea `runDesktop`.
+  - **Estructura del Módulo Compartido (KMP / Shared UI)**:
+    * Capa de presentación compartida en Jetpack Compose / Compose Multiplatform desacoplada de dependencias exclusivas de Android.
+    * Orquestación de estado desacoplada en `KeystoreViewModel` con flujos reactivos puros `StateFlow`.
+    * Núcleo criptográfico común de alta seguridad (`com.example.crypto`) respaldado por BouncyCastle puro.
+    * Compatibilidad nativa en arquitecturas x86_64 y ARM64 (Windows on ARM / Snapdragon X / Apple Silicon / Linux aarch64).
+  - **Punto de Entrada & Bucle de Ventana (`DesktopLauncher`)**: `Main.kt` con inicialización gráfica AWT/Swing/Compose, detección headless, compatibilidad HiDPI y comandos CLI (`--open-vault`, `--help`, `--version`).
   - **Ergonomía de Interfaz y UX Adaptativo**: `MainScreen` responsivo que detecta el ancho de pantalla (`maxWidth >= 700.dp`) para desplegar un `NavigationRail` vertical con acceso rápido al explorador de archivos nativo en escritorio, y una barra inferior `NavigationBar` en móviles.
+
   - **Capa de Abstracción de Plataforma (`PlatformServices`)**:
     * `DesktopPlatformServices`: Selección de archivos con `FileDialog` nativo de Windows/Desktop, portapapeles del sistema y apertura de la carpeta de la bóveda en el Explorador de Windows.
     * `AndroidPlatformServices`: Storage Access Framework (SAF), `FileProvider` y menús nativos de compartir de Android.

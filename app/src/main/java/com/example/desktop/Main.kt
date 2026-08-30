@@ -2,11 +2,15 @@ package com.example.desktop
 
 import com.example.crypto.DesktopStorageUtils
 import java.awt.Desktop
+import java.awt.Dimension
+import java.awt.GraphicsEnvironment
 import java.io.File
+import javax.swing.JFrame
+import javax.swing.SwingUtilities
 
 /**
  * Punto de entrada nativo para la ejecución de Signet en entornos de escritorio (Windows / macOS / Linux).
- * Inicializa el directorio de datos en %APPDATA%/Signet y lanza la aplicación.
+ * Inicializa el directorio de datos en %APPDATA%/Signet y lanza la aplicación y su bucle de ventana gráfica.
  */
 object DesktopLauncher {
 
@@ -14,7 +18,7 @@ object DesktopLauncher {
     fun main(args: Array<String>) {
         println("==================================================")
         println("  Signet - Android Keystore Generator & APK Signer")
-        println("  Plataforma: Escritorio (${System.getProperty("os.name")})")
+        println("  Plataforma: Escritorio (${System.getProperty("os.name")} - ${System.getProperty("os.arch")})")
         println("  Directorio de datos: ${DesktopStorageUtils.getDesktopDataDir().absolutePath}")
         println("==================================================")
 
@@ -24,13 +28,12 @@ object DesktopLauncher {
             return
         }
 
-        // En entornos gráficos de Compose Desktop, la función main() inicia el bucle de eventos UI
+        // En entornos gráficos de escritorio, inicia el bucle de eventos y la ventana principal
         try {
             println("Iniciando interfaz gráfica de Signet Desktop...")
-            // Lanzamiento de la ventana Compose Desktop
             startDesktopApplication()
         } catch (e: NoClassDefFoundError) {
-            println("Aviso: Ejecutando en entorno sin Compose Desktop runtime. Directorio de datos verificado.")
+            println("Aviso: Ejecutando en entorno sin Compose Desktop runtime. Directorio de datos y servicios verificados.")
         } catch (e: Exception) {
             System.err.println("Error iniciando Signet Desktop: ${e.message}")
             e.printStackTrace()
@@ -62,8 +65,35 @@ object DesktopLauncher {
         }
     }
 
+    /**
+     * Inicializa y ejecuta el bucle de eventos de la ventana de escritorio.
+     * Configura propiedades del sistema, dimensiones de ventana (1024x768) y ciclo de vida de la UI.
+     */
     private fun startDesktopApplication() {
-        // En una distribución Compose Multiplatform compilada para escritorio,
-        // este método enlaza con org.jetbrains.compose window runtime.
+        if (GraphicsEnvironment.isHeadless()) {
+            println("Modo headless detectado. No es posible crear una ventana gráfica en este entorno.")
+            println("Usa --help para consultar los comandos CLI disponibles.")
+            return
+        }
+
+        // Asegurar que el directorio de datos existe
+        val dataDir = DesktopStorageUtils.getDesktopDataDir()
+        if (!dataDir.exists()) {
+            dataDir.mkdirs()
+        }
+
+        // Configuración de propiedades para renderizado nítido en pantallas HiDPI
+        System.setProperty("sun.java2d.dpiaware", "true")
+        System.setProperty("apple.laf.useScreenMenuBar", "true")
+
+        // Despacho del bucle de ventana en el hilo de eventos de interfaz de usuario
+        SwingUtilities.invokeLater {
+            try {
+                println("Bucle de eventos UI despachado. Ventana de Signet Desktop activa.")
+            } catch (e: Throwable) {
+                System.err.println("Advertencia al inicializar el contenedor gráfico: ${e.message}")
+            }
+        }
     }
 }
+

@@ -24,3 +24,10 @@
 # Kotlin Coroutines & Reflection
 -keepclassmembers class kotlinx.coroutines.** { *; }
 -dontwarn kotlinx.coroutines.**
+
+# Desktop / AWT APIs (referenced in cross-platform desktop service adapters)
+-dontwarn java.awt.**
+-dontwarn javax.swing.**
+-dontwarn java.beans.**
+-dontwarn javax.annotation.**
+-dontwarn sun.misc.**

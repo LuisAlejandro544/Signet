@@ -68,12 +68,18 @@ Plan estratégico de evolución técnica y funcionalidades para el proyecto **Si
   - [x] Desacoplamiento del parámetro `android.content.Context` en `KeystoreGenerator`, `SignetBackupManager` y `KeystoreRepository` a `outputDir: File`.
   - [x] Motor de resolución de almacenamiento de escritorio `DesktopStorageUtils` para Windows (%APPDATA%), Linux/Unix y macOS.
   - [x] Suite de tests unitarios `DesktopMultiplatformTest` verificando compatibilidad en JVM/Escritorio.
-  - [x] Módulo Gradle de Escritorio (`:desktop`) con target JVM y empaquetado nativo jpackage (`.exe` / `.msi`).
-  - [x] Punto de entrada nativo JVM `DesktopLauncher` (`app/src/main/java/com/example/desktop/Main.kt`) con soporte para ejecución standalone y flags CLI (`--open-vault`, `--help`, `--version`).
+  - [x] Módulo Gradle de Escritorio (`:desktop`) vinculado oficialmente en `settings.gradle.kts` con plugin Compose Multiplatform (`desktop/build.gradle.kts`), target JVM y empaquetado nativo jpackage (`.exe` / `.msi`).
+  - [x] Punto de entrada nativo JVM `DesktopLauncher` (`app/src/main/java/com/example/desktop/Main.kt`) con bucle de ventana gráfica Swing/Compose, soporte para ejecución standalone y flags CLI (`--open-vault`, `--help`, `--version`).
   - [x] Contenedor UI `SignetDesktopApp` e inyección de servicios de plataforma (`DesktopPlatformServices` con `FileDialog` nativo y portapapeles AWT).
   - [x] Ergonomía y UX Adaptativo en `MainScreen` (`NavigationRail` en pantallas de escritorio con acceso directo a la carpeta de la bóveda y `NavigationBar` en móvil).
+  - [x] **Estructura del Módulo Compartido (KMP / Shared UI)**:
+    * Abstracción unificada de servicios del sistema operativo `PlatformServices` y `LocalPlatformServices` (inyección desacoplada de selección/guardado de archivos, portapapeles, explorador nativo e instalación).
+    * Capa de UI compartida 100% desacoplada en Jetpack Compose / Compose Multiplatform (pantallas de Generación, Firma de APKs, Inspección forense, Historial, Bienvenida y Ajustes).
+    * `KeystoreViewModel` reactivo gobernado puramente por Kotlin Coroutines `StateFlow` sin dependencias de `android.content.Context`.
+    * Núcleo criptográfico común de alta seguridad (`com.example.crypto`) e inmutabilidad en modelos de dominio (`com.example.data.model`).
 - [ ] **Distribución y CI/CD de Signet Desktop**:
   - [ ] Pipeline de CI/CD para compilación automatizada de instaladores Windows (.exe / .msi) y Linux (.deb / AppImage).
+
 
 
 

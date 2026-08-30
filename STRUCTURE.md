@@ -211,8 +211,30 @@ app/
    - Verifica la integridad binaria y las firmas criptográficas mediante `BackupIntegrityVerifier`, `SignetManifestParser` y `SignetVaultManifestParser`.
    - Desbloquea de forma segura los certificados antes de persistirlos en el repositorio con cifrado AES-256-GCM.
 
-### 5. Estrategia Multi-Canal y Versionado Semántico
+### 5. Arquitectura Multiplataforma, Módulo Compartido (KMP / Shared UI) y Escritorio (:desktop)
+1. **Vinculación Multimodular (`settings.gradle.kts`)**:
+   - `include(":desktop")` y `include(":app")` configurados para orquestar la compilación cruzada Android/Desktop.
+2. **Estructura del Módulo Compartido (KMP / Shared UI)**:
+   - **Capa de Abstracción de Plataforma (`PlatformServices` & `LocalPlatformServices`)**:
+     * Interfaz neutral que define contratos de operaciones dependientes del SO: selección de archivos (`pickFile`), guardado nativo (`saveFile`), portapapeles (`copyToClipboard`), notificaciones (`showToast`), apertura de enlaces (`openUrl`), explorador de archivos (`openFolder`), instalación de APKs (`installApk`) y compartición (`shareFile`).
+     * `AndroidPlatformServices`: Implementa SAF (Storage Access Framework), FileProvider y menús nativos de compartir de Android.
+     * `DesktopPlatformServices`: Implementa AWT `FileDialog`, portapapeles del sistema operativo (`Toolkit.systemClipboard`), ejecución de explorador de archivos (Windows Explorer `explorer.exe /select,`, macOS `open`, Linux `xdg-open`).
+   - **UI y Estado Reactivo Compartido**:
+     * Pantallas y componentes construidos en Jetpack Compose / Compose Multiplatform desacoplados de APIs de Android.
+     * `KeystoreViewModel` maneja estados y flujos reactivos mediante Kotlin Coroutines `StateFlow`, operando de manera idéntica en Android y Desktop.
+     * Sistema de diseño `MyApplicationTheme` (M3) con esquemas de color dinámicos, paletas y tipografía compartida.
+   - **Núcleo Criptográfico Común**:
+     * BouncyCastle (`bcprov`, `bcpkix`) encapsulado en `com.example.crypto`, completamente independiente de la plataforma y compatible con JVM pura.
+3. **Módulo de Escritorio (`desktop/build.gradle.kts`)**:
+   - Aplica el plugin `kotlin("jvm")` y `alias(libs.plugins.kotlin.compose)`.
+   - Vincula las dependencias criptográficas (`bcprov`, `bcpkix`, `kotlinx-coroutines`) y registra la tarea de ejecución nativa `runDesktop`.
+4. **Punto de Entrada y Bucle de Ventana (`DesktopLauncher` en `Main.kt`)**:
+   - Inicializa el entorno del sistema operativo, resuelve rutas en `%APPDATA%/Signet` y gestiona argumentos por CLI (`--open-vault`, `--version`, `--help`).
+   - Ejecuta el bucle de eventos gráfico en el hilo de interfaz de usuario (AWT/Swing y Compose Desktop).
+
+### 6. Estrategia Multi-Canal y Versionado Semántico
 - **`.debug` (`com.signet.app.debug` / `1.0.0-D`)**: Compilación interna y automática vía GitHub Actions (`build-debug-apk.yml`) firmada con `debug.keystore`.
 - **`.dev` (`com.signet.app.dev` / `1.0.0.dev`)**: Pre-alpha para pruebas de funciones en desarrollo temprano firmadas por el desarrollador.
 - **`.beta` (`com.signet.app.beta` / `1.0.0-B`)**: Versión beta con herramientas pulidas candidatas a definitivas.
 - **`.estable` (`com.signet.app` / `1.0.0-E`)**: Versión definitiva de producción para tiendas de terceros (Uptodown, GitHub Releases).
+

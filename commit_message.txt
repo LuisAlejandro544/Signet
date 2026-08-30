@@ -1,39 +1,25 @@
-feat(crypto): soporte de generación de certificados .p12 y .pfx para Windows, PC y móviles con firmas Authenticode
+fix(build): corregir fallo de R8 en minifyReleaseWithR8 por referencias a clases java.awt en DesktopPlatformServices
 
-- Soporte de Formatos PKCS#12 (.p12) y Microsoft Authenticode (.pfx):
-  * Ampliar `FormState` y `KeystoreGenerator` para permitir la selección y generación directa de certificados con extensiones `.p12` (PKCS#12 Multiplataforma / iOS / Java) y `.pfx` (Microsoft Authenticode / Windows / PC).
-  * Inyectar extensiones estándar X.509 (`BasicConstraints`, `KeyUsage` con `digitalSignature` / `keyEncipherment` y `ExtendedKeyUsage` con `id_kp_codeSigning` y `id_kp_clientAuth`) para garantizar compatibilidad nativa con Microsoft SignTool, PowerShell `Set-AuthenticodeSignature`, Apple codesign y Android apksigner.
+- Causa Raíz del Error:
+  * Durante la ejecución de la tarea `:app:minifyReleaseWithR8` en los workflows de lanzamiento (`build-release-apk.yml`), el optimizador R8 fallaba al detectar dependencias hacia clases ausentes en el Android Runtime (`java.awt.Desktop`, `java.awt.FileDialog`, `java.awt.datatransfer.*`, etc.) referenciadas por la capa de adaptadores de escritorio `DesktopPlatformServices`.
 
-- Interfaz de Usuario y Presets Rápidos (Android y Desktop):
-  * Actualizar `KeystoreCredentialsForm` con selector de 4 formatos (.jks, .keystore, .p12, .pfx) con chips responsivos y legibles.
-  * Añadir en `GeneratePresetsSection` plantillas automáticas: "Windows (.pfx)" con RSA 4096 para Authenticode y "Multiplataforma (.p12)" con RSA 2048.
-  * Actualizar `KeystoreViewModel.applyPreset` para gestionar los perfiles de Windows y Multiplataforma.
+- Solución y Reglas de ProGuard/R8 (`app/proguard-rules.pro`):
+  * Añadir directivas `-dontwarn java.awt.**`, `-dontwarn javax.swing.**`, `-dontwarn java.beans.**`, `-dontwarn javax.annotation.**` y `-dontwarn sun.misc.**`.
+  * Permitir que el minificador y ofuscador R8 procese los binarios de producción sin advertencias fatales por el código multiplataforma de escritorio.
+  * Garantizar la compilación exitosa de APKs en todos los canales de distribución (.release, .beta, .dev y .estable).
 
-- Snippets de Firma y CI/CD Multidispositivo (`SnippetGenerator` & `KeystoreCodeSnippetsCard`):
-  * Añadir pestaña y generador de comandos oficiales para **Microsoft SignTool (Windows SDK)** y **PowerShell** con marcas de tiempo RFC 3161 (`http://timestamp.digicert.com`).
-  * Añadir pestaña y comandos para **OpenSSL** (extracción de certificados PEM, claves privadas e inspección de contenedores PKCS#12).
+feat(desktop): vincular módulo :desktop en settings.gradle.kts, aplicar plugin Compose en desktop/build.gradle.kts e implementar bucle de ventana en DesktopLauncher (Main.kt)
 
-- Módulo Gradle de Escritorio (:desktop):
-  * `desktop/build.gradle.kts`: Configuración con plugin Kotlin JVM, dependencias criptográficas BouncyCastle, Coroutines y tarea `runDesktop` para empaquetado y distribución nativa en Windows (.exe / .msi vía jpackage) y otros entornos de escritorio.
+- Integración de Módulo Gradle de Escritorio:
+  * Inclusión oficial de `include(":desktop")` en `settings.gradle.kts` para compilación multimodular.
+  * Aplicación del plugin de Compose Multiplatform (`alias(libs.plugins.kotlin.compose)`) en `desktop/build.gradle.kts` con configuración de target JVM, dependencias criptográficas y tarea de ejecución nativa `runDesktop`.
+  * Implementación del ciclo de vida y bucle de eventos de ventana de escritorio en `DesktopLauncher` (`app/src/main/java/com/example/desktop/Main.kt`) con detección headless, configuración HiDPI y despacho en el hilo UI.
 
-- Puntos de Entrada y Contenedor Compose Desktop (`com.example.desktop`):
-  * `Main.kt` (`DesktopLauncher`): Punto de entrada nativo JVM con inicialización de directorios del sistema operativo (%APPDATA%/Signet en Windows), soporte para argumentos CLI (`--open-vault`, `--version`, `--help`) y arranque de la interfaz.
-  * `SignetDesktopApp.kt`: Contenedor Compose Desktop de nivel superior que inyecta `DesktopPlatformServices` mediante `CompositionLocalProvider(LocalPlatformServices)` e inicializa `KeystoreViewModel` sin dependencias del framework de Android.
+feat(kmp): formalizar estructura del módulo compartido (KMP / Shared UI) y contratos multiplataforma
 
-- Capa de Abstracción de Servicios de Plataforma (`com.example.platform`):
-  * Integrar `PlatformServices` como contrato unificado del sistema operativo (selección de archivos, guardado, portapapeles, mensajes toast y apertura del explorador).
-  * Implementar `DesktopPlatformServices`: Selección de archivos con `FileDialog` nativo de Java AWT, portapapeles con `Toolkit` del sistema y apertura de la carpeta de la bóveda en el Explorador de archivos de Windows vía `java.awt.Desktop`.
-  * Implementar `AndroidPlatformServices`: Storage Access Framework (SAF), `FileProvider`, `ClipboardManager` e Intents de instalación.
-  * Adaptadores reactivos Compose `PlatformFileAdapters` para simplificar la selección y guardado de archivos de forma multiplataforma.
+- Arquitectura de UI y Lógica Compartida:
+  * Desacoplamiento de la capa de presentación Compose y orquestación de estado en `KeystoreViewModel` basada puramente en Kotlin Coroutines `StateFlow`.
+  * Inyección desacoplada de servicios de sistema operativo mediante `PlatformServices` y `LocalPlatformServices` (adaptando operaciones de almacenamiento SAF/AWT, portapapeles y explorador de archivos nativo).
+  * Núcleo criptográfico común de alta seguridad en `com.example.crypto` (BouncyCastle) y modelos inmutables de dominio en `com.example.data.model`.
+  * Garantía de compatibilidad nativa en arquitecturas x86_64 y ARM64 (Windows on ARM / Snapdragon X / Apple Silicon / Linux aarch64).
 
-- Ergonomía de Interfaz y UX Adaptativo (`com.example.ui.MainScreen`):
-  * Implementar diseño responsivo con `BoxWithConstraints`:
-    - En pantallas anchas / Escritorio (`maxWidth >= 700.dp`): Despliegue de barra lateral vertical `NavigationRail` con acceso directo para abrir la carpeta de la bóveda en el Explorador de Windows, etiquetas completas y visualización espaciosa.
-    - En pantallas móviles compactas (`maxWidth < 700.dp`): Barra inferior `NavigationBar` optimizada para interacción táctil con una sola mano.
-
-- Optimización de Empaquetado de APKs para Móviles (Exclusión de Arquitecturas PC/Emulador):
-  * Configurar `ndk.abiFilters` en `app/build.gradle.kts` restringiendo estrictamente la inclusión de librerías nativas a arquitecturas de teléfonos celulares: **ARM 64 bits (`arm64-v8a`)** y **ARM 32 bits (`armeabi-v7a`)**.
-  * Configurar `packaging.jniLibs.excludes` excluyendo explícitamente binarios de arquitecturas de PC y emuladores (`x86`, `x86_64`) en todos los canales de compilación y lanzamiento (Beta, Pre-Alpha / Dev, Estable y Release).
-
-- Documentación Técnica Actualizada:
-  * Sincronizar y actualizar `STRUCTURE.md`, `AI_CONTEXT.md`, `README.md`, `ROADMAP.md` y `Changelog-release.md` reflejando la arquitectura de escritorio, la generación de `.p12` / `.pfx`, las reglas de filtrado ABI móvil y los componentes adaptativos.

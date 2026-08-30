@@ -19,7 +19,7 @@ object DesktopPlatformServices : PlatformServices {
 
     override val platformName: String
         get() {
-            val os = System.getProperty("os.name", "Desktop")
+            val os = System.getProperty("os.name") ?: "Desktop"
             return if (os.contains("Windows", ignoreCase = true)) "Windows / Desktop" else os
         }
 
@@ -135,7 +135,7 @@ object DesktopPlatformServices : PlatformServices {
 
         // Fallback para Windows / Winlator
         try {
-            val os = System.getProperty("os.name", "").lowercase()
+            val os = (System.getProperty("os.name") ?: "").lowercase()
             if (os.contains("win")) {
                 Runtime.getRuntime().exec(arrayOf("rundll32", "url.dll,FileProtocolHandler", url))
             } else if (os.contains("mac")) {
@@ -150,7 +150,7 @@ object DesktopPlatformServices : PlatformServices {
 
     override fun openFolder(file: File) {
         val target = if (file.isDirectory) file else file.parentFile ?: file
-        val os = System.getProperty("os.name", "").lowercase()
+        val os = (System.getProperty("os.name") ?: "").lowercase()
 
         // En Windows / Winlator, resalta el archivo directamente en el Explorador si es un archivo
         if (os.contains("win") && file.exists() && file.isFile) {
