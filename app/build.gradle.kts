@@ -21,6 +21,10 @@ android {
     versionName = "1.0.0"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+    ndk {
+      abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+    }
   }
 
   signingConfigs {
@@ -62,6 +66,14 @@ android {
     buildConfig = true
   }
   testOptions { unitTests { isIncludeAndroidResources = true } }
+  packaging {
+    resources {
+      excludes += listOf("/META-INF/{AL2.0,LGPL2.1}")
+    }
+    jniLibs {
+      excludes += listOf("lib/x86/*", "lib/x86_64/*")
+    }
+  }
   dependenciesInfo {
     includeInApk = false
     includeInBundle = true

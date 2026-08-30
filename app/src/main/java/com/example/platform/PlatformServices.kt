@@ -79,6 +79,11 @@ interface PlatformServices {
      * Inicia la instalación o despliega el APK firmado.
      */
     fun installApk(apkFile: File)
+
+    /**
+     * Comparte un archivo mediante el sistema de compartir nativo de la plataforma.
+     */
+    fun shareFile(file: File, mimeType: String = "*/*")
 }
 
 /**

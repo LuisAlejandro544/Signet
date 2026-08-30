@@ -8,12 +8,13 @@ Generador y administrador profesional de Keystores (`.jks` y `.keystore`) para A
 
 - **Generación Criptográfica Completa**:
   - Algoritmos soportados: **RSA 2048**, **RSA 4096** y **Curva Elíptica (EC P-256)** con firmas SHA-256.
-  - Soporte de extensiones estándar: `.jks` (estándar moderno de Android Studio) y `.keystore` (formato tradicional).
-  - **Modo Efímero / Sin Rastro (Zero-Footprint Mode)**: Opción para generar el keystore exclusivamente en memoria RAM sin guardarlo en la base de datos de la app ni en el almacenamiento interno. Permite exportar el archivo `.jks`, descargar el ZIP de respaldo o copiar el Base64, y al cerrar la hoja o la app, desaparece por completo sin dejar rastro en el dispositivo.
+  - Soporte de formatos universales: **`.jks`** (estándar de Android Studio), **`.keystore`** (formato tradicional), **`.p12`** (PKCS#12 Multiplataforma / iOS / Java) y **`.pfx`** (Microsoft Authenticode / Windows / PC).
+  - **Extensiones X.509 de Firma de Código (Code Signing)**: Incorpora automáticamente extensiones estándar (`KeyUsage` con `digitalSignature` / `keyEncipherment` y `ExtendedKeyUsage` con `id_kp_codeSigning`) para permitir la firma nativa de ejecutables de Windows (`.exe`, `.msi`, `.dll`), instaladores y binarios móviles sin rechazos del sistema operativo.
+  - **Modo Efímero / Sin Rastro (Zero-Footprint Mode)**: Opción para generar el keystore exclusivamente en memoria RAM sin guardarlo en la base de datos de la app ni en el almacenamiento interno. Permite exportar el archivo `.jks`/`.pfx`/`.p12`, descargar el ZIP de respaldo o copiar el Base64, y al cerrar la hoja o la app, desaparece por completo sin dejar rastro en el dispositivo.
   - **Generador de Contraseñas Ultra Seguras (CSPRNG Nativo)**: Motor aleatorio basado en `SecureRandom` con longitud seleccionable (16, 20, 24, 32 caracteres), inclusión obligatoria de mayúsculas, minúsculas, dígitos y símbolos seguros para Gradle/Terminal, acompañado de medidor en tiempo real de bits de entropía y nivel de seguridad.
   - **Validez de Certificado Personalizada & Deslizable**: Control interactivo mediante slider (1 a 100 años), indicador de días totales y atajos rápidos (1, 5, 10, 25, 30, 50, 100 años).
   - **Campos de Certificado con Guía de Identidad**: Distinción clara entre campos obligatorios por estándar Google/Android (`CN`, `O`) y opcionales (`OU`, `L`, `ST`, `C`), con aviso de soporte para datos inventados o seudónimos artísticos para preservar la privacidad.
-  - Presets rápidos de 1 clic: *Google Play Release*, *Upload Key* y *Alta Seguridad*.
+  - Presets rápidos de 1 clic: *Google Play Release*, *Windows (.pfx)*, *Multiplataforma (.p12)*, *Upload Key* y *Alta Seguridad*.
 
 - **Firmador Profesional de APKs en el Dispositivo (APK Signer & Zipalign)**:
   - **Firma Multi-Esquema Nativa (v1, v2 y v3)**: Implementación criptográfica completa en el dispositivo de **Esquema v1 (JAR Signing con `META-INF/MANIFEST.MF`, `CERT.SF` y bloque PKCS#7 `CERT.RSA/EC`)**, **Esquema v2 (APK Signature Scheme v2 con APK Signing Block inyectado antes del Central Directory)** y **Esquema v3 (APK Signature Scheme v3 con ID `0xf05368c0`, soporte de rotación de claves criptográficas y compatibilidad nativa para Android 9.0+)**.
@@ -46,10 +47,10 @@ Generador y administrador profesional de Keystores (`.jks` y `.keystore`) para A
   - **Paquetes de Respaldo Portables Individuales (.zip) con Firma Anti-Manipulación**: Exporta un archivo ZIP completo que contiene el binario del keystore (`.jks`/`.keystore`), credenciales en texto plano (`credentials.txt`), archivo `key.properties` para Gradle, `base64.txt` para pipelines de CI/CD, instrucciones y un manifiesto firmado (`signet-backup.json`).
   - **Mecanismo de Seguridad Criptográfica**: El manifiesto incluye una firma criptográfica HMAC-SHA256 y hash SHA-256 del binario. Si alguien altera las contraseñas, el alias o el archivo del keystore externamente, Signet rechazará automáticamente la restauración garantizando la integridad absoluta.
   - **Restauración Inteligente de Bóvedas y Respaldos**: Detecta y restaura automáticamente con un solo toque tanto paquetes individuales como bóvedas maestras completas con múltiples keystores.
-  - **Visualizador Interactivo de Código Gradle**: Genera y previsualiza directamente bloques listos para `app/build.gradle.kts` (Kotlin DSL) y `build.gradle` (Groovy) con soporte de variables de entorno (`KEYSTORE_PATH`, `KEYSTORE_PASSWORD`, etc.).
+  - **Visualizador Interactivo de Código Gradle & Scripts**: Genera y previsualiza directamente bloques listos para `app/build.gradle.kts` (Kotlin DSL), `build.gradle` (Groovy), comandos **Microsoft SignTool (Windows Authenticode)**, **PowerShell** y **OpenSSL**.
   - **Generador de Workflows para GitHub Actions**: Plantilla completa y optimizada `.github/workflows/android-build-and-sign.yml` para decodificar el keystore Base64 y firmar APKs de lanzamiento automáticamente en runners CI/CD.
   - Conversión instantánea a **Base64** para variables de entorno en pipelines de CI/CD (GitHub Actions `KEYSTORE_BASE64`, Fastlane, Bitrise, Codemagic).
-  - Comandos CLI para **`apksigner`** y **`zipalign`** con esquemas de firma v1, v2 y v3.
+  - Comandos CLI para **`apksigner`**, **`signtool`**, **`zipalign`** y **`openssl`** con marcas de tiempo y esquemas de firma v1, v2 y v3.
   - Exportación de archivo binario al almacenamiento del dispositivo mediante Android SAF (Storage Access Framework).
   - Compartir archivo directamente mediante el menú nativo de compartir de Android.
 
@@ -70,13 +71,17 @@ Generador y administrador profesional de Keystores (`.jks` y `.keystore`) para A
   - Garantía de Cero Recolección de Datos: ninguna clave, contraseña o huella digital sale jamás del silicio de tu dispositivo.
 
 - **🖥️ Arquitectura Multiplataforma & Soporte para Windows / Desktop**:
+  - **Módulo de Escritorio Nativo (`:desktop`)**: Configuración Gradle para empaquetado nativo en Windows (`.exe` / `.msi` vía `jpackage`) y ejecución en la JVM con punto de entrada `Main.kt` (`DesktopLauncher`).
+  - **Ergonomía de Interfaz y UX Adaptativo**: `MainScreen` responsivo que detecta el ancho de pantalla (`maxWidth >= 700.dp`) para desplegar un `NavigationRail` vertical con acceso rápido al explorador de archivos nativo en escritorio, y una barra inferior `NavigationBar` en móviles.
+  - **Capa de Abstracción de Plataforma (`PlatformServices`)**:
+    * `DesktopPlatformServices`: Selección de archivos con `FileDialog` nativo de Windows/Desktop, portapapeles del sistema y apertura de la carpeta de la bóveda en el Explorador de Windows.
+    * `AndroidPlatformServices`: Storage Access Framework (SAF), `FileProvider` y menús nativos de compartir de Android.
   - **Desacoplamiento de las 4 Librerías Exclusivas de Android**:
     * `android.util.Base64` sustituido universalmente por `Base64Compat` (respaldado nativamente por `java.util.Base64`).
     * `AndroidKeyStore` adaptado con arquitectura híbrida en `KeystoreEncryptionManager` (AES-256-GCM con clave maestra `signet_master.key` en `%APPDATA%/Signet/` para entornos de escritorio).
     * `android.content.SharedPreferences` abstraído mediante `PreferencesDataSource` y `DesktopPreferencesDataSource` (archivo `.properties` en disco).
     * `androidx.room` abstraído mediante `KeystoreDataSource` y `DesktopKeystoreDataSource` (índice en archivo `vault_index.json` con `StateFlow` reactivo).
   - **Resolución de Almacenamiento Desktop (`DesktopStorageUtils`)**: Compatible nativamente con Windows (`%APPDATA%/Signet`), Linux/Unix (`~/.config/signet`), macOS y emuladores Winlator.
-  - **Preparado para Compose Multiplatform Desktop**: Núcleo criptográfico y repositorio desacoplados de `android.content.Context` mediante rutas `File`, permitiendo compilación nativa en JVM de escritorio.
 
 - **Portal Web Oficial, Términos y Privacidad (`web/`)**:
   - Sitio web estático de alto rendimiento desarrollado en **Astro 5 + Tailwind CSS** optimizado para **Cloudflare Pages**.

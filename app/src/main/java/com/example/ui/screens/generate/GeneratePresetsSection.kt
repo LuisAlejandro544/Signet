@@ -40,12 +40,22 @@ fun GeneratePresetsSection(
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             FilterChip(
-                selected = formState.alias == "key0" && formState.algorithm == KeyAlgorithm.RSA_2048,
+                selected = formState.alias == "key0" && formState.fileExtension == "jks",
                 onClick = { onApplyPreset("release") },
-                label = { Text("Release Estándar") },
+                label = { Text("Release (.jks)") },
                 leadingIcon = {
                     Icon(Icons.Default.Key, contentDescription = null, modifier = Modifier.size(16.dp))
                 }
+            )
+            FilterChip(
+                selected = formState.fileExtension == "pfx",
+                onClick = { onApplyPreset("windows") },
+                label = { Text("Windows (.pfx)") }
+            )
+            FilterChip(
+                selected = formState.fileExtension == "p12",
+                onClick = { onApplyPreset("p12") },
+                label = { Text("Multiplataforma (.p12)") }
             )
             FilterChip(
                 selected = formState.alias == "upload",

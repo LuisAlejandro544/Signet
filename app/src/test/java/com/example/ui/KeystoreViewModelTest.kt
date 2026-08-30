@@ -65,6 +65,23 @@ class KeystoreViewModelTest {
         assertEquals("release", form4096.alias)
         assertEquals(KeyAlgorithm.RSA_4096, form4096.algorithm)
 
+        // Apply windows preset (.pfx)
+        viewModel.applyPreset("windows")
+        val formWindows = viewModel.formState.value
+        assertEquals("authenticode-codesign", formWindows.fileName)
+        assertEquals("pfx", formWindows.fileExtension)
+        assertEquals("codesign", formWindows.alias)
+        assertEquals(KeyAlgorithm.RSA_4096, formWindows.algorithm)
+        assertEquals("authenticode-codesign.pfx", formWindows.fullFileName)
+
+        // Apply multiplatform preset (.p12)
+        viewModel.applyPreset("p12")
+        val formP12 = viewModel.formState.value
+        assertEquals("multiplatform-key", formP12.fileName)
+        assertEquals("p12", formP12.fileExtension)
+        assertEquals("app-signer", formP12.alias)
+        assertEquals("multiplatform-key.p12", formP12.fullFileName)
+
         // Password generation
         viewModel.generateRandomPassword(24)
         val formWithPwd = viewModel.formState.value

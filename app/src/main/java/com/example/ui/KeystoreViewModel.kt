@@ -167,6 +167,24 @@ open class KeystoreViewModel(
                     algorithm = KeyAlgorithm.RSA_2048
                 )
             }
+            "windows", "pfx" -> {
+                _formState.value = _formState.value.copy(
+                    fileName = "authenticode-codesign",
+                    fileExtension = "pfx",
+                    alias = "codesign",
+                    validityYears = 10,
+                    algorithm = KeyAlgorithm.RSA_4096
+                )
+            }
+            "p12" -> {
+                _formState.value = _formState.value.copy(
+                    fileName = "multiplatform-key",
+                    fileExtension = "p12",
+                    alias = "app-signer",
+                    validityYears = 25,
+                    algorithm = KeyAlgorithm.RSA_2048
+                )
+            }
             "upload" -> {
                 _formState.value = _formState.value.copy(
                     fileName = "upload-key",

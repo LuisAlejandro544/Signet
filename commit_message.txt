@@ -1,46 +1,39 @@
-feat(signer): incorporar soporte de firma APK Signature Scheme v3 (Android 9.0+)
+feat(crypto): soporte de generación de certificados .p12 y .pfx para Windows, PC y móviles con firmas Authenticode
 
-- Motor Criptográfico de Firma APK v3 (`com.example.crypto.signer`):
-  * Crear `ApkV3Signer.kt`: Implementación del estándar APK Signature Scheme v3 (ID de bloque `0xf05368c0`) con soporte para rotación de claves criptográficas y rango de SDKs (`minSdkVersion = 28`, `maxSdkVersion = Integer.MAX_VALUE`).
-  * Inyección Unificada en APK Signing Block: Implementación de `injectSignatureBlock` capaz de inyectar pares ID-valor tanto de Esquema v2 como de Esquema v3 de forma simultánea o independiente en un único bloque binario `APK Sig Block 42`.
-  * Integrar `ApkV3Signer` en `ApkSigner.kt`: Orquestación multi-esquema v1 (JAR), v2 (Full APK) y v3 (Full APK + Rotación de Claves).
+- Soporte de Formatos PKCS#12 (.p12) y Microsoft Authenticode (.pfx):
+  * Ampliar `FormState` y `KeystoreGenerator` para permitir la selección y generación directa de certificados con extensiones `.p12` (PKCS#12 Multiplataforma / iOS / Java) y `.pfx` (Microsoft Authenticode / Windows / PC).
+  * Inyectar extensiones estándar X.509 (`BasicConstraints`, `KeyUsage` con `digitalSignature` / `keyEncipherment` y `ExtendedKeyUsage` con `id_kp_codeSigning` y `id_kp_clientAuth`) para garantizar compatibilidad nativa con Microsoft SignTool, PowerShell `Set-AuthenticodeSignature`, Apple codesign y Android apksigner.
 
-- Corrección y Detección en Parsers (`com.example.crypto.apk` & `com.example.crypto`):
-  * Corregir cálculo de desplazamiento en `ApkSigningBlockParser.kt` (`centralDirOffset - 24` para el tamaño del bloque del footer y `centralDirOffset - 16` para la marca mágica), permitiendo el parseo binario exacto de certificados v2 y v3.
-  * Ajustar `ApkMatcher.kt` para registrar todos los esquemas de firma detectados (`schemesFound`) independientemente de la deduplicación de huellas digitales de certificados compartidos entre esquemas.
+- Interfaz de Usuario y Presets Rápidos (Android y Desktop):
+  * Actualizar `KeystoreCredentialsForm` con selector de 4 formatos (.jks, .keystore, .p12, .pfx) con chips responsivos y legibles.
+  * Añadir en `GeneratePresetsSection` plantillas automáticas: "Windows (.pfx)" con RSA 4096 para Authenticode y "Multiplataforma (.p12)" con RSA 2048.
+  * Actualizar `KeystoreViewModel.applyPreset` para gestionar los perfiles de Windows y Multiplataforma.
 
-- Capa de Estado, Modelos e Interfaz de Usuario (Compose):
-  * Actualizar `ApkSigningOptions` en `KeystoreModels.kt` con la propiedad `signV3: Boolean = true`.
-  * Extender `SignApkFormState` en `KeystoreUiStates.kt` con la bandera `signV3`.
-  * Modificar `SigningOptionsCard.kt` incorporando un switch dedicado para habilitar/deshabilitar el Esquema v3 con `testTag("switch_sign_v3")`.
-  * Actualizar validaciones y lógica de invocación en `KeystoreViewModel.kt` admitiendo combinaciones de v1, v2 y v3.
-  * Actualizar descripciones en `SignApkScreen.kt`.
+- Snippets de Firma y CI/CD Multidispositivo (`SnippetGenerator` & `KeystoreCodeSnippetsCard`):
+  * Añadir pestaña y generador de comandos oficiales para **Microsoft SignTool (Windows SDK)** y **PowerShell** con marcas de tiempo RFC 3161 (`http://timestamp.digicert.com`).
+  * Añadir pestaña y comandos para **OpenSSL** (extracción de certificados PEM, claves privadas e inspección de contenedores PKCS#12).
 
-- Pruebas Unitarias Automatizadas:
-  * Extender `ApkSignerTest.kt` con pruebas completas en Robolectric:
-    - `testApkSigningWorkflow_tripleScheme_v1_v2_v3_and_zipalign`: Verifica la aplicación conjunta de los esquemas v1, v2 y v3 con Zipalign a 4 bytes.
-    - `testApkSigningWorkflow_v3Only`: Verifica la firma aislada con únicamente el Esquema v3.
-  * 28 tests ejecutados y aprobados con éxito (100% passing).
+- Módulo Gradle de Escritorio (:desktop):
+  * `desktop/build.gradle.kts`: Configuración con plugin Kotlin JVM, dependencias criptográficas BouncyCastle, Coroutines y tarea `runDesktop` para empaquetado y distribución nativa en Windows (.exe / .msi vía jpackage) y otros entornos de escritorio.
 
-- Documentación Técnica:
-  * Actualizar `README.md`, `ROADMAP.md`, `AI_CONTEXT.md`, `STRUCTURE.md` y `Changelog-release.md` reflejando la compatibilidad con APK Signature Scheme v3.
+- Puntos de Entrada y Contenedor Compose Desktop (`com.example.desktop`):
+  * `Main.kt` (`DesktopLauncher`): Punto de entrada nativo JVM con inicialización de directorios del sistema operativo (%APPDATA%/Signet en Windows), soporte para argumentos CLI (`--open-vault`, `--version`, `--help`) y arranque de la interfaz.
+  * `SignetDesktopApp.kt`: Contenedor Compose Desktop de nivel superior que inyecta `DesktopPlatformServices` mediante `CompositionLocalProvider(LocalPlatformServices)` e inicializa `KeystoreViewModel` sin dependencias del framework de Android.
 
-feat(desktop): desacoplar dependencias exclusivas de Android e implementar soporte multiplataforma para Windows / Desktop
+- Capa de Abstracción de Servicios de Plataforma (`com.example.platform`):
+  * Integrar `PlatformServices` como contrato unificado del sistema operativo (selección de archivos, guardado, portapapeles, mensajes toast y apertura del explorador).
+  * Implementar `DesktopPlatformServices`: Selección de archivos con `FileDialog` nativo de Java AWT, portapapeles con `Toolkit` del sistema y apertura de la carpeta de la bóveda en el Explorador de archivos de Windows vía `java.awt.Desktop`.
+  * Implementar `AndroidPlatformServices`: Storage Access Framework (SAF), `FileProvider`, `ClipboardManager` e Intents de instalación.
+  * Adaptadores reactivos Compose `PlatformFileAdapters` para simplificar la selección y guardado de archivos de forma multiplataforma.
 
-- Sustitución de las 4 Librerías Exclusivas de Android por Equivalentes Multiplataforma (Java / Windows):
-  * `android.util.Base64` -> `com.example.crypto.Base64Compat`: Reemplazo integral en todo el proyecto por wrapper universal respaldado en `java.util.Base64`.
-  * `AndroidKeyStore` -> Arquitectura Híbrida en `KeystoreEncryptionManager`: Detección en caliente de AndroidKeyStore en dispositivos móviles y derivación a clave maestra AES-256 (`signet_master.key`) persistida en `%APPDATA%/Signet/` en Windows / Desktop.
-  * `android.content.SharedPreferences` -> `PreferencesDataSource`: Nueva interfaz desacoplada con implementaciones `AndroidPreferencesDataSource` y `DesktopPreferencesDataSource` (archivo `.properties` en `%APPDATA%/Signet/signet_preferences.properties`).
-  * `androidx.room` -> `KeystoreDataSource`: Abstracción de repositorio con `RoomKeystoreDataSource` para Android y `DesktopKeystoreDataSource` respaldado en JSON (`%APPDATA%/Signet/vault_index.json`) con flujo reactivo `StateFlow` y persistencia atómica.
+- Ergonomía de Interfaz y UX Adaptativo (`com.example.ui.MainScreen`):
+  * Implementar diseño responsivo con `BoxWithConstraints`:
+    - En pantallas anchas / Escritorio (`maxWidth >= 700.dp`): Despliegue de barra lateral vertical `NavigationRail` con acceso directo para abrir la carpeta de la bóveda en el Explorador de Windows, etiquetas completas y visualización espaciosa.
+    - En pantallas móviles compactas (`maxWidth < 700.dp`): Barra inferior `NavigationBar` optimizada para interacción táctil con una sola mano.
 
-- Desacoplamiento de `android.content.Context` en el Núcleo Criptográfico:
-  * `SignetBackupManager`, `KeystoreGenerator` y `KeystoreRepository` ahora operan directamente sobre `outputDir: File`, manteniendo sobrecargas con `Context` para retrocompatibilidad con Android.
-  * Creación de `DesktopStorageUtils.kt` para resolución automática de rutas del sistema operativo (%APPDATA%/Signet en Windows, ~/.config/signet en Linux y Application Support en macOS).
+- Optimización de Empaquetado de APKs para Móviles (Exclusión de Arquitecturas PC/Emulador):
+  * Configurar `ndk.abiFilters` en `app/build.gradle.kts` restringiendo estrictamente la inclusión de librerías nativas a arquitecturas de teléfonos celulares: **ARM 64 bits (`arm64-v8a`)** y **ARM 32 bits (`armeabi-v7a`)**.
+  * Configurar `packaging.jniLibs.excludes` excluyendo explícitamente binarios de arquitecturas de PC y emuladores (`x86`, `x86_64`) en todos los canales de compilación y lanzamiento (Beta, Pre-Alpha / Dev, Estable y Release).
 
-- Suite de Pruebas Unitarias Automatizadas:
-  * Creación de `DesktopMultiplatformTest.kt` evaluando `Base64Compat`, `DesktopPreferencesDataSource`, CRUD completo en `DesktopKeystoreDataSource` y resolución de rutas de `DesktopStorageUtils`.
-  * 32 tests unitarios ejecutados y aprobados con éxito (100% passing).
-
-- Preparación Arquitectónica para Compose Multiplatform Desktop:
-  * Desacoplamiento de componentes de UI y gestión de estado para permitir la ejecución en entornos de escritorio Windows y emulación Winlator sin Android Framework.
-
+- Documentación Técnica Actualizada:
+  * Sincronizar y actualizar `STRUCTURE.md`, `AI_CONTEXT.md`, `README.md`, `ROADMAP.md` y `Changelog-release.md` reflejando la arquitectura de escritorio, la generación de `.p12` / `.pfx`, las reglas de filtrado ABI móvil y los componentes adaptativos.

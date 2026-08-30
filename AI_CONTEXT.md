@@ -27,7 +27,8 @@ Este documento proporciona contexto técnico, decisiones de arquitectura y direc
    - Cálculo en tiempo real de entropía (bits) y fortaleza para retroalimentación visual en Compose.
 
 4. **Formatos Soportados, Validez & Modo Efímero**:
-   - Generación: Estándar PKCS#12 (.jks y .keystore) compatible al 100% con `apksigner`, `jarsigner` y Android Studio Gradle Plugin.
+   - Generación: Estándar PKCS#12 (.jks, .keystore, .p12 y .pfx) compatible al 100% con `apksigner`, `jarsigner`, Android Studio Gradle Plugin, Microsoft SignTool (Windows Authenticode), PowerShell `Set-AuthenticodeSignature` y Apple codesign.
+   - **Extensiones X.509 de Firma de Código**: Inyección nativa de extensiones X.509 (`BasicConstraints`, `KeyUsage` con `digitalSignature` / `keyEncipherment` y `ExtendedKeyUsage` con `id_kp_codeSigning` y `id_kp_clientAuth`) para permitir la firma directa de binarios de escritorio (`.exe`, `.msi`, `.dll`), librerías y aplicaciones móviles sin alertas de clave inadecuada.
    - Algoritmos: `RSA` (2048 y 4096 bits) con `SHA256WithRSAEncryption` y `EC` (Curva `secp256r1`/P-256) con `SHA256withECDSA`.
    - **Modo Efímero / Sin Rastro (Zero-Footprint)**: Generación 100% en memoria RAM sin persistir en base de datos Room (`AppDatabase`) ni crear archivos físicos en `context.filesDir`. Permite exportar vía SAF (escribiendo bytes decodificados de Base64), generar el ZIP de respaldo o compartir con archivo temporal de caché. Al cerrar la hoja o la app, los datos desaparecen sin dejar rastro en el dispositivo.
    - Validez interactiva: Control deslizable (1 a 100 años) con valor recomendado de 25+ años para cumplir requerimientos de actualización de APKs.
@@ -56,9 +57,9 @@ Este documento proporciona contexto técnico, decisiones de arquitectura y direc
    - Respetar áreas táctiles mínimas de 48dp y `testTag` en botones y acciones clave.
    - Modularización de componentes en paquetes especializados (`ui/screens/generate/`, `ui/screens/inspect/` y `ui/components/details/`).
 
-9. **Snippets Gradle & Workflows GitHub Actions**:
-   - `SnippetGenerator` expone funciones para generar configuración `build.gradle.kts` (Kotlin DSL), `build.gradle` (Groovy), workflows de GitHub Actions (`.github/workflows/android-build-and-sign.yml`) y comandos CLI `apksigner`.
-   - Las configuraciones de Gradle generadas deben seguir buenas prácticas de seguridad leyendo secretos desde variables de entorno (`KEYSTORE_PATH`, `KEYSTORE_PASSWORD`, etc.).
+9. **Snippets Gradle, Windows SignTool, OpenSSL & Workflows CI/CD**:
+   - `SnippetGenerator` expone funciones para generar configuración `build.gradle.kts` (Kotlin DSL), `build.gradle` (Groovy), workflows de GitHub Actions (`.github/workflows/android-build-and-sign.yml`), comandos CLI `apksigner`, comandos para **Microsoft SignTool & PowerShell** (Windows Authenticode con marcas de tiempo RFC 3161) y utilidades de extracción **OpenSSL** (.p12 / .pfx).
+   - Las configuraciones generadas deben seguir buenas prácticas de seguridad leyendo secretos desde variables de entorno (`KEYSTORE_PATH`, `KEYSTORE_PASSWORD`, etc.).
 
 10. **Distribución Fuera de Google Play (Uptodown, GitHub Releases, APKs)**:
     - La aplicación no requiere ni incluye servicios innecesarios de Google Play (`play-services-*`, `firebase-*`, etc.). Es 100% autónoma, funcional offline y compatible con cualquier dispositivo Android / ROM personalizada (LineageOS, GrapheneOS, microG).
@@ -110,8 +111,17 @@ Este documento proporciona contexto técnico, decisiones de arquitectura y direc
       4. `androidx.room` -> `KeystoreDataSource`: Abstracción de repositorio con `RoomKeystoreDataSource` y `DesktopKeystoreDataSource` (almacenamiento en `vault_index.json` con `StateFlow` reactivo).
     - **Desacoplamiento de `android.content.Context` en el núcleo**: `SignetBackupManager`, `KeystoreGenerator` y `KeystoreRepository` aceptan directamente `outputDir: File`.
     - **Rutas del Sistema Operativo (`DesktopStorageUtils`)**: Resolución automática de `%APPDATA%/Signet` en Windows, `~/Library/Application Support/Signet` en macOS y `~/.config/signet` en Linux.
-    - **Compatibilidad con Winlator / JVM Windows**: La arquitectura permite la ejecución sin dependencias del Android Framework para emuladores Winlator y ejecutables Desktop nativos.
-    - **Pruebas de Compatibilidad Desktop**: Verificadas mediante `DesktopMultiplatformTest.kt` (32 tests unitarios pasando en total).
+    - **Capa de Abstracción de Plataforma (`com.example.platform`)**: Inyección mediante `CompositionLocalProvider(LocalPlatformServices)` de `DesktopPlatformServices` (AWT FileDialog, portapapeles nativo, explorador del sistema) y `AndroidPlatformServices` (SAF, ClipboardManager, Intents).
+    - **Pruebas de Compatibilidad Desktop**: Verificadas mediante `DesktopMultiplatformTest.kt`.
 
+18. **Módulo de Escritorio, Punto de Entrada `Main.kt` & UX Adaptativo**:
+    - **Módulo Gradle `:desktop`**: Configuración para empaquetado nativo en Windows (`.exe` / `.msi` vía `jpackage`) y ejecución en la JVM.
+    - **Punto de Entrada `DesktopLauncher` (`app/src/main/java/com/example/desktop/Main.kt`)**: Soporte para ejecución de escritorio y argumentos CLI (`--open-vault`, `--version`, `--help`).
+    - **Contenedor UI `SignetDesktopApp` (`app/src/main/java/com/example/desktop/SignetDesktopApp.kt`)**: Proveedor Compose Desktop que enlaza con `DesktopPlatformServices` e instancia `KeystoreViewModel` sin dependencias de Android.
+    - **UX Adaptativo y Ergonomía (`MainScreen.kt`)**: Diseño responsivo con `BoxWithConstraints`:
+      * Pantallas anchas / Escritorio (`maxWidth >= 700.dp`): Barra lateral vertical `NavigationRail` con botón de acceso rápido para abrir la carpeta de la bóveda en el explorador de archivos nativo, títulos ampliados y distribución de contenido optimizada.
+      * Pantallas móviles compactas (`maxWidth < 700.dp`): Barra inferior `NavigationBar` optimizada para uso táctil con una sola mano.
 
-
+19. **Filtrado de Arquitecturas Móviles (ABI Filters) en APKs**:
+    - **Exclusividad Móvil**: Las versiones compiladas de Android (canales `.beta`, `.dev`, `.estable`, etc.) incorporan exclusivamente arquitecturas de telefonía celular móvil: **ARM de 64 bits (`arm64-v8a`)** y **ARM de 32 bits (`armeabi-v7a`)** configuradas mediante `ndk.abiFilters`.
+    - **Exclusión de PC/Emulador**: Se excluyen explícitamente las librerías nativas de arquitecturas de PC y emuladores (`x86`, `x86_64`) mediante `packaging.jniLibs.excludes`, optimizando el peso de los paquetes de distribución y garantizando que los APKs estén enfocados 100% a dispositivos móviles reales.

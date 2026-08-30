@@ -12,12 +12,20 @@ app/
 │   ├── main/
 │   │   ├── AndroidManifest.xml                  # Declaración de permisos, providers y componentes
 │   │   ├── java/com/example/
-│   │   │   ├── MainActivity.kt                  # Punto de entrada de la actividad, Navigation y tema reactivo
+│   │   │   ├── MainActivity.kt                  # Punto de entrada de la actividad Android, Navigation y tema reactivo
+│   │   │   ├── desktop/
+│   │   │   │   ├── Main.kt                      # Punto de entrada ejecutable nativo para escritorio (Windows / macOS / Linux) y CLI
+│   │   │   │   └── SignetDesktopApp.kt          # Contenedor Compose Desktop con inyección de servicios de plataforma
+│   │   │   ├── platform/
+│   │   │   │   ├── PlatformServices.kt          # Interfaz agnóstica de servicios del sistema operativo (archivos, portapapeles, explorador)
+│   │   │   │   ├── DesktopPlatformServices.kt   # Implementación para Windows/Desktop (Java AWT, FileDialog, Explorer nativo)
+│   │   │   │   ├── AndroidPlatformServices.kt   # Implementación para Android (Context, FileProvider, Intents del sistema)
+│   │   │   │   └── PlatformFileAdapters.kt      # Adaptadores y hooks reactivos Compose para selección y guardado de archivos
 │   │   │   ├── crypto/
 │   │   │   │   ├── ApkMatcher.kt                # Fachada orquestadora forense APK vs Keystore (análisis y coincidencia)
 │   │   │   │   ├── Base64Compat.kt              # Wrapper universal de Base64 compatible con Android y JVM/Desktop (java.util.Base64)
 │   │   │   │   ├── DesktopStorageUtils.kt       # Resolución de rutas de almacenamiento en escritorio (%APPDATA%/Signet, XDG)
-│   │   │   │   ├── KeystoreEncryptionManager.kt # Gestor de cifrado en reposo AES-256-GCM (AndroidKeyStore en móvil / archivo en escritorio)
+│   │   │   │   ├── KeystoreEncryptionManager.kt # Gestor de cifrado en reposo AES-256-GCM (AndroidKeyStore en móvil / clave maestra en escritorio)
 │   │   │   │   ├── signer/
 │   │   │   │   │   ├── ApkSigner.kt             # Fachada orquestadora del firmador de APKs (v1, v2, v3, Zipalign)
 │   │   │   │   │   ├── ApkV1Signer.kt           # Motor de firma JAR (v1) con MANIFEST.MF, CERT.SF y CMS PKCS#7
@@ -28,7 +36,7 @@ app/
 │   │   │   │   │   ├── ApkSigningBlockParser.kt # Parser binario de bajo nivel para esquemas v2 y v3 (APK Signing Block)
 │   │   │   │   │   ├── ApkV1SignatureParser.kt  # Extractor de firmas PKCS#7 en META-INF mediante BouncyCastle CMS (v1 JAR)
 │   │   │   │   │   └── AxmlManifestParser.kt    # Extractor de packageName desde el string pool binario de AndroidManifest.xml
-│   │   │   │   ├── KeystoreGenerator.kt         # Motor criptográfico de generación de pares de claves y empaquetado PKCS#12
+│   │   │   │   ├── KeystoreGenerator.kt         # Motor criptográfico de generación de claves PKCS#12 (.jks, .keystore, .p12, .pfx) con extensiones X.509 Code Signing
 │   │   │   │   ├── PasswordGenerator.kt         # Generador criptográfico CSPRNG de contraseñas ultra seguras y cálculo de entropía
 │   │   │   │   ├── SignetBackupManager.kt       # Fachada orquestadora de exportación/restauración de respaldos individuales y bóvedas completas
 │   │   │   │   ├── backup/
@@ -40,9 +48,9 @@ app/
 │   │   │   │   │   ├── ZipPackageBuilder.kt     # Empaquetador de flujos binarios ZIP para respaldos individuales y bóvedas maestras
 │   │   │   │   │   └── ZipPackageExtractor.kt   # Extractor y analizador de flujos ZIP en memoria
 │   │   │   │   ├── x509/
-│   │   │   │   │   ├── X509CertificateInspector.kt # Inspección y lectura de certificados en almacenes PKCS12, JKS y BKS
+│   │   │   │   │   ├── X509CertificateInspector.kt # Inspección y lectura de certificados en almacenes PKCS12, JKS, PFX, P12 y BKS
 │   │   │   │   │   └── X509CertificateUtils.kt    # Utilidades de cálculo de huellas digitales y formateo PEM estándar
-│   │   │   │   └── SnippetGenerator.kt          # Generador modular de snippets: Gradle KTS, Groovy, GitHub Actions y apksigner
+│   │   │   │   └── SnippetGenerator.kt          # Generador modular de snippets: Gradle KTS, Groovy, GitHub Actions, Microsoft SignTool (.pfx), PowerShell y OpenSSL
 │   │   │   ├── data/
 │   │   │   │   ├── KeystoreDataSource.kt        # Abstracción desacoplada de persistencia (RoomKeystoreDataSource / DesktopKeystoreDataSource)
 │   │   │   │   ├── KeystoreRepository.kt        # Repositorio que orquesta base de datos y operaciones
@@ -54,7 +62,7 @@ app/
 │   │   │   │       └── KeystoreModels.kt        # Modelos de dominio (KeystoreConfig, KeystoreDetails, ApkInfo, ApkSigningOptions, ApkSigningResult, etc.)
 │   │   │   └── ui/
 │   │   │       ├── KeystoreViewModel.kt         # ViewModel central desacoplado: StateFlows, validaciones y orquestación
-│   │   │       ├── MainScreen.kt                # Barra de navegación de 5 pestañas y contenedor de vistas
+│   │   │       ├── MainScreen.kt                # Barra de navegación adaptativa (NavigationRail en escritorio y NavigationBar en móvil)
 │   │   │       ├── components/
 │   │   │       │   ├── KeystoreDetailsSheet.kt  # BottomSheet orquestador de exportación SAF, compartir y detalles
 │   │   │       │   └── details/
@@ -134,7 +142,13 @@ app/
 │           │   └── SnippetGeneratorTest.kt      # Pruebas de generación de código Gradle, Groovy, GitHub Actions y apksigner
 │           └── ui/
 │               └── KeystoreViewModelTest.kt     # Pruebas de estado de onboarding, endpoints legales y presets
-├── Changelog-release.md                 # Historial detallado de notas de la versión y changelogs para releases
+├── desktop/                                     # Módulo Gradle de Escritorio para empaquetado nativo Windows/Desktop
+│   └── build.gradle.kts                         # Configuración de compilación JVM y empaquetado jpackage
+├── scripts/                                     # Scripts de pruebas automatizadas y validación cruzada
+│   ├── cli_interoperability_test.py             # Validación cruzada CLI con keytool y Google apksigner
+│   ├── e2e_emulator_test.py                     # Script E2E en emulador nativo Android KVM
+│   └── run_e2e_test.sh                          # Lanzador automatizado para pruebas E2E
+├── Changelog-release.md                         # Historial detallado de notas de la versión y changelogs para releases
 ├── .github/
 │   └── workflows/
 │       ├── build-debug-apk.yml                  # Compilación y despacho confidencial de APK Debug (Canal .debug)

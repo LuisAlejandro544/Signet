@@ -49,9 +49,11 @@ enum class CodeSnippetTab(
     val icon: androidx.compose.ui.graphics.vector.ImageVector
 ) {
     GRADLE_KTS("build.gradle.kts", Icons.Default.Code),
+    WINDOWS_SIGNTOOL("Windows SignTool (.pfx)", Icons.Default.Terminal),
     GITHUB_ACTIONS("GitHub Actions (.yml)", Icons.Default.IntegrationInstructions),
     GRADLE_GROOVY("build.gradle (Groovy)", Icons.Default.Code),
     APKSIGNER("apksigner CLI", Icons.Default.Terminal),
+    OPENSSL("OpenSSL / PKCS12", Icons.Default.Security),
     PEM_CERT("Certificado PEM", Icons.Default.Security)
 }
 
@@ -134,17 +136,21 @@ fun KeystoreCodeSnippetsCard(
             // Active Snippet Content Resolver
             val currentSnippet = when (selectedSnippetTab) {
                 CodeSnippetTab.GRADLE_KTS -> SnippetGenerator.generateGradleKtsSnippet(details.fileName, details.alias)
+                CodeSnippetTab.WINDOWS_SIGNTOOL -> SnippetGenerator.generateWindowsSignToolSnippet(details.fileName, details.alias)
                 CodeSnippetTab.GITHUB_ACTIONS -> SnippetGenerator.generateGitHubActionsWorkflow(details.fileName, details.alias)
                 CodeSnippetTab.GRADLE_GROOVY -> SnippetGenerator.generateGradleGroovySnippet(details.fileName, details.alias)
                 CodeSnippetTab.APKSIGNER -> SnippetGenerator.generateApksignerSnippet(details.fileName, details.alias)
+                CodeSnippetTab.OPENSSL -> SnippetGenerator.generateOpenSslSnippet(details.fileName, details.alias)
                 CodeSnippetTab.PEM_CERT -> details.certificatePem
             }
 
             val currentDescription = when (selectedSnippetTab) {
                 CodeSnippetTab.GRADLE_KTS -> "Pega este bloque en 'app/build.gradle.kts'. Lee las contraseñas de variables de entorno para máxima seguridad."
+                CodeSnippetTab.WINDOWS_SIGNTOOL -> "Comandos oficiales para Microsoft SignTool (Windows SDK) y PowerShell para firmar instaladores (.exe / .msi) con Authenticode."
                 CodeSnippetTab.GITHUB_ACTIONS -> "Crea el archivo '.github/workflows/build-and-sign.yml' en tu repositorio y agrega el secreto 'KEYSTORE_BASE64' (Settings > Secrets)."
                 CodeSnippetTab.GRADLE_GROOVY -> "Para proyectos con Groovy DSL tradicional (Flutter / React Native / Android heredado)."
                 CodeSnippetTab.APKSIGNER -> "Comandos oficiales para alinear con zipalign y firmar APKs con soporte de firma v1, v2 y v3."
+                CodeSnippetTab.OPENSSL -> "Comandos para inspeccionar y extraer certificados y claves del contenedor PKCS#12 con OpenSSL."
                 CodeSnippetTab.PEM_CERT -> "Certificado público X.509 en formato PEM para consolas de APIs y proveedores de autenticación."
             }
 

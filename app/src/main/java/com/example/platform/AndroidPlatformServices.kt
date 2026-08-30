@@ -97,4 +97,25 @@ class AndroidPlatformServices(private val context: Context) : PlatformServices {
             showToast("No se pudo iniciar el instalador de Android: ${e.localizedMessage}")
         }
     }
+
+    override fun shareFile(file: File, mimeType: String) {
+        try {
+            val uri = FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                file
+            )
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                type = mimeType
+                putExtra(Intent.EXTRA_STREAM, uri)
+                putExtra(Intent.EXTRA_SUBJECT, file.name)
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
+            }
+            context.startActivity(Intent.createChooser(intent, "Compartir archivo").apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            })
+        } catch (e: Exception) {
+            showToast("No se pudo compartir el archivo: ${e.localizedMessage}")
+        }
+    }
 }

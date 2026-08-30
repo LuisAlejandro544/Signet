@@ -146,7 +146,7 @@ fun KeystoreCredentialsForm(
                     FilterChip(
                         selected = formState.fileExtension == "jks",
                         onClick = { onSetFileExtension("jks") },
-                        label = { Text(".jks (Estándar Android)") },
+                        label = { Text(".jks (Android)") },
                         leadingIcon = if (formState.fileExtension == "jks") {
                             { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
                         } else null,
@@ -160,6 +160,29 @@ fun KeystoreCredentialsForm(
                             { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
                         } else null,
                         modifier = Modifier.weight(1f).testTag("chip_ext_keystore")
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterChip(
+                        selected = formState.fileExtension == "p12",
+                        onClick = { onSetFileExtension("p12") },
+                        label = { Text(".p12 (Multiplataforma)") },
+                        leadingIcon = if (formState.fileExtension == "p12") {
+                            { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                        } else null,
+                        modifier = Modifier.weight(1f).testTag("chip_ext_p12")
+                    )
+                    FilterChip(
+                        selected = formState.fileExtension == "pfx",
+                        onClick = { onSetFileExtension("pfx") },
+                        label = { Text(".pfx (Windows / PC)") },
+                        leadingIcon = if (formState.fileExtension == "pfx") {
+                            { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                        } else null,
+                        modifier = Modifier.weight(1f).testTag("chip_ext_pfx")
                     )
                 }
             }

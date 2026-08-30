@@ -151,4 +151,41 @@ class KeystoreGeneratorTest {
         assertEquals("ephemeral_alias", inspected[0].alias)
         assertEquals(details.sha256Fingerprint, inspected[0].sha256Fingerprint)
     }
+
+    @Test
+    fun `generate Windows Authenticode PFX and P12 certificate with Code Signing extensions`() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val pfxConfig = KeystoreConfig(
+            fileName = "authenticode-signet.pfx",
+            storePassword = "WindowsPassword123!",
+            alias = "codesign",
+            useSamePassword = true,
+            validityYears = 10,
+            algorithm = KeyAlgorithm.RSA_4096,
+            distinguishedName = DistinguishedName(
+                commonName = "Signet Open Source",
+                organization = "Signet Project",
+                countryCode = "US"
+            )
+        )
+
+        val pfxDetails = KeystoreGenerator.generateKeystore(context, pfxConfig)
+        assertNotNull(pfxDetails)
+        assertEquals("authenticode-signet.pfx", pfxDetails.fileName)
+        assertEquals("codesign", pfxDetails.alias)
+        assertTrue(File(pfxDetails.filePath).exists())
+        assertTrue(pfxDetails.sha256Fingerprint.isNotBlank())
+        assertTrue(pfxDetails.certificatePem.contains("BEGIN CERTIFICATE"))
+
+        // Inspect .pfx file
+        val fileBytes = File(pfxDetails.filePath).readBytes()
+        val inspected = X509CertificateInspector.inspectKeystore(
+            bytes = fileBytes,
+            password = "WindowsPassword123!",
+            provider = KeystoreGenerator.bcProvider
+        )
+        assertEquals(1, inspected.size)
+        assertEquals("codesign", inspected[0].alias)
+        assertEquals(pfxDetails.sha256Fingerprint, inspected[0].sha256Fingerprint)
+    }
 }

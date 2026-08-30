@@ -8,6 +8,11 @@ import com.example.data.model.KeystoreConfig
 import com.example.data.model.KeystoreDetails
 import org.bouncycastle.asn1.x500.X500NameBuilder
 import org.bouncycastle.asn1.x500.style.BCStyle
+import org.bouncycastle.asn1.x509.BasicConstraints
+import org.bouncycastle.asn1.x509.ExtendedKeyUsage
+import org.bouncycastle.asn1.x509.Extension
+import org.bouncycastle.asn1.x509.KeyPurposeId
+import org.bouncycastle.asn1.x509.KeyUsage
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder
 import org.bouncycastle.jce.provider.BouncyCastleProvider
@@ -129,6 +134,23 @@ object KeystoreGenerator {
             keyPair.public
         )
 
+        // Universal Extensions for Android APKs & Desktop/Windows Code Signing Authenticode (.pfx / .p12)
+        try {
+            certBuilder.addExtension(Extension.basicConstraints, true, BasicConstraints(false))
+            certBuilder.addExtension(
+                Extension.keyUsage,
+                true,
+                KeyUsage(KeyUsage.digitalSignature or KeyUsage.keyEncipherment or KeyUsage.dataEncipherment)
+            )
+            certBuilder.addExtension(
+                Extension.extendedKeyUsage,
+                false,
+                ExtendedKeyUsage(arrayOf(KeyPurposeId.id_kp_codeSigning, KeyPurposeId.id_kp_clientAuth))
+            )
+        } catch (_: Exception) {
+            // Fallback gracefully if extension construction throws
+        }
+
         val signer = JcaContentSignerBuilder(config.algorithm.sigAlg)
             .setProvider(provider)
             .build(keyPair.private)
@@ -138,7 +160,7 @@ object KeystoreGenerator {
             .setProvider(provider)
             .getCertificate(certHolder)
 
-        // 5. Create KeyStore (PKCS12 format, standard for Android Studio / Gradle / JARSIGNER / APKSIGNER)
+        // 5. Create KeyStore (PKCS12 format, standard for Android Studio / Gradle / JARSIGNER / APKSIGNER / Windows Authenticode)
         val keyStore = KeyStore.getInstance("PKCS12", provider)
         keyStore.load(null, null)
 
@@ -158,7 +180,11 @@ object KeystoreGenerator {
 
         val sanitizedFileName = if (config.fileName.isBlank()) "my-release-key.jks" else {
             val name = config.fileName.trim()
-            if (name.endsWith(".jks", ignoreCase = true) || name.endsWith(".keystore", ignoreCase = true) || name.endsWith(".p12", ignoreCase = true)) {
+            if (name.endsWith(".jks", ignoreCase = true) ||
+                name.endsWith(".keystore", ignoreCase = true) ||
+                name.endsWith(".p12", ignoreCase = true) ||
+                name.endsWith(".pfx", ignoreCase = true)
+            ) {
                 name
             } else {
                 "$name.jks"

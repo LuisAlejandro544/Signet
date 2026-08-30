@@ -184,4 +184,9 @@ object DesktopPlatformServices : PlatformServices {
         showToast("APK listo en: ${apkFile.absolutePath}")
         openFolder(apkFile)
     }
+
+    override fun shareFile(file: File, mimeType: String) {
+        showToast("Archivo listo para compartir: ${file.name}")
+        openFolder(file)
+    }
 }

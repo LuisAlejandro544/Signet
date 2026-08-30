@@ -152,4 +152,48 @@ object SnippetGenerator {
             apksigner verify --verbose --print-certs app-release-signed.apk
         """.trimIndent()
     }
+
+    /**
+     * Generates Microsoft SignTool and PowerShell commands for Windows Code Signing (.pfx / .p12)
+     */
+    fun generateWindowsSignToolSnippet(fileName: String, alias: String): String {
+        val pfxName = if (fileName.endsWith(".pfx") || fileName.endsWith(".p12")) fileName else "${fileName.substringBeforeLast('.')}.pfx"
+        return """
+            # ================================================================
+            # Microsoft Authenticode Code Signing (Windows .exe / .msi / .dll)
+            # ================================================================
+
+            # 1. Firmar ejecutable con SignTool (Windows SDK) y sello de tiempo RFC 3161:
+            signtool sign /f ${pfxName} /p "%KEYSTORE_PASSWORD%" /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 "AppInstaller.exe"
+
+            # 2. Verificar la firma del binario en Windows:
+            signtool verify /pa /v "AppInstaller.exe"
+
+            # ----------------------------------------------------------------
+            # Alternativa en PowerShell (sin instalar Windows SDK):
+            # ----------------------------------------------------------------
+            ${'$'}cert = Get-PfxCertificate -FilePath "${pfxName}"
+            Set-AuthenticodeSignature -FilePath "AppInstaller.exe" -Certificate ${'$'}cert -TimestampServer "http://timestamp.digicert.com" -HashAlgorithm SHA256
+        """.trimIndent()
+    }
+
+    /**
+     * Generates OpenSSL inspection and PKCS#12 export commands
+     */
+    fun generateOpenSslSnippet(fileName: String, alias: String): String {
+        return """
+            # ==========================================
+            # Comandos OpenSSL & Conversión PKCS#12 (.p12 / .pfx)
+            # ==========================================
+
+            # 1. Extraer certificado público X.509 en formato PEM:
+            openssl pkcs12 -in ${fileName} -nokeys -out cert.pem
+
+            # 2. Extraer clave privada sin cifrar (uso avanzado):
+            openssl pkcs12 -in ${fileName} -nocerts -nodes -out private_key.pem
+
+            # 3. Inspeccionar contenido y extensiones X.509 del archivo:
+            openssl pkcs12 -info -in ${fileName}
+        """.trimIndent()
+    }
 }

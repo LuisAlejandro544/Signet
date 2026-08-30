@@ -7,7 +7,7 @@ import com.example.data.model.KeyAlgorithm
  */
 data class FormState(
     val fileName: String = "release-key",
-    val fileExtension: String = "jks", // "jks" or "keystore"
+    val fileExtension: String = "jks", // "jks", "keystore", "p12", or "pfx"
     val storePassword: String = "",
     val confirmPassword: String = "",
     val isStorePasswordVisible: Boolean = false,
@@ -32,6 +32,7 @@ data class FormState(
                 .removeSuffix(".jks")
                 .removeSuffix(".keystore")
                 .removeSuffix(".p12")
+                .removeSuffix(".pfx")
             val base = if (cleanName.isBlank()) "release-key" else cleanName
             return "$base.$fileExtension"
         }

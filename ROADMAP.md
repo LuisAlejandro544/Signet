@@ -8,32 +8,11 @@ Plan estratégico de evolución técnica y funcionalidades para el proyecto **Si
 - [x] Establecimiento de identidad y nombre oficial: **Signet**.
 - [x] Motor de generación criptográfica X.509 con BouncyCastle (RSA 2048, RSA 4096, EC P-256).
 - [x] **Modo Efímero / Sin Rastro (Zero-Footprint Mode)**: Generación volátil 100% en memoria RAM sin persistencia en disco ni base de datos Room, con exportación SAF (.jks), descarga de ZIP de respaldo y soporte para compartir seguro vía caché temporal.
-- [x] Soporte para extensiones `.jks` y `.keystore`.
-- [x] **Generador Criptográfico de Contraseñas (CSPRNG Nativo)**: Entropía calculada en tiempo real, selección de longitud (16, 20, 24, 32 caracteres), inclusión garantizada de mayúsculas, minúsculas, dígitos y símbolos seguros para Gradle/Terminal.
-- [x] **Guía de Campos y Requisitos de Identidad Google**: Claridad entre campos obligatorios (`CN`, `O`) y opcionales (`OU`, `L`, `ST`, `C`) con soporte para seudónimos y nombres inventados para privacidad.
-- [x] **Arquitectura Modular Desacoplada**: Submódulos en `screens/generate/`, `screens/inspect/` y `components/details/`, y separación de `SnippetGenerator`.
-- [x] Control deslizable interactivo (Slider) y personalización libre de validez de certificados en años.
-- [x] Cálculo automático de huellas digitales SHA-256, SHA-1 y MD5.
-- [x] Conversión y visualización en tiempo real a Base64.
-- [x] Copia de credenciales y contraseñas con un solo toque.
-- [x] Persistencia local con Room Database y exportación SAF.
-- [x] **Cifrado en Reposo de Contraseñas & Seguridad del Portapapeles**:
-  - [x] Cifrado automático de contraseñas de almacén y claves con **AES-256-GCM** y claves de hardware en **Android KeyStore** (`KeystoreEncryptionManager`) tanto en creación inicial como al importar respaldos y bóvedas completas.
-  - [x] Integración de bandera `ClipDescription.EXTRA_IS_SENSITIVE` (API 33+) y advertencias contextuales al copiar credenciales y datos confidenciales.
-- [x] **Paquetes de Respaldo ZIP y Restauración con Firma Anti-Manipulación**:
-  - [x] Generación de paquetes `.zip` con keystore, contraseñas, `key.properties`, `base64.txt` y manifiesto JSON firmado.
-  - [x] **Bóveda Completa Multi-Keystore (.zip)**: Exportación consolidada de todos los keystores en un único archivo ZIP organizado por subcarpetas (`keystores/1_alias/`, `keystores/2_alias/`) con manifiesto maestro `signet-vault-backup.json` firmado con HMAC-SHA256 y resumen `VAULT-SUMMARY.txt`.
-  - [x] Mecanismo de verificación criptográfica HMAC-SHA256 para prevenir restauraciones de archivos manipulados o apócrifos tanto en respaldos individuales como en bóvedas completas.
-  - [x] Corrección y robustecimiento del flujo de descompresión de streams ZIP (`SignetBackupManager`).
-  - [x] Restauración instantánea hacia la base de datos Room.
-- [x] Pestaña de Configuración con personalización de color, Material You, modo Negro 100% (AMOLED) y paletas de autor.
-- [x] **Validador Forense de Coincidencia APK vs Keystore (APK Matcher)**:
-  - [x] Extracción nativa de certificados X.509 de firmas v1 (JAR Signature / PKCS#7 en `META-INF`), v2 (APK Signing Block) y v3.
-  - [x] Lectura de metadatos del paquete APK (Package Name, Version Name, Version Code).
-  - [x] Validación y diagnóstico de compatibilidad de actualización de APKs (coincidencia de huella SHA-256 contra Keystores guardados o externos).
-  - [x] Interfaz interactiva en pestaña Inspeccionar con selector visual y tarjetas de diagnóstico.
+- [x] Soporte para extensiones `.jks`, `.keystore`, `.p12` (PKCS#12 Multiplataforma) y `.pfx` (Microsoft Authenticode / Windows / PC).
+- [x] **Extensiones X.509 de Firma de Código (Code Signing)**: Incorporación nativa de `KeyUsage` y `ExtendedKeyUsage` (`id_kp_codeSigning`, `id_kp_clientAuth`) para permitir firmas nativas en Windows (`signtool.exe`, PowerShell) y multiplataforma.
 - [x] **Generador y Visualizador Interactivo de Snippets**:
   - [x] Visualizador interactivo de bloques `signingConfigs` para `build.gradle.kts` (Kotlin DSL) y `build.gradle` (Groovy).
+  - [x] Generador de comandos para **Microsoft SignTool & PowerShell** (.pfx / Authenticode) y utilidades **OpenSSL**.
   - [x] Generador de workflows automatizados para GitHub Actions (`.github/workflows/android-build-and-sign.yml`) con decodificación de `KEYSTORE_BASE64` y firma en runners.
   - [x] Comandos CLI para `apksigner` y `zipalign`.
 - [x] Limpieza de dependencias innecesarias de Google Play para distribución universal (Uptodown, GitHub Releases, APKs).
@@ -80,7 +59,7 @@ Plan estratégico de evolución técnica y funcionalidades para el proyecto **Si
   - [x] Interfaz de usuario interactiva en Jetpack Compose (`SignApkScreen`) con selección de APK, Keystore, opciones personalizadas (v1, v2, v3 y zipalign), progreso, instalación directa e integración con APK Matcher.
 - [ ] **Conversión de Formatos**:
   - Conversión bidireccional entre JKS/PKCS12 y PEM/CRT/KEY.
-- [x] **Arquitectura Multiplataforma (Signet Desktop - Preparación & Desacoplamiento)**:
+- [x] **Arquitectura Multiplataforma & Signet Desktop**:
   - [x] Sustitución de las 4 dependencias exclusivas de Android por equivalentes Java/Desktop:
     * `android.util.Base64` -> `com.example.crypto.Base64Compat` (respaldado por `java.util.Base64`).
     * `AndroidKeyStore` -> Arquitectura híbrida en `KeystoreEncryptionManager` (AES-256 en `%APPDATA%/Signet/signet_master.key` en Windows/Desktop).
@@ -89,8 +68,12 @@ Plan estratégico de evolución técnica y funcionalidades para el proyecto **Si
   - [x] Desacoplamiento del parámetro `android.content.Context` en `KeystoreGenerator`, `SignetBackupManager` y `KeystoreRepository` a `outputDir: File`.
   - [x] Motor de resolución de almacenamiento de escritorio `DesktopStorageUtils` para Windows (%APPDATA%), Linux/Unix y macOS.
   - [x] Suite de tests unitarios `DesktopMultiplatformTest` verificando compatibilidad en JVM/Escritorio.
-- [ ] **Empaquetado y Distribución de Signet Desktop**:
-  - [ ] Módulo Compose Multiplatform Desktop (`desktopApp`) para Windows (.exe / .msi), Linux (.deb / AppImage) y ejecución en Winlator.
-  - [ ] Pipeline de CI/CD para compilación de binarios Desktop.
+  - [x] Módulo Gradle de Escritorio (`:desktop`) con target JVM y empaquetado nativo jpackage (`.exe` / `.msi`).
+  - [x] Punto de entrada nativo JVM `DesktopLauncher` (`app/src/main/java/com/example/desktop/Main.kt`) con soporte para ejecución standalone y flags CLI (`--open-vault`, `--help`, `--version`).
+  - [x] Contenedor UI `SignetDesktopApp` e inyección de servicios de plataforma (`DesktopPlatformServices` con `FileDialog` nativo y portapapeles AWT).
+  - [x] Ergonomía y UX Adaptativo en `MainScreen` (`NavigationRail` en pantallas de escritorio con acceso directo a la carpeta de la bóveda y `NavigationBar` en móvil).
+- [ ] **Distribución y CI/CD de Signet Desktop**:
+  - [ ] Pipeline de CI/CD para compilación automatizada de instaladores Windows (.exe / .msi) y Linux (.deb / AppImage).
+
 
 
