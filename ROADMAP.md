@@ -68,8 +68,8 @@ Plan estratégico de evolución técnica y funcionalidades para el proyecto **Si
   - [x] Desacoplamiento del parámetro `android.content.Context` en `KeystoreGenerator`, `SignetBackupManager` y `KeystoreRepository` a `outputDir: File`.
   - [x] Motor de resolución de almacenamiento de escritorio `DesktopStorageUtils` para Windows (%APPDATA%), Linux/Unix y macOS.
   - [x] Suite de tests unitarios `DesktopMultiplatformTest` verificando compatibilidad en JVM/Escritorio.
-  - [x] Módulo Gradle de Escritorio (`:desktop`) vinculado oficialmente en `settings.gradle.kts` con plugin Compose Multiplatform (`desktop/build.gradle.kts`), target JVM y empaquetado nativo jpackage (`.exe` / `.msi`).
-  - [x] Punto de entrada nativo JVM `DesktopLauncher` (`app/src/main/java/com/example/desktop/Main.kt`) con bucle de ventana gráfica Swing/Compose, soporte para ejecución standalone y flags CLI (`--open-vault`, `--help`, `--version`).
+  - [x] Módulo Gradle de Escritorio (`:desktop`) vinculado oficialmente en `settings.gradle.kts` con plugin Compose Multiplatform (`desktop/build.gradle.kts`), dependencias de Compose Desktop JVM runtime (UI, Material 3, Material Icons Extended), target JVM y empaquetado nativo jpackage (`.exe` / `.msi`).
+  - [x] Punto de entrada nativo JVM `DesktopLauncher` (`app/src/main/java/com/example/desktop/Main.kt`) con bucle de ventana gráfica Swing/Compose, soporte para ejecución interactiva y suite completa de comandos CLI / Headless para Windows Terminal y PowerShell (`sign`, `generate`, `inspect`, `match`, `base64`, `backup-create`, `vault`).
   - [x] Contenedor UI `SignetDesktopApp` e inyección de servicios de plataforma (`DesktopPlatformServices` con `FileDialog` nativo y portapapeles AWT).
   - [x] Ergonomía y UX Adaptativo en `MainScreen` (`NavigationRail` en pantallas de escritorio con acceso directo a la carpeta de la bóveda y `NavigationBar` en móvil).
   - [x] **Estructura del Módulo Compartido (KMP / Shared UI)**:
@@ -81,7 +81,7 @@ Plan estratégico de evolución técnica y funcionalidades para el proyecto **Si
     * `KeystoreViewModel` reactivo gobernado puramente por Kotlin Coroutines `StateFlow` con sobrecargas agnósticas de plataforma para generación y firma.
     * Núcleo criptográfico común de alta seguridad (`com.example.crypto`) e inmutabilidad en modelos de dominio (`com.example.data.model`).
 - [x] **Distribución y CI/CD de Signet Desktop**:
-  - [x] Pipeline de CI/CD en GitHub Actions (`build-release-desktop.yml`) para compilación y empaquetado automatizado de ejecutables nativos de Windows (`.exe`), instaladores MSI (`.msi`) y paquetes portables (`.zip`), con hashes SHA-256, publicación en GitHub Releases y notificación a Telegram.
+  - [x] Pipeline de CI/CD en GitHub Actions (`build-release-desktop.yml`) para compilación y empaquetado automatizado de ejecutables nativos de Windows (`.exe`), instaladores MSI (`.msi`) y paquetes portables (`.zip`), con hashes SHA-256, publicación en GitHub Releases (en tags/releases), ejecución manual para pruebas internas (`workflow_dispatch`) y notificación a Telegram.
   - [ ] Compilación empaquetada para Linux (.deb / AppImage) y macOS (.dmg).
 
 

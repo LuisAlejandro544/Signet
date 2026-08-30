@@ -27,10 +27,20 @@ concurrency:
 
 jobs:
   build-windows-binaries:
-    name: 🪟 Build Windows Desktop (.EXE, .MSI & Portable ZIP)
+    name: 🪟 Build Windows Desktop (${{ matrix.arch_name }})
     runs-on: windows-latest
     permissions:
       contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: "x64"
+            arch_name: "x64 - PC Tradicional (Intel / AMD)"
+            dist_tag: "windows-x64"
+          - arch: "arm64"
+            arch_name: "ARM64 - Procesadores Móviles en Windows (Snapdragon)"
+            dist_tag: "windows-arm64"
 
     steps:
       - name: 📥 Checkout Repository
@@ -38,7 +48,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: ☕ Set up JDK 17
+      - name: ☕ Set up JDK 17 (Build Host)
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
@@ -54,15 +64,17 @@ jobs:
       - name: 🔨 Build Desktop Fat JAR
         shell: pwsh
         run: |
-          Write-Host "Compilando Fat JAR del módulo :desktop..."
+          Write-Host "Compilando Fat JAR del módulo :desktop para arquitectura ${{ matrix.arch }}..."
           ./gradlew.bat :desktop:fatJar --stacktrace --no-daemon
 
-      - name: 📦 Package Windows Native Binaries (EXE, MSI & Portable Bundle)
+      - name: 📦 Package Windows Native Binaries (${{ matrix.arch }})
         id: package_windows
         shell: pwsh
         run: |
           $TAG = "${{ github.event.release.tag_name || github.ref_name || inputs.tag_name || 'v1.0.0-B' }}"
           $CLEAN_TAG = $TAG -replace '^v', ''
+          $ARCH = "${{ matrix.arch }}"
+          $DIST_TAG = "${{ matrix.dist_tag }}"
           $JAR_PATH = (Get-ChildItem -Path "desktop/build/libs" -Filter "*.jar" | Select-Object -First 1).FullName
           
           if (-not $JAR_PATH -or -not (Test-Path $JAR_PATH)) {
@@ -71,10 +83,12 @@ jobs:
           }
 
           Write-Host "JAR encontrado: $JAR_PATH"
-          New-Item -ItemType Directory -Force -Path "./dist-windows" | Out-Null
+          $OUT_DIR = "./dist-$DIST_TAG"
+          New-Item -ItemType Directory -Force -Path $OUT_DIR | Out-Null
 
           # 1. Empaquetar App Image Portable (Contiene Signet.exe y runtime embebido)
-          Write-Host "==> Generando Signet Portable App-Image con Signet.exe..."
+          Write-Host "==> Generando Signet Portable App-Image ($ARCH) con Signet.exe..."
+          $ICON_ARG = if (Test-Path "desktop/src/main/resources/Signet.ico") { @("--icon", "desktop/src/main/resources/Signet.ico") } else { @() }
           jpackage `
             --type app-image `
             --name "Signet" `
@@ -82,19 +96,20 @@ jobs:
             --input "desktop/build/libs" `
             --main-jar (Split-Path $JAR_PATH -Leaf) `
             --main-class "com.example.desktop.DesktopLauncher" `
-            --dest "./dist-windows" `
+            --dest $OUT_DIR `
+            @ICON_ARG `
             --java-options "-Dfile.encoding=UTF-8" `
             --java-options "-Dsun.java2d.dpiaware=true"
 
           # Comprimir la versión portable en un archivo ZIP con el ejecutable Signet.exe
-          $PORTABLE_ZIP = "./Signet-${TAG}-windows-x64-portable.zip"
+          $PORTABLE_ZIP = "./Signet-${TAG}-${DIST_TAG}-portable.zip"
           Write-Host "==> Comprimiendo paquete portable en $PORTABLE_ZIP..."
-          Compress-Archive -Path "./dist-windows/Signet/*" -DestinationPath $PORTABLE_ZIP -Force
+          Compress-Archive -Path "$OUT_DIR/Signet/*" -DestinationPath $PORTABLE_ZIP -Force
 
           # 2. Empaquetar Instalador Windows MSI
-          $MSI_DEST = "./dist-windows-msi"
+          $MSI_DEST = "./dist-$DIST_TAG-msi"
           New-Item -ItemType Directory -Force -Path $MSI_DEST | Out-Null
-          Write-Host "==> Generando instalador Windows MSI..."
+          Write-Host "==> Generando instalador Windows MSI ($ARCH)..."
           try {
             jpackage `
               --type msi `
@@ -104,6 +119,7 @@ jobs:
               --main-jar (Split-Path $JAR_PATH -Leaf) `
               --main-class "com.example.desktop.DesktopLauncher" `
               --dest $MSI_DEST `
+              @ICON_ARG `
               --win-dir-chooser `
               --win-menu `
               --win-shortcut `
@@ -111,18 +127,18 @@ jobs:
               --java-options "-Dsun.java2d.dpiaware=true"
 
             $MSI_FILE = (Get-ChildItem -Path $MSI_DEST -Filter "*.msi" | Select-Object -First 1).FullName
-            $FINAL_MSI = "./Signet-${TAG}-windows-x64-installer.msi"
+            $FINAL_MSI = "./Signet-${TAG}-${DIST_TAG}-installer.msi"
             Copy-Item -Path $MSI_FILE -Destination $FINAL_MSI
             Write-Host "MSI generado exitosamente: $FINAL_MSI"
           } catch {
-            Write-Warning "No se pudo generar MSI directamente. Se utilizará el paquete portable y ejecutable."
+            Write-Warning "No se pudo generar MSI directamente para $ARCH. Se utilizará el paquete portable y ejecutable."
             $FINAL_MSI = ""
           }
 
           # Copiar también el ejecutable Signet.exe directo para distribución rápida
-          $EXE_DIRECT = "./Signet-${TAG}-windows-x64.exe"
-          if (Test-Path "./dist-windows/Signet/Signet.exe") {
-            Copy-Item -Path "./dist-windows/Signet/Signet.exe" -Destination $EXE_DIRECT
+          $EXE_DIRECT = "./Signet-${TAG}-${DIST_TAG}.exe"
+          if (Test-Path "$OUT_DIR/Signet/Signet.exe") {
+            Copy-Item -Path "$OUT_DIR/Signet/Signet.exe" -Destination $EXE_DIRECT
           }
 
           # Generar Checksums SHA-256
@@ -149,11 +165,12 @@ jobs:
           echo "zip_checksum=$PORTABLE_ZIP.sha256" >> $env:GITHUB_OUTPUT
           echo "zip_sha256=$HASH_ZIP" >> $env:GITHUB_OUTPUT
           echo "tag_name=$TAG" >> $env:GITHUB_OUTPUT
+          echo "dist_tag=$DIST_TAG" >> $env:GITHUB_OUTPUT
 
       - name: 📦 Upload Windows Binaries as Workflow Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: signet-windows-desktop-binaries
+          name: signet-${{ matrix.dist_tag }}-binaries
           path: |
             ${{ steps.package_windows.outputs.zip_path }}
             ${{ steps.package_windows.outputs.zip_checksum }}
@@ -165,7 +182,7 @@ jobs:
           retention-days: 14
 
       - name: 🏷️ Attach Windows Binaries to GitHub Release
-        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'release'
+        if: (github.event_name == 'release') || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/'))
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.package_windows.outputs.tag_name }}
@@ -189,6 +206,7 @@ jobs:
           ZIP_PATH: ${{ steps.package_windows.outputs.zip_path }}
           MSI_PATH: ${{ steps.package_windows.outputs.msi_path }}
           TAG_NAME: ${{ steps.package_windows.outputs.tag_name }}
+          DIST_TAG: ${{ steps.package_windows.outputs.dist_tag }}
           SHA256_ZIP: ${{ steps.package_windows.outputs.zip_sha256 }}
         run: |
           if (-not $env:TELEGRAM_BOT_TOKEN -or -not $env:TELEGRAM_CHAT_ID) {
@@ -197,7 +215,7 @@ jobs:
           }
 
           $COMMIT_SHA = "$($env:GITHUB_SHA)".Substring(0, 7)
-          $CAPTION = "🪟 *Signet Windows Desktop Release*`n🏷️ *Versión*: `$($env:TAG_NAME)`n🔨 *Commit*: `$COMMIT_SHA`n🔐 *SHA-256 (ZIP)*: `$($env:SHA256_ZIP)`n📦 *Formatos*: .EXE / .MSI / .ZIP Portable"
+          $CAPTION = "🪟 *Signet Windows Desktop Release*`n🏷️ *Versión*: `$($env:TAG_NAME)`n💻 *Arquitectura*: `$($env:DIST_TAG)`n🔨 *Commit*: `$COMMIT_SHA`n🔐 *SHA-256 (ZIP)*: `$($env:SHA256_ZIP)`n📦 *Formatos*: .EXE / .MSI / .ZIP Portable"
 
           # Enviar archivo principal (Portable ZIP o MSI) vía Telegram Bot API
           $FILE_TO_SEND = if ($env:MSI_PATH -and (Test-Path $env:MSI_PATH)) { $env:MSI_PATH } else { $env:ZIP_PATH }

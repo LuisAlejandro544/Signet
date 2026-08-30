@@ -200,12 +200,19 @@ El repositorio cuenta con pipelines automatizados en GitHub Actions orientados a
   - `KEY_PASSWORD_BETA` (o `KEY_PASSWORD`): Contraseña específica del alias Beta.
 - **Registro de Versiones**: Consulta [Changelog-release.md](Changelog-release.md) para el historial detallado de notas de lanzamiento.
 
-### 6. Compilación y Empaquetado de Windows Desktop (.EXE, .MSI, .ZIP) (`.github/workflows/build-release-desktop.yml`)
-- **Pipeline Automatizado para Windows**: Se activa automáticamente al publicar un release, empujar tags (`v*`, `v*-B`, `v*-desktop*`) o de forma manual vía `workflow_dispatch`.
-- **Empaquetado Nativo con `jpackage`**: Compila el Fat JAR del módulo `:desktop` y genera en el runner de Windows los paquetes:
-  * **`.exe` (Signet.exe autónomo)** y **`.zip` portable** con runtime embebido.
-  * **`.msi` (Instalador oficial de Windows)** con accesos directos en el menú de inicio y escritorio.
-- **Publicación y Entrega Segura**: Genera hashes `SHA-256`, adjunta todos los archivos a GitHub Releases y envía una notificación confidencial con el archivo a Telegram.
+### 6. Compilación y Empaquetado Multi-Arquitectura de Windows Desktop (.EXE, .MSI, .ZIP) (`.github/workflows/build-release-desktop.yml`)
+- **Pipeline Automatizado para Windows**:
+  * **Activación por Releases / Tags (`v*`, `v*-B`, `v*-dev`, `v*-E`, `v*-desktop*`)**: Compila los paquetes de ambas arquitecturas, genera checksums SHA-256 y los adjunta automáticamente a los assets del Release en GitHub.
+  * **Activación Manual (`workflow_dispatch`)**: Permite compilar y empaquetar en cualquier momento para pruebas internas; los binarios se suben exclusivamente como artefactos de workflow sin publicarse en GitHub Release assets.
+- **Doble Arquitectura Soportada (Matriz de Compilación)**:
+  1. **`windows-x64`**: Ejecutables nativos para computadoras y procesadores tradicionales de PC (Intel & AMD de 64 bits).
+  2. **`windows-arm64`**: Ejecutables nativos optimizados para computadoras con procesadores de tecnología móvil / teléfono en Windows (ARM64 / Snapdragon / Qualcomm).
+- **Empaquetado Nativo con `jpackage`**: Compila el Fat JAR del módulo `:desktop` con el runtime de Compose Desktop y genera para cada arquitectura:
+  * **`.exe` (Signet.exe autónomo)** y **`.zip` portable** con runtime embebido (`Signet-v*-windows-x64-portable.zip` / `Signet-v*-windows-arm64-portable.zip`).
+  * **`.msi` (Instalador oficial de Windows)** con accesos directos en el menú de inicio y escritorio (`Signet-v*-windows-x64-installer.msi` / `Signet-v*-windows-arm64-installer.msi`).
+- **Suite CLI / Headless para Windows Terminal & PowerShell**:
+  * Ejecución por terminal sin interfaz gráfica: `signet sign`, `signet generate`, `signet inspect`, `signet match`, `signet base64`, `signet backup-create` y `signet vault`.
+- **Publicación y Entrega Segura**: Genera hashes `SHA-256`, adjunta todos los archivos a GitHub Releases (en eventos de tag/release) y envía una notificación confidencial con el archivo a Telegram.
 - **Secretos en GitHub (reutiliza automáticamente los ya existentes)**:
   - `TELEGRAM_BOT_TOKEN_RELEASE_DESKTOP` (o `TELEGRAM_BOT_TOKEN_RELEASE_APK` / `TELEGRAM_BOT_TOKEN`).
   - `TELEGRAM_CHAT_ID_RELEASE_DESKTOP` (o `TELEGRAM_CHAT_ID_RELEASE_APK` / `TELEGRAM_CHAT_ID`).

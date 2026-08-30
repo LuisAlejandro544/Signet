@@ -3,6 +3,6 @@
     <item
         android:width="66dp"
         android:height="66dp"
-        android:drawable="@drawable/app_icon_keystore_1786854841964"
+        android:drawable="@drawable/signet_lock_logo_1788134129827"
         android:gravity="center" />
 </layer-list>

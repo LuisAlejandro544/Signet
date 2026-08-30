@@ -96,8 +96,7 @@ class ApkSignerTest {
             storePassword = config.storePassword,
             alias = config.alias,
             keyPassword = config.keyPassword,
-            options = options,
-            context = context
+            options = options
         )
 
         // 4. Assertions
@@ -153,8 +152,7 @@ class ApkSignerTest {
             storePassword = config.storePassword,
             alias = config.alias,
             keyPassword = config.keyPassword,
-            options = options,
-            context = context
+            options = options
         )
 
         assertTrue("La firma triple del APK debería ser exitosa", result.isSuccess)
@@ -202,8 +200,7 @@ class ApkSignerTest {
             storePassword = config.storePassword,
             alias = config.alias,
             keyPassword = config.keyPassword,
-            options = options,
-            context = context
+            options = options
         )
 
         assertTrue("Firma solo v3 debe ser exitosa", result.isSuccess)

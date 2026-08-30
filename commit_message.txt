@@ -1,49 +1,28 @@
-fix(build): corregir fallo de R8 en minifyReleaseWithR8 por referencias a clases java.awt en DesktopPlatformServices
+feat(desktop): integrar runtime Compose Desktop en Gradle, host de ventana grafica interactiva y suite completa de comandos CLI/Headless para Windows Terminal y PowerShell
 
-- Causa Raíz del Error:
-  * Durante la ejecución de la tarea `:app:minifyReleaseWithR8` en los workflows de lanzamiento (`build-release-apk.yml`), el optimizador R8 fallaba al detectar dependencias hacia clases ausentes en el Android Runtime (`java.awt.Desktop`, `java.awt.FileDialog`, `java.awt.datatransfer.*`, etc.) referenciadas por la capa de adaptadores de escritorio `DesktopPlatformServices`.
+- Runtime de Compose Desktop en Gradle (`desktop/build.gradle.kts`):
+  * Declaración de dependencias de Compose Desktop JVM runtime (UI, Material 3, Material Icons Extended) en el módulo `:desktop`.
+  * Integración con la tarea `fatJar` y la tarea de ejecución `runDesktop` para despliegue y distribución en Windows y JVM pura.
 
-- Solución y Reglas de ProGuard/R8 (`app/proguard-rules.pro`):
-  * Añadir directivas `-dontwarn java.awt.**`, `-dontwarn javax.swing.**`, `-dontwarn java.beans.**`, `-dontwarn javax.annotation.**` y `-dontwarn sun.misc.**`.
-  * Permitir que el minificador y ofuscador R8 procese los binarios de producción sin advertencias fatales por el código multiplataforma de escritorio.
-  * Garantizar la compilación exitosa de APKs en todos los canales de distribución (.release, .beta, .dev y .estable).
+- Host de Ventana Gráfica Interactiva en `DesktopLauncher` (`app/src/main/java/com/example/desktop/Main.kt`):
+  * Inicialización de la ventana de escritorio con dimensiones optimizadas (1150x780), centrado en pantalla y soporte HiDPI (`sun.java2d.dpiaware=true`, `sun.java2d.uiScale.enabled=true`).
+  * Aplicación del Look and Feel nativo del sistema operativo y despacho seguro en el hilo de eventos de interfaz de usuario (AWT/Swing Event Dispatch Thread).
+  * Control y detección de modo headless para ejecución desatendida en servidores, scripts y terminales.
 
-feat(desktop): vincular módulo :desktop en settings.gradle.kts, aplicar plugin Compose en desktop/build.gradle.kts e implementar bucle de ventana en DesktopLauncher (Main.kt)
+- Suite Completa de Operaciones CLI / Headless para Windows Terminal, PowerShell y CMD:
+  * Subcomando `sign`: Firma integral de archivos APK desde terminal con esquemas v1, v2, v3 y zipalign de 4 bytes (`signet sign --apk <app.apk> --keystore <key.jks> --password <pwd> [--output <out.apk>]`).
+  * Subcomando `generate` / `gen`: Generación desatendida de almacenes de claves PKCS#12 (.jks, .keystore, .p12, .pfx) con algoritmos RSA 2048, RSA 4096 o EC P-256 (`signet generate --name release-key.jks --alias key0 --password <pwd> --algo RSA_2048`).
+  * Subcomando `inspect`: Inspección forense de certificados X.509 y cálculo de huellas digitales SHA-256, SHA-1 y MD5 tanto de archivos Keystore como de archivos APK (`signet inspect --file <archivo>`).
+  * Subcomando `match`: Validación y cruce criptográfico entre un archivo APK y un Keystore (`signet match --apk <app.apk> --keystore <key.jks>`).
+  * Subcomando `base64`: Exportación instantánea del archivo Keystore en cadena Base64 lista para variables de entorno y secrets de CI/CD (`signet base64 --file <key.jks>`).
+  * Subcomando `backup-create`: Empaquetado de respaldos ZIP firmados con HMAC-SHA256 anti-manipulación desde línea de comandos.
+  * Subcomando `vault`: Gestión, listado y apertura directa del directorio de almacenamiento seguro en Windows (`%APPDATA%/Signet`).
+  * Flags `--help` / `-h`, `--version` / `-V` y `--open-vault` / `-v`.
 
-- Integración de Módulo Gradle de Escritorio:
-  * Inclusión oficial de `include(":desktop")` en `settings.gradle.kts` para compilación multimodular.
-  * Aplicación del plugin de Compose Multiplatform (`alias(libs.plugins.kotlin.compose)`) en `desktop/build.gradle.kts` con configuración de target JVM, dependencias criptográficas y tarea de ejecución nativa `runDesktop`.
-  * Implementación del ciclo de vida y bucle de eventos de ventana de escritorio en `DesktopLauncher` (`app/src/main/java/com/example/desktop/Main.kt`) con detección headless, configuración HiDPI y despacho en el hilo UI.
+- Configuración y Desacoplamiento del Workflow CI/CD de Windows Desktop (`.github/workflows/build-release-desktop.yml`):
+  * Activación flexible mediante ejecución manual `workflow_dispatch` (generando binarios `.exe`, `.msi` y `.zip` y subiéndolos exclusivamente como artefactos de workflow sin publicar en GitHub Release assets).
+  * Publicación y adjunción automática a GitHub Release assets preservada estrictamente cuando el flujo se activa mediante eventos de lanzamiento (`release`) o tags de versión (`push` con tags `v*`, `v*-B`, `v*-dev`, `v*-E`, `v*-desktop*`).
+  * Generación de checksums SHA-256 y notificación privada a Telegram.
 
-feat(kmp): formalizar estructura del módulo compartido (KMP / Shared UI) y contratos multiplataforma
-
-- Arquitectura de UI y Lógica Compartida:
-  * Desacoplamiento de la capa de presentación Compose y orquestación de estado en `KeystoreViewModel` basada puramente en Kotlin Coroutines `StateFlow`.
-  * Inyección desacoplada de servicios de sistema operativo mediante `PlatformServices` y `LocalPlatformServices` (adaptando operaciones de almacenamiento SAF/AWT, portapapeles y explorador de archivos nativo).
-  * Núcleo criptográfico común de alta seguridad en `com.example.crypto` (BouncyCastle) y modelos inmutables de dominio en `com.example.data.model`.
-  * Garantía de compatibilidad nativa en arquitecturas x86_64 y ARM64 (Windows on ARM / Snapdragon X / Apple Silicon / Linux aarch64).
-
-feat(ci): implementar workflow de GitHub Actions para compilar y empaquetar ejecutables nativos de Windows (.exe, .msi y .zip portable)
-
-- Pipeline de CI/CD para Windows Desktop (`.github/workflows/build-release-desktop.yml`):
-  * Activación automática sincronizada con releases, tags de versión (`v*`, `v*-B`, `v*-desktop*`) y ejecución manual `workflow_dispatch`.
-  * Compilación del Fat JAR del módulo `:desktop` con dependencias completas de BouncyCastle y corrutinas.
-  * Generación de paquetes mediante `jpackage` en runner Windows: ejecutable autónomo `Signet.exe`, instalador MSI (`.msi`) y bundle portable comprimido (`.zip`).
-  * Cálculo de hashes SHA-256 para verificación criptográfica y adjunción automática a GitHub Releases.
-  * Notificación y envío directo del binario a Telegram privado mediante Bot API / MTProto.
-
-feat(ui): configurar UI en módulo :desktop, desacoplar recursos Android y modularizar arquitectura de presentación multiplataforma
-
-- Configuración y Enlace de UI en Módulo :desktop:
-  * Inclusión de las fuentes compartidas de UI (`../app/src/main/java/com/example/ui`) y repositorios (`../app/src/main/java/com/example/data`) en el `sourceSets` del módulo `:desktop` (`desktop/build.gradle.kts`).
-  * Enlace con Compose Multiplatform para permitir la renderización directa de los composables en entornos JVM / Windows.
-
-- Adaptación de Recursos y Textos Agnósticos de Plataforma:
-  * Creación del catálogo unificado `SignetStrings` (`com.example.ui.res.SignetStrings`) eliminando dependencias de `android.R` y `stringResource`.
-  * Consolidación de títulos, descripciones, plantillas y etiquetas accesibles de forma multiplataforma.
-
-- Desacoplamiento Modular de Contexto en Componentes UI:
-  * Refactorización de `GenerateScreen`, `SignApkScreen`, `LegalLinksSection` y `SettingsScreen` para consumir `LocalPlatformServices` en lugar de `LocalContext`.
-  * Adaptación de la API de firma en `ApkSigner` y `KeystoreViewModel` con firmas nativas basadas en `File` y directorios de almacenamiento multiplataforma.
-
-
+- Actualización de Documentación Técnica (.md):
+  * Sincronización de `README.md`, `ROADMAP.md`, `STRUCTURE.md` y `AI_CONTEXT.md` reflejando las nuevas capacidades CLI headless para Windows Terminal/PowerShell, el runtime de Compose Desktop y el comportamiento del workflow de compilación.

@@ -232,10 +232,11 @@ app/
      * BouncyCastle (`bcprov`, `bcpkix`) encapsulado en `com.example.crypto`, completamente independiente de la plataforma y compatible con JVM pura.
 3. **Módulo de Escritorio (`desktop/build.gradle.kts`)**:
    - Aplica el plugin `kotlin("jvm")` y `alias(libs.plugins.kotlin.compose)`.
-   - Vincula las dependencias criptográficas (`bcprov`, `bcpkix`, `kotlinx-coroutines`) y registra la tarea de ejecución nativa `runDesktop`.
+   - Vincula las dependencias criptográficas (`bcprov`, `bcpkix`, `kotlinx-coroutines`) y de runtime gráfico Compose Desktop JVM (UI, Material 3, Material Icons Extended).
+   - Registra la tarea `fatJar` para empaquetado autónomo y la tarea de ejecución nativa `runDesktop`.
 4. **Punto de Entrada y Bucle de Ventana (`DesktopLauncher` en `Main.kt`)**:
-   - Inicializa el entorno del sistema operativo, resuelve rutas en `%APPDATA%/Signet` y gestiona argumentos por CLI (`--open-vault`, `--version`, `--help`).
-   - Ejecuta el bucle de eventos gráfico en el hilo de interfaz de usuario (AWT/Swing y Compose Desktop).
+   - Inicializa el entorno del sistema operativo, resuelve rutas en `%APPDATA%/Signet` y gestiona la suite completa de comandos CLI / Headless para Windows Terminal y PowerShell (`sign`, `generate`, `inspect`, `match`, `base64`, `backup-create`, `vault`, `--open-vault`, `--version`, `--help`).
+   - Ejecuta el bucle de eventos gráfico en el hilo de interfaz de usuario (AWT/Swing y Compose Desktop) configurando dimensiones optimizadas (1150x780), propiedades HiDPI y Look and Feel nativo.
 
 ### 6. Estrategia Multi-Canal y Versionado Semántico
 - **`.debug` (`com.signet.app.debug` / `1.0.0-D`)**: Compilación interna y automática vía GitHub Actions (`build-debug-apk.yml`) firmada con `debug.keystore`.

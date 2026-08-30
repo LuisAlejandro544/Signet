@@ -13,6 +13,11 @@ dependencies {
     implementation(libs.bouncycastle.bcprov)
     implementation(libs.bouncycastle.bcpkix)
     implementation(libs.kotlinx.coroutines.core)
+
+    // Compose Desktop JVM runtime & UI
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.material.icons.extended)
 }
 
 sourceSets {

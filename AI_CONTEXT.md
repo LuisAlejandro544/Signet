@@ -114,9 +114,9 @@ Este documento proporciona contexto técnico, decisiones de arquitectura y direc
     - **Capa de Abstracción de Plataforma (`com.example.platform`)**: Inyección mediante `CompositionLocalProvider(LocalPlatformServices)` de `DesktopPlatformServices` (AWT FileDialog, portapapeles nativo, explorador del sistema) y `AndroidPlatformServices` (SAF, ClipboardManager, Intents).
     - **Pruebas de Compatibilidad Desktop**: Verificadas mediante `DesktopMultiplatformTest.kt`.
 
-18. **Módulo de Escritorio, Punto de Entrada `Main.kt` & UX Adaptativo**:
-    - **Módulo Gradle `:desktop`**: Vinculado activamente en `settings.gradle.kts` e integrado con el plugin Compose Multiplatform (`alias(libs.plugins.kotlin.compose)`) en `desktop/build.gradle.kts`, con target JVM, dependencias criptográficas y tarea de ejecución nativa `runDesktop`.
-    - **Punto de Entrada `DesktopLauncher` (`app/src/main/java/com/example/desktop/Main.kt`)**: Soporte para ejecución de escritorio con bucle de ventana gráfica Swing/Compose, detección headless, optimización HiDPI y argumentos CLI (`--open-vault`, `--version`, `--help`).
+18. **Módulo de Escritorio, Runtime Compose Desktop, Punto de Entrada `Main.kt` & CLI Headless**:
+    - **Módulo Gradle `:desktop`**: Vinculado activamente en `settings.gradle.kts` e integrado con el plugin Compose Multiplatform (`alias(libs.plugins.kotlin.compose)`) en `desktop/build.gradle.kts`, con runtime Compose Desktop JVM (UI, Material 3, Material Icons Extended), target JVM, dependencias criptográficas, tarea `fatJar` y tarea de ejecución nativa `runDesktop`.
+    - **Punto de Entrada `DesktopLauncher` (`app/src/main/java/com/example/desktop/Main.kt`)**: Soporte dual para ejecución de escritorio interactiva con ventana gráfica Swing/Compose y suite completa de comandos CLI / Headless para Windows Terminal y PowerShell (`sign`, `generate`, `inspect`, `match`, `base64`, `backup-create`, `vault`, `--open-vault`, `--version`, `--help`).
     - **Contenedor UI `SignetDesktopApp` (`app/src/main/java/com/example/desktop/SignetDesktopApp.kt`)**: Proveedor Compose Desktop que enlaza con `DesktopPlatformServices` e instancia `KeystoreViewModel` sin dependencias de Android.
     - **Estructura del Módulo Compartido (KMP / Shared UI)**:
       * Capa de UI compartida en Jetpack Compose / Compose Multiplatform desacoplada de `android.content.Context` y APIs de Android.
@@ -130,12 +130,13 @@ Este documento proporciona contexto técnico, decisiones de arquitectura y direc
       * Pantallas anchas / Escritorio (`maxWidth >= 700.dp`): Barra lateral vertical `NavigationRail` con botón de acceso rápido para abrir la carpeta de la bóveda en el explorador de archivos nativo, títulos ampliados y distribución de contenido optimizada.
       * Pantallas móviles compactas (`maxWidth < 700.dp`): Barra inferior `NavigationBar` optimizada para uso táctil con una sola mano.
 
-
 19. **Filtrado de Arquitecturas Móviles (ABI Filters) en APKs**:
     - **Exclusividad Móvil**: Las versiones compiladas de Android (canales `.beta`, `.dev`, `.estable`, etc.) incorporan exclusivamente arquitecturas de telefonía celular móvil: **ARM de 64 bits (`arm64-v8a`)** y **ARM de 32 bits (`armeabi-v7a`)** configuradas mediante `ndk.abiFilters`.
     - **Exclusión de PC/Emulador**: Se excluyen explícitamente las librerías nativas de arquitecturas de PC y emuladores (`x86`, `x86_64`) mediante `packaging.jniLibs.excludes`, optimizando el peso de los paquetes de distribución y garantizando que los APKs estén enfocados 100% a dispositivos móviles reales.
 
 20. **Workflow de GitHub Actions para Distribución en Windows (`build-release-desktop.yml`)**:
     - **Disparadores Homólogos**: Se activa ante creación de releases, tags (`v*`, `v*-B`, `v*-desktop*`) y ejecución manual `workflow_dispatch`.
-    - **Empaquetado Nativo con `jpackage` en Windows Runner**: Genera binarios `.exe` autónomos, instaladores Windows Installer `.msi` y paquetes portables `.zip` con JDK 17 embebido.
+    - **Comportamiento Diferenciado**: La ejecución manual (`workflow_dispatch`) compila y sube los binarios como artefactos del workflow sin adjuntarlos a GitHub Release assets, mientras que los eventos de tags y releases publican automáticamente los ejecutables en los assets del Release.
+    - **Matriz Multi-Arquitectura Nativa**: Compila y empaqueta de forma paralela para procesadores de PC tradicional (`windows-x64`) y procesadores de tecnología móvil en Windows (`windows-arm64` / Snapdragon / Qualcomm).
+    - **Empaquetado Nativo con `jpackage` en Windows Runner**: Genera binarios `.exe` autónomos, instaladores Windows Installer `.msi` y paquetes portables `.zip` con JDK 17 embebido para cada arquitectura.
     - **Hashes Criptográficos**: Calcula hashes SHA-256 para verificación de integridad de cada archivo generado y los adjunta a GitHub Releases y notificaciones de Telegram.
