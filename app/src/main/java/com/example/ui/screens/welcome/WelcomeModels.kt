@@ -49,17 +49,12 @@ val defaultOnboardingPages = listOf(
         )
     ),
     OnboardingPageData(
-        title = "Exportación & CI/CD",
-        subtitle = "Google Play PEPK, Respaldos ZIP y Automatización",
+        title = "Respaldos & CI/CD",
+        subtitle = "Respaldos ZIP Anti-Manipulación y Automatización",
         description = "Automatiza tus pipelines de desarrollo y resguarda tus claves con mecanismos de seguridad de grado empresarial.",
         icon = Icons.Default.FolderZip,
         iconTintBg = Color(0xFF3B82F6),
         highlights = listOf(
-            Triple(
-                Icons.Default.Shield,
-                "Cifrado Híbrido PEPK",
-                "Exporta claves privadas cifradas para Google Play App Signing (RSA-OAEP + AES-256-GCM)."
-            ),
             Triple(
                 Icons.Default.FolderZip,
                 "Respaldos ZIP Anti-Manipulación",
@@ -69,6 +64,11 @@ val defaultOnboardingPages = listOf(
                 Icons.Default.Code,
                 "Snippets para Gradle y GitHub Actions",
                 "Conversión instantánea a Base64 y plantillas para automatizar firmas en CI/CD y apksigner."
+            ),
+            Triple(
+                Icons.Default.Shield,
+                "Integración Segura con Secrets",
+                "Genera variables Base64 y propiedades listas para GitHub Actions, Bitrise y Fastlane."
             )
         )
     ),

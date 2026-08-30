@@ -2,6 +2,7 @@ package com.example.data.local
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.example.crypto.KeystoreEncryptionManager
 import com.example.data.model.KeystoreDetails
 
 @Entity(tableName = "keystores")
@@ -33,8 +34,8 @@ data class KeystoreEntity(
         alias = alias,
         filePath = filePath,
         fileSizeBytes = fileSizeBytes,
-        storePassword = storePassword,
-        keyPassword = keyPassword,
+        storePassword = KeystoreEncryptionManager.decrypt(storePassword),
+        keyPassword = KeystoreEncryptionManager.decrypt(keyPassword),
         base64Content = base64Content,
         sha256Fingerprint = sha256Fingerprint,
         sha1Fingerprint = sha1Fingerprint,
@@ -56,8 +57,8 @@ data class KeystoreEntity(
             alias = details.alias,
             filePath = details.filePath,
             fileSizeBytes = details.fileSizeBytes,
-            storePassword = details.storePassword,
-            keyPassword = details.keyPassword,
+            storePassword = KeystoreEncryptionManager.encrypt(details.storePassword),
+            keyPassword = KeystoreEncryptionManager.encrypt(details.keyPassword),
             base64Content = details.base64Content,
             sha256Fingerprint = details.sha256Fingerprint,
             sha1Fingerprint = details.sha1Fingerprint,

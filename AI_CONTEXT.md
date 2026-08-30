@@ -5,7 +5,7 @@ Este documento proporciona contexto técnico, decisiones de arquitectura y direc
 ---
 
 ## 🎯 Propósito del Proyecto
-**Signet** es una aplicación nativa para Android desarrollada con **Jetpack Compose**, **Kotlin** y **BouncyCastle**. Su objetivo es brindar a los desarrolladores y creadores de software la capacidad de generar firmas digitales, certificados, archivos `.jks`/`.keystore`, exportar paquetes `.pepk` para Google Play y validar la correspondencia forense entre APKs y Keystores (APK Matcher) directamente en el dispositivo móvil.
+**Signet** es una aplicación nativa para Android desarrollada con **Jetpack Compose**, **Kotlin** y **BouncyCastle**. Su objetivo es brindar a los desarrolladores y creadores de software la capacidad de generar firmas digitales, certificados, archivos `.jks`/`.keystore`, respaldos ZIP anti-manipulación y validar la correspondencia forense entre APKs y Keystores (APK Matcher) directamente en el dispositivo móvil.
 
 ---
 
@@ -43,10 +43,14 @@ Este documento proporciona contexto técnico, decisiones de arquitectura y direc
    - Soporte para **Material You** (Android 12+), paletas personalizadas (Navy, Emerald, Purple, Amber, Teal, Crimson, Monochrome) y modo **Negro Puro 100%** (#000000 para pantallas OLED).
    - Preferencias del usuario persistidas en `SharedPreferences`.
 
-7. **Persistencia Local y Room**:
-   - Toda información sensible (alias, huellas, contraseñas y Base64) se almacena localmente en SQLite mediante Room.
+7. **Persistencia Local y Cifrado en Reposo (Android KeyStore + Room)**:
+   - Toda información sensible se almacena localmente en SQLite mediante Room.
+   - Las contraseñas del almacén y de claves se cifran en reposo con **AES-256-GCM** mediante `KeystoreEncryptionManager`, utilizando claves maestras de hardware en AndroidKeyStore y prefijo `enc:v1:`.
 
-8. **Reglas de UI (Jetpack Compose & M3)**:
+8. **Seguridad del Portapapeles (Android 13+ / API 33+)**:
+   - `DetailsActionUtils` marca los datos confidenciales (contraseñas y Base64) con `ClipDescription.EXTRA_IS_SENSITIVE` para impedir previsualizaciones inseguras en el sistema operativo y despliega avisos contextuales de seguridad.
+
+9. **Reglas de UI (Jetpack Compose & M3)**:
    - Utilizar componentes de Material 3 (`Scaffold`, `Card`, `FilterChip`, `Button`, `OutlinedTextField`, `Slider`, `TabRow`, `LinearProgressIndicator`).
    - Respetar áreas táctiles mínimas de 48dp y `testTag` en botones y acciones clave.
    - Modularización de componentes en paquetes especializados (`ui/screens/generate/`, `ui/screens/inspect/` y `ui/components/details/`).
@@ -65,7 +69,7 @@ Este documento proporciona contexto técnico, decisiones de arquitectura y direc
 12. **Portal Web Oficial, Términos y Privacidad (`web/`)**:
     - Sitio web en Astro 5 + Tailwind CSS para Cloudflare Pages.
     - Términos y Condiciones (`/terms` -> `https://signet-web.luisalejandrososacamacho9.workers.dev/terms/`) y Política de Privacidad (`/privacy` -> `https://signet-web.luisalejandrososacamacho9.workers.dev/privacy/`) formalizados con fecha **16 de agosto de 2026**.
-    - Cobertura legal integral: GPL v3, soberanía total de claves del usuario, custodia sin servidores remotos, buenas prácticas en CI/CD, disclaimer del APK Matcher, compatibilidad PEPK, respaldos ZIP con firma HMAC y distribución en plataformas de terceros (Uptodown, GitHub Releases, APKs directos).
+    - Cobertura legal integral: GPL v3, soberanía total de claves del usuario, custodia sin servidores remotos, buenas prácticas en CI/CD, disclaimer del APK Matcher, respaldos ZIP con firma HMAC y distribución en plataformas de terceros (Uptodown, GitHub Releases, APKs directos).
 
 13. **Flujo de Bienvenida & Onboarding (`WelcomeScreen`)**:
     - `MainActivity` evalúa `isOnboardingCompleted` desde `KeystoreViewModel` (respaldado en `SharedPreferences` con la clave `onboarding_completed`).

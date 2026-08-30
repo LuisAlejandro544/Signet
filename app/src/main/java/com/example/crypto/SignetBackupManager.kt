@@ -18,13 +18,11 @@ object SignetBackupManager {
 
     /**
      * Creates a complete, signed ZIP backup containing the keystore file, signed manifest,
-     * credentials, key.properties, base64 string, instructions, and optionally an encrypted .pepk key.
+     * credentials, key.properties, base64 string, and instructions.
      */
     fun createBackupZip(
         details: KeystoreDetails,
-        keystoreBytes: ByteArray,
-        pepkBytes: ByteArray? = null,
-        pepkFileName: String? = null
+        keystoreBytes: ByteArray
     ): ByteArray {
         val baos = ByteArrayOutputStream()
         ZipOutputStream(baos).use { zos ->
@@ -35,42 +33,28 @@ object SignetBackupManager {
             zos.write(keystoreBytes)
             zos.closeEntry()
 
-            // 2. PEPK Encrypted Key if provided
-            val cleanPepkName = if (pepkBytes != null && pepkBytes.isNotEmpty()) {
-                val name = if (!pepkFileName.isNullOrBlank()) {
-                    pepkFileName
-                } else {
-                    val baseAlias = details.alias.ifBlank { "release-key" }.replace("[^a-zA-Z0-9_-]".toRegex(), "_")
-                    "${baseAlias}_encrypted_key.pepk"
-                }
-                zos.putNextEntry(ZipEntry(name))
-                zos.write(pepkBytes)
-                zos.closeEntry()
-                name
-            } else null
-
             // Calculate Keystore SHA-256 for integrity binding
             val keystoreSha256 = BackupIntegrityVerifier.calculateSha256(keystoreBytes)
 
-            // 3. Signed JSON Manifest (signet-backup.json)
+            // 2. Signed JSON Manifest (signet-backup.json)
             val manifestJson = BackupIntegrityVerifier.buildSignedManifest(details, cleanKeystoreName, keystoreSha256)
             zos.putNextEntry(ZipEntry(BackupIntegrityVerifier.MANIFEST_FILE_NAME))
             zos.write(manifestJson.toByteArray(Charsets.UTF_8))
             zos.closeEntry()
 
-            // 4. credentials.txt
-            val credentialsText = BackupTemplates.buildCredentialsText(details, cleanKeystoreName, hasPepk = cleanPepkName != null)
+            // 3. credentials.txt
+            val credentialsText = BackupTemplates.buildCredentialsText(details, cleanKeystoreName)
             zos.putNextEntry(ZipEntry("credentials.txt"))
             zos.write(credentialsText.toByteArray(Charsets.UTF_8))
             zos.closeEntry()
 
-            // 5. key.properties (Standard for Android Gradle & Flutter projects)
+            // 4. key.properties (Standard for Android Gradle & Flutter projects)
             val keyPropertiesText = BackupTemplates.buildKeyProperties(details, cleanKeystoreName)
             zos.putNextEntry(ZipEntry("key.properties"))
             zos.write(keyPropertiesText.toByteArray(Charsets.UTF_8))
             zos.closeEntry()
 
-            // 6. base64.txt (For CI/CD GitHub Actions / Bitrise / Fastlane)
+            // 5. base64.txt (For CI/CD GitHub Actions / Bitrise / Fastlane)
             val base64Content = if (details.base64Content.isNotBlank()) {
                 details.base64Content
             } else {
@@ -80,8 +64,8 @@ object SignetBackupManager {
             zos.write(base64Content.toByteArray(Charsets.UTF_8))
             zos.closeEntry()
 
-            // 7. README-BACKUP.txt
-            val readmeText = BackupTemplates.buildReadmeBackup(details, cleanKeystoreName, cleanPepkName)
+            // 6. README-BACKUP.txt
+            val readmeText = BackupTemplates.buildReadmeBackup(details, cleanKeystoreName)
             zos.putNextEntry(ZipEntry("README-BACKUP.txt"))
             zos.write(readmeText.toByteArray(Charsets.UTF_8))
             zos.closeEntry()

@@ -81,6 +81,7 @@ import com.example.crypto.KeystoreGenerator
 import com.example.data.model.ApkMatchResult
 import com.example.data.model.KeystoreDetails
 import com.example.ui.KeystoreViewModel
+import com.example.ui.components.details.DetailsActionUtils
 import com.example.ui.state.ApkMatcherUiState
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -511,7 +512,7 @@ fun ApkMatcherSection(
                         )
 
                         if (!apkInfo.packageName.isNullOrBlank()) {
-                            DetailItem(label = "Package Name", value = apkInfo.packageName, onCopy = { copyToClipboard(context, "Package Name", apkInfo.packageName) })
+                            DetailItem(label = "Package Name", value = apkInfo.packageName, onCopy = { DetailsActionUtils.copyToClipboard(context, "Package Name", apkInfo.packageName) })
                         }
                         if (!apkInfo.versionName.isNullOrBlank() || apkInfo.versionCode != null) {
                             DetailItem(label = "Versión", value = "${apkInfo.versionName ?: ""} (Code: ${apkInfo.versionCode ?: "-"})")
@@ -650,7 +651,7 @@ private fun MatchResultCard(
                             )
                         }
                         IconButton(onClick = {
-                            copyToClipboard(context, "SHA-256 Validado", result.matchedFingerprintSha256)
+                            DetailsActionUtils.copyToClipboard(context, "SHA-256 Validado", result.matchedFingerprintSha256)
                         }) {
                             Icon(Icons.Default.ContentCopy, contentDescription = "Copiar", modifier = Modifier.size(16.dp))
                         }
@@ -682,11 +683,4 @@ private fun DetailItem(
             }
         }
     }
-}
-
-private fun copyToClipboard(context: Context, label: String, text: String) {
-    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
-    val clip = ClipData.newPlainText(label, text)
-    clipboard?.setPrimaryClip(clip)
-    Toast.makeText(context, "$label copiado al portapapeles", Toast.LENGTH_SHORT).show()
 }

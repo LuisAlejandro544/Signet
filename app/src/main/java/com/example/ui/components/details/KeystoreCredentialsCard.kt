@@ -197,7 +197,7 @@ private fun PasswordCredentialItem(
                 )
             }
             IconButton(
-                onClick = { DetailsActionUtils.copyToClipboard(context, label, password) },
+                onClick = { DetailsActionUtils.copyToClipboard(context, label, password, isSensitive = true) },
                 modifier = Modifier.size(32.dp)
             ) {
                 Icon(

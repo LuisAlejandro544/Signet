@@ -12,22 +12,11 @@ object BackupTemplates {
      */
     fun buildCredentialsText(
         details: KeystoreDetails,
-        keystoreFileName: String,
-        hasPepk: Boolean = false
+        keystoreFileName: String
     ): String {
         val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss z", Locale.ROOT)
         val validFromStr = dateFormat.format(Date(details.validFrom))
         val validUntilStr = dateFormat.format(Date(details.validUntil))
-
-        val pepkNote = if (hasPepk) {
-            """
-            ------------------------------------------------------------------------
-            GOOGLE PLAY APP SIGNING (PEPK)
-            ------------------------------------------------------------------------
-            Este paquete ZIP incluye tu clave de subida cifrada (.pepk) lista para
-            ser importada en Google Play Console (Configuración > Firma de apps).
-            """.trimIndent() + "\n\n"
-        } else ""
 
         return """
             ========================================================================
@@ -55,7 +44,7 @@ object BackupTemplates {
             Emisor       : ${details.issuerDn}
             Nº Serie     : ${details.serialNumber}
             
-            $pepkNote========================================================================
+            ========================================================================
             INSTRUCCIONES DE RESTAURACIÓN:
             Este archivo ZIP puede restaurarse directamente en Signet (Android / PC)
             utilizando la función 'Restaurar Respaldo (.zip)'.
@@ -86,13 +75,8 @@ object BackupTemplates {
      */
     fun buildReadmeBackup(
         details: KeystoreDetails,
-        keystoreFileName: String,
-        pepkFileName: String? = null
+        keystoreFileName: String
     ): String {
-        val pepkLine = if (!pepkFileName.isNullOrBlank()) {
-            "\n6. $pepkFileName -> Clave privada cifrada con la clave pública de Google Play (PEPK) para Google Play App Signing."
-        } else ""
-
         return """
             ========================================================================
             PAQUETE DE RESPALDO DE FIRMA ANDROID - SIGNET
@@ -103,7 +87,7 @@ object BackupTemplates {
             2. signet-backup.json -> Manifiesto firmado criptográficamente para restauración instantánea en Signet.
             3. credentials.txt -> Resumen legible con claves y huellas SHA-256.
             4. key.properties -> Archivo de configuración listo para Gradle / Flutter.
-            5. base64.txt -> Llave codificada en Base64 para GitHub Actions / CI/CD secrets.$pepkLine
+            5. base64.txt -> Llave codificada en Base64 para GitHub Actions / CI/CD secrets.
             
             ¿Cómo restaurar este respaldo si reinstalas la app o cambias de dispositivo?
             - Abre Signet.

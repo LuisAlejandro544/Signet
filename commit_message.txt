@@ -1,43 +1,39 @@
-ci(release): implementar workflow de compilación, optimización R8 y publicación de APK Release & Pre-Release Beta
+feat(security): implementar cifrado en reposo AES-256-GCM y protección de portapapeles
 
-- Crear pipeline automatizado en `.github/workflows/build-release-apk.yml` ("Release & Pre-Release APK"):
-  * Activación automática al publicar o crear Pre-Releases en GitHub, al crear tags semánticos (`v*`, `v1.0.0-B`, `v*-dev`, `v*-E`) o manualmente vía `workflow_dispatch`.
-  * Configuración de JDK 17 con caché de Gradle integrado para compilaciones ultrarrápidas.
-  * Extracción segura y decodificación del Keystore desde el secreto `KEYSTORE_BASE64` en `app/signet-beta-key.jks`, con mecanismo de contingencia para builds en entornos locales/CI.
-  * Inyección segura de credenciales de firma (`KEYSTORE_PATH`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`).
-  * Generación del hash criptográfico SHA-256 (`.sha256`) para verificación de integridad por parte del usuario.
-  * Publicación automática del APK firmado como artefacto del workflow y como archivo adjunto en los assets del Pre-Release de GitHub (`softprops/action-gh-release@v2`).
+- Implementación de cifrado en reposo para credenciales de Keystores en Room:
+  * Crear `com.example.crypto.KeystoreEncryptionManager.kt`: motor de cifrado AES-256-GCM respaldado por `AndroidKeyStore` (y derivación segura en JVM/Desktop) que protege `storePassword` y `keyPassword` con prefijo `enc:v1:`.
+  * Actualizar `com.example.data.local.KeystoreEntity.kt`: cifrado transparente al persistir entidades y descifrado al convertir a `KeystoreDetails`, garantizando compatibilidad total hacia atrás con registros previos.
+  * Añadir `com.example.crypto.KeystoreEncryptionManagerTest.kt`: suite de pruebas unitarias verificando cifrado, descifrado, manejo de registros heredados y entidades Room.
 
-- Configuración de Gradle y optimización R8/ProGuard:
-  * `app/build.gradle.kts`: Configuración del bloque `signingConfigs.create("release")` conectado a variables de entorno con fallbacks robustos.
-  * `app/build.gradle.kts`: Habilitación de `isMinifyEnabled = true` y `isShrinkResources = true` en el buildType `release`.
-  * `app/proguard-rules.pro`: Definición de reglas de conservación para BouncyCastle, Room Database, Kotlin Coroutines y modelos de datos de Signet.
+- Refuerzo de seguridad del portapapeles en UI:
+  * Actualizar `com.example.ui.components.details.DetailsActionUtils.kt`: soporte para bandera `ClipDescription.EXTRA_IS_SENSITIVE` (Android 13+ / API 33+) para evitar previsualizaciones inseguras del sistema y desplegar advertencia contextual sobre apps de terceros al copiar secretos.
+  * Actualizar `KeystoreCredentialsCard.kt`, `KeystoreBase64Card.kt` y `ApkMatcherSection.kt` para activar la protección de contenido sensible al copiar contraseñas, secretos Base64 y huellas.
 
-- Actualización de documentación y changelog:
-  * Crear `Changelog-release.md` para el registro oficial de notas de la versión y changelogs de los Pre-Releases y Releases.
-  * `README.md`: Nueva sección de CI/CD para compilación y firma de releases y pre-releases con lista de secretos específicos para el canal Beta (`KEYSTORE_BETA_BASE64`, `KEYSTORE_BETA_PASSWORD`, `KEY_ALIAS_BETA`, `KEY_PASSWORD_BETA`).
-  * `ROADMAP.md`: Registro del hito completado de CI/CD para Pre-Releases de la versión Beta.
-  * `STRUCTURE.md`: Incorporación del nuevo workflow y del changelog en el árbol del proyecto y documentación de arquitectura.
-  * `AI_CONTEXT.md` y `AGENTS.md`: Incorporación de las especificaciones de CI/CD, secretos por canal y registro de lanzamientos.
+- Actualización integral de documentación:
+  * `README.md`, `ROADMAP.md`, `AI_CONTEXT.md`, `STRUCTURE.md` y `Changelog-release.md` actualizados para detallar la arquitectura de cifrado en reposo y protección del portapapeles.
 
-refactor(ui): modularizar pantallas WelcomeScreen, SavedKeystoresScreen e InspectScreen
+---
 
-- Modularización de `WelcomeScreen.kt` (reducción de 643 a ~130 líneas):
-  * `ui/screens/welcome/WelcomeModels.kt`: Modelos de datos (`OnboardingPageData`) y lista constante de diapositivas.
-  * `ui/screens/welcome/OnboardingPageItem.kt`: Componente de presentación de icono hero, beneficios y descripciones.
-  * `ui/screens/welcome/LegalConsentCard.kt`: Tarjeta legal con accesos a Términos/Privacidad y checkbox de consentimiento.
-  * `ui/screens/welcome/OnboardingNavigationFooter.kt`: Indicadores de puntos y controles de navegación Atrás/Siguiente/Comenzar.
+refactor(crypto): eliminar generador y referencias a exportación .pepk ficticia
 
-- Modularización de `SavedKeystoresScreen.kt` (reducción de 425 a ~100 líneas):
-  * `ui/screens/saved/SavedKeystoresHeader.kt`: Banner de restauración de respaldos ZIP.
-  * `ui/screens/saved/KeystoreCardItem.kt`: Tarjeta interactiva con credenciales, huella SHA-256 rápida y acciones.
-  * `ui/screens/saved/EmptySavedKeystoresView.kt`: Estado vacío ilustrado con opciones de creación y restauración.
-  * `ui/screens/saved/SavedKeystoresDialogs.kt`: Diálogos modales para eliminación, progreso y errores de integridad HMAC.
+- Eliminación completa de componentes criptográficos y UI de .pepk:
+  * Eliminar `com.example.crypto.PepkGenerator.kt`: se remueve la implementación ficticia que simulaba la herramienta propietaria pepk.jar de Google Play.
+  * Eliminar `com.example.ui.components.details.PepkExportDialog.kt`: se remueve el diálogo modal de exportación .pepk y selección de clave pública.
+  * Eliminar `com.example.crypto.PepkGeneratorTest.kt`: se remueven los tests unitarios asociados a la lógica eliminada.
 
-- Modularización de `InspectScreen.kt` (reducción de 326 a ~60 líneas):
-  * `ui/screens/inspect/KeystoreInspectorSection.kt`: Formulario de carga con selector de archivos SAF, contraseña y visualización.
-  * `ui/screens/inspect/CertificateDetailsResultCard.kt`: Tarjeta de presentación de certificados X.509 y huellas criptográficas.
-  * Mantenimiento e integración del validador forense `ApkMatcherSection.kt`.
+- Limpieza y adaptación del núcleo criptográfico y UI:
+  * `SignetBackupManager.kt`: Simplificar `createBackupZip` removiendo los parámetros opcionales y empaquetado de archivos .pepk.
+  * `BackupTemplates.kt`: Eliminar referencias a .pepk en las plantillas de `credentials.txt` y `README-BACKUP.txt`.
+  * `SnippetGenerator.kt`: Remover la función `generatePepkSnippet` y comando CLI para pepk.jar.
+  * `KeystoreHeaderSection.kt`: Eliminar botón de exportación para Google Play (.pepk) y su callback correspondiente.
+  * `KeystoreDetailsSheet.kt`: Remover estado reactivo `showPepkDialog` e invocación de `PepkExportDialog`.
+  * `KeystoreCodeSnippetsCard.kt`: Remover pestaña `PEPK_CLI` del selector de snippets y sus descripciones asociadas.
+  * `WelcomeModels.kt`: Actualizar tarjeta de onboarding número 2 ("Respaldos & CI/CD") enfocándola exclusivamente en respaldos ZIP anti-manipulación, integración con secretos y snippets para Gradle/CI-CD.
+  * `SnippetGeneratorTest.kt`: Remover assertions relacionadas con la generación de snippets para pepk.jar.
 
-- Actualización de `STRUCTURE.md` para reflejar la nueva jerarquía de paquetes (`welcome/`, `saved/`, `inspect/`).
-
+- Actualización integral de documentación y términos legales:
+  * `README.md`: Eliminar sección de exportación .pepk, comandos CLI de pepk.jar y actualizar el resumen de onboarding y términos a 12 secciones.
+  * `AI_CONTEXT.md`: Actualizar la descripción de propósito del proyecto y marco legal removiendo referencias a .pepk.
+  * `ROADMAP.md`: Remover hitos y tareas relacionadas con el generador .pepk.
+  * `STRUCTURE.md`: Actualizar el árbol del proyecto y la descripción de snippets/términos sin archivos ni componentes .pepk.
+  * `web/src/pages/privacy.astro` y `web/src/pages/terms.astro`: Remover menciones a archivos .pepk y eliminar la cláusula específica de cifrado PEPK para Google Play, reordenando las secciones legales de 13 a 12.

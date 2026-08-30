@@ -21,7 +21,7 @@ Generador y administrador profesional de Keystores (`.jks` y `.keystore`) para A
   - **Diagnóstico Preventivo de Actualización**: Alerta de forma inmediata si un APK podrá actualizarse con el Keystore o si causará un error `INSTALL_FAILED_UPDATE_INCOMPATIBLE` en dispositivos de usuarios finales.
 
 - **Flujo de Bienvenida Interactivo & Onboarding**:
-  - **Experiencia de Primera Ejecución**: Guía visual paso a paso de 4 pantallas que presenta de forma estructurada las capacidades de la aplicación (Generación RSA/EC y CSPRNG, Exportación PEPK/ZIP/CI-CD, Validador APK Matcher y Privacidad 100% Offline).
+  - **Experiencia de Primera Ejecución**: Guía visual paso a paso de 4 pantallas que presenta de forma estructurada las capacidades de la aplicación (Generación RSA/EC y CSPRNG, Respaldos ZIP Anti-Manipulación y CI/CD, Validador APK Matcher y Privacidad 100% Offline).
   - **Aceptación Explícita de Términos y Privacidad**: Bloque de consentimiento informado con enlaces directos al sitio oficial y verificación de aceptación para comenzar.
   - **Revisión Continua**: Opción disponible en la pestaña de Configuración para reabrir la guía explicativa en cualquier momento.
 
@@ -33,18 +33,13 @@ Generador y administrador profesional de Keystores (`.jks` y `.keystore`) para A
   - Persistencia automática de preferencias visuales y estado de aceptación en el dispositivo.
 
 - **Exportación, Respaldos ZIP & CI/CD**:
-  - **Generación y Exportación de Claves Cifradas para Google Play (.pepk)**:
-    - Motor nativo de cifrado híbrido **PEPK (Play Encrypt Private Key)** mediante **RSA-OAEP (SHA-256) + AES-256-GCM** para transferir de forma 100% segura claves privadas a **Google Play App Signing**.
-    - Soporte interactivo para cargar o pegar la clave pública `encryption_public_key.pem` de Google Play Console.
-    - **Exportación Dual Flexible**: Opción para exportar el archivo binario `.pepk` de forma individual o empaquetar un **Bundle ZIP Completo** que contiene el Keystore original (`.jks`/`.keystore`), el archivo `.pepk` cifrado, credenciales, `key.properties`, `base64.txt` y manifiesto firmado.
-    - Generador de comandos CLI oficiales para `pepk.jar` listos para copiar.
   - **Paquetes de Respaldo Portables (.zip) con Firma Anti-Manipulación**: Exporta un archivo ZIP completo que contiene el binario del keystore (`.jks`/`.keystore`), credenciales en texto plano (`credentials.txt`), archivo `key.properties` para Gradle, `base64.txt` para pipelines de CI/CD, instrucciones y un manifiesto firmado (`signet-backup.json`).
   - **Mecanismo de Seguridad Criptográfica**: El manifiesto incluye una firma criptográfica HMAC-SHA256 y hash SHA-256 del binario. Si alguien altera las contraseñas, el alias o el archivo del keystore externamente, Signet rechazará automáticamente la restauración garantizando la integridad absoluta.
   - **Restauración Instantánea**: Permite restaurar el paquete ZIP completo con un solo toque incluso si la app fue desinstalada o reinstalada.
   - **Visualizador Interactivo de Código Gradle**: Genera y previsualiza directamente bloques listos para `app/build.gradle.kts` (Kotlin DSL) y `build.gradle` (Groovy) con soporte de variables de entorno (`KEYSTORE_PATH`, `KEYSTORE_PASSWORD`, etc.).
   - **Generador de Workflows para GitHub Actions**: Plantilla completa y optimizada `.github/workflows/android-build-and-sign.yml` para decodificar el keystore Base64 y firmar APKs de lanzamiento automáticamente en runners CI/CD.
   - Conversión instantánea a **Base64** para variables de entorno en pipelines de CI/CD (GitHub Actions `KEYSTORE_BASE64`, Fastlane, Bitrise, Codemagic).
-  - Comandos CLI para **`apksigner`**, **`zipalign`** y **`pepk.jar`** con esquemas de firma v1, v2 y v3.
+  - Comandos CLI para **`apksigner`** y **`zipalign`** con esquemas de firma v1, v2 y v3.
   - Exportación de archivo binario al almacenamiento del dispositivo mediante Android SAF (Storage Access Framework).
   - Compartir archivo directamente mediante el menú nativo de compartir de Android.
 
@@ -57,7 +52,9 @@ Generador y administrador profesional de Keystores (`.jks` y `.keystore`) para A
   - Cálculo instantáneo de huellas digitales (**SHA-256**, **SHA-1**, **MD5**) requeridas para Firebase, Google Sign-In, Facebook SDK y Maps API.
   - Visualización del certificado en formato estándar PEM (`-----BEGIN CERTIFICATE-----`).
 
-- **Gestión Local Segura & Cero Recolección**:
+- **Gestión Local Segura & Cifrado en Reposo (Android KeyStore + AES-256-GCM)**:
+  - **Cifrado en Reposo de Credenciales**: Las contraseñas del almacén y de claves se cifran automáticamente en la base de datos local Room usando **AES-256-GCM** respaldado por **Android KeyStore** (`enc:v1:`). Ninguna contraseña reside en texto plano dentro del almacenamiento del dispositivo.
+  - **Protección del Portapapeles (Android 13+ / API 33+)**: Integración de la bandera del sistema `ClipDescription.EXTRA_IS_SENSITIVE` al copiar contraseñas y binarios Base64 para prevenir previsualizaciones flotantes no deseadas, acompañado de un aviso contextual preventivo sobre acceso de terceros al portapapeles.
   - Almacenamiento seguro en base de datos local **Room** (100% offline, sin telemetría, sin analíticas ni servidores externos).
   - Visualización y copia rápida de credenciales (Alias, Contraseña del Keystore, Contraseña de la Clave).
   - Garantía de Cero Recolección de Datos: ninguna clave, contraseña o huella digital sale jamás del silicio de tu dispositivo.
@@ -66,7 +63,7 @@ Generador y administrador profesional de Keystores (`.jks` y `.keystore`) para A
   - Sitio web estático de alto rendimiento desarrollado en **Astro 5 + Tailwind CSS** optimizado para **Cloudflare Pages**.
   - Documentación pública y páginas legales actualizadas al **16 de agosto de 2026**:
     - **Política de Privacidad (`/privacy`)**: Declaración formal de **Cero Recolección de Datos**, arquitectura 100% offline, almacenamiento local exclusivo en Room, ausencia total de telemetría/analítica y principio de privilegio mínimo con Android SAF.
-    - **Términos y Condiciones (`/terms`)**: Marco legal exhaustivo de 13 secciones bajo la licencia **GNU GPL v3**, detallando la soberanía criptográfica absoluta del usuario, deberes de custodia y respaldo, seguridad de variables Base64 en CI/CD, carácter diagnóstico del APK Matcher, especificaciones de cifrado PEPK para Google Play, integridad anti-manipulación HMAC en respaldos ZIP, distribución en plataformas de terceros (Uptodown, GitHub Releases, APKs directos), exención de garantías ("AS IS") y limitaciones de responsabilidad.
+    - **Términos y Condiciones (`/terms`)**: Marco legal exhaustivo de 12 secciones bajo la licencia **GNU GPL v3**, detallando la soberanía criptográfica absoluta del usuario, deberes de custodia y respaldo, seguridad de variables Base64 en CI/CD, carácter diagnóstico del APK Matcher, integridad anti-manipulación HMAC en respaldos ZIP, distribución en plataformas de terceros (Uptodown, GitHub Releases, APKs directos), exención de garantías ("AS IS") y limitaciones de responsabilidad.
 
 ---
 

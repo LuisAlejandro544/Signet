@@ -15,13 +15,13 @@ app/
 │   │   │   ├── MainActivity.kt                  # Punto de entrada de la actividad, Navigation y tema reactivo
 │   │   │   ├── crypto/
 │   │   │   │   ├── ApkMatcher.kt                # Fachada orquestadora forense APK vs Keystore (análisis y coincidencia)
+│   │   │   │   ├── KeystoreEncryptionManager.kt # Gestor de cifrado en reposo AES-256-GCM y AndroidKeyStore para contraseñas
 │   │   │   │   ├── apk/
 │   │   │   │   │   ├── ApkSigningBlockParser.kt # Parser binario de bajo nivel para esquemas v2 y v3 (APK Signing Block)
 │   │   │   │   │   ├── ApkV1SignatureParser.kt  # Extractor de firmas PKCS#7 en META-INF mediante BouncyCastle CMS (v1 JAR)
 │   │   │   │   │   └── AxmlManifestParser.kt    # Extractor de packageName desde el string pool binario de AndroidManifest.xml
 │   │   │   │   ├── KeystoreGenerator.kt         # Motor criptográfico de generación de pares de claves y empaquetado PKCS#12
 │   │   │   │   ├── PasswordGenerator.kt         # Generador criptográfico CSPRNG de contraseñas ultra seguras y cálculo de entropía
-│   │   │   │   ├── PepkGenerator.kt             # Cifrado híbrido PEPK (RSA-OAEP + AES-GCM) para Google Play App Signing
 │   │   │   │   ├── SignetBackupManager.kt       # Fachada orquestadora de exportación ZIP y restauración de respaldos
 │   │   │   │   ├── backup/
 │   │   │   │   │   ├── BackupTemplates.kt       # Generador de plantillas de texto (credentials.txt, key.properties, README-BACKUP.txt)
@@ -29,7 +29,7 @@ app/
 │   │   │   │   ├── x509/
 │   │   │   │   │   ├── X509CertificateInspector.kt # Inspección y lectura de certificados en almacenes PKCS12, JKS y BKS
 │   │   │   │   │   └── X509CertificateUtils.kt    # Utilidades de cálculo de huellas digitales y formateo PEM estándar
-│   │   │   │   └── SnippetGenerator.kt          # Generador modular de snippets: Gradle KTS, Groovy, GitHub Actions, apksigner & pepk
+│   │   │   │   └── SnippetGenerator.kt          # Generador modular de snippets: Gradle KTS, Groovy, GitHub Actions y apksigner
 │   │   │   ├── data/
 │   │   │   │   ├── KeystoreRepository.kt        # Repositorio que orquesta base de datos y operaciones
 │   │   │   │   ├── local/
@@ -49,8 +49,7 @@ app/
 │   │   │       │       ├── KeystoreCredentialsCard.kt    # Tarjeta de credenciales con visibilidad y copia en un toque
 │   │   │       │       ├── KeystoreBase64Card.kt         # Visualizador de Base64 para variables de entorno y CI/CD
 │   │   │       │       ├── KeystoreFingerprintsCard.kt   # Huellas SHA-256, SHA-1, MD5 y datos X.509
-│   │   │       │       ├── KeystoreCodeSnippetsCard.kt   # Visor interactivo de código Gradle, Groovy, YAML, CLI y PEPK
-│   │   │       │       └── PepkExportDialog.kt           # Diálogo de generación y exportación (.pepk individual o Bundle ZIP)
+│   │   │       │       └── KeystoreCodeSnippetsCard.kt   # Visor interactivo de código Gradle, Groovy, YAML y CLI
 │   │   │       ├── preferences/
 │   │   │       │   └── AppPreferencesManager.kt # Gestor modular de preferencias de usuario (tema, paleta y estado de bienvenida)
 │   │   │       ├── screens/
@@ -98,9 +97,9 @@ app/
 │           ├── ExampleRobolectricTest.kt        # Suite de pruebas de humo e integración end-to-end
 │           ├── crypto/
 │           │   ├── ApkMatcherTest.kt            # Pruebas de análisis forense y detección de coincidencia de firmas
+│           │   ├── KeystoreEncryptionManagerTest.kt # Pruebas de cifrado en reposo AES-256-GCM y mapeo en Room
 │           │   ├── KeystoreGeneratorTest.kt     # Pruebas de generación RSA 2048, EC P256 e inspección
 │           │   ├── PasswordGeneratorTest.kt     # Pruebas de contraseñas CSPRNG, cálculo de entropía y clasificación
-│           │   ├── PepkGeneratorTest.kt         # Pruebas de cifrado híbrido PEPK y exportación en ZIP
 │           │   ├── SignetBackupIntegrityTest.kt # Pruebas de integridad de respaldos ZIP y rechazo de manipulación HMAC
 │           │   └── SnippetGeneratorTest.kt      # Pruebas de generación de código Gradle, Groovy, GitHub Actions y apksigner
 │           └── ui/
@@ -121,7 +120,7 @@ app/
     │   └── pages/
     │       ├── index.astro                      # Página de inicio con descarga de APK e información del proyecto
     │       ├── privacy.astro                    # Política de privacidad (Cero recolección, offline, vigencia 16-08-2026)
-    │       ├── terms.astro                      # Términos y condiciones detallados (13 secciones GPL v3, vigencia 16-08-2026)
+    │       ├── terms.astro                      # Términos y condiciones detallados (12 secciones GPL v3, vigencia 16-08-2026)
     │       └── 404.astro                        # Página 404 personalizada
     ├── wrangler.toml                            # Configuración de despliegue en Cloudflare Pages
     └── astro.config.mjs                         # Configuración de Astro con integración Tailwind CSS

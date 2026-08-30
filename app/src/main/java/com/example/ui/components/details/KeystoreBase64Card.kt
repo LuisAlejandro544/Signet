@@ -121,7 +121,7 @@ fun KeystoreBase64Card(
             ) {
                 Button(
                     onClick = {
-                        DetailsActionUtils.copyToClipboard(context, "Keystore Base64", base64String)
+                        DetailsActionUtils.copyToClipboard(context, "Keystore Base64", base64String, isSensitive = true)
                     },
                     modifier = Modifier.weight(1f).testTag("copy_base64_button"),
                     shape = RoundedCornerShape(8.dp)

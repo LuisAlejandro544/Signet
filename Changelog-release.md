@@ -32,7 +32,9 @@ Primer pre-lanzamiento público oficial del **Canal Beta (`.beta`)** de Signet (
 - 🚀 **Presets Rápidos para Entornos**:
   * Plantillas de 1 toque para inicializar configuraciones de firma para **Desarrollo**, **Play Store / Distribución** y **Empresarial / Alta Seguridad**.
 
-- 🛡️ **Privacidad y Soberanía 100% Offline**:
+- 🛡️ **Privacidad, Cifrado en Reposo y Soberanía 100% Offline**:
+  * **Cifrado en Reposo de Credenciales**: Cifrado automático de contraseñas de almacén y claves con **AES-256-GCM** respaldado por **Android KeyStore** en Room (`KeystoreEncryptionManager`), garantizando que ninguna contraseña resida en plano en el disco.
+  * **Protección del Portapapeles (Android 13+ / API 33+)**: Implementación del atributo `ClipDescription.EXTRA_IS_SENSITIVE` al copiar credenciales/Base64 y avisos contextuales de seguridad.
   * Cero rastreadores, cero analíticas y cero permisos de red (`android.permission.INTERNET` no requerido para la operativa criptográfica).
   * Flujo de bienvenida interactivo (`WelcomeScreen`) con términos de uso y políticas de privacidad transparentes.
 

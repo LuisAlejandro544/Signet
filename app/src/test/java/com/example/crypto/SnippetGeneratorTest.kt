@@ -24,10 +24,5 @@ class SnippetGeneratorTest {
         val apksignerSnippet = SnippetGenerator.generateApksignerSnippet("release.jks", "app_key")
         assertTrue(apksignerSnippet.contains("apksigner sign"))
         assertTrue(apksignerSnippet.contains("zipalign"))
-
-        val pepkSnippet = SnippetGenerator.generatePepkSnippet("release.jks", "app_key")
-        assertTrue(pepkSnippet.contains("pepk.jar"))
-        assertTrue(pepkSnippet.contains("--keystore=release.jks"))
-        assertTrue(pepkSnippet.contains("--alias=app_key"))
     }
 }

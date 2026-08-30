@@ -58,7 +58,6 @@ import Layout from '../layouts/Layout.astro';
           <li>Archivos de almacén de claves (<code class="text-brand-300 font-mono">.jks</code> y <code class="text-brand-300 font-mono">.keystore</code>).</li>
           <li>Pares de claves públicas y privadas (algoritmos RSA 2048, RSA 4096, EC P-256).</li>
           <li>Certificados digitales X.509 y valores de Distinguished Name (X.500 DN).</li>
-          <li>Archivos cifrados de clave de exportación para Google Play (<code class="text-brand-300 font-mono">.pepk</code>).</li>
           <li>Contraseñas generadas por el motor CSPRNG y cadenas codificadas en Base64.</li>
         </ul>
         <p class="mt-3">
@@ -103,55 +102,47 @@ import Layout from '../layouts/Layout.astro';
 
       <!-- Section 7 -->
       <section class="border-t border-gray-800/80 pt-6">
-        <h2 class="text-xl font-bold text-white mb-3">7. Cifrado PEPK para Google Play App Signing</h2>
-        <p>
-          El generador PEPK integrado aplica un esquema de cifrado híbrido (RSA-OAEP con SHA-256 y AES-256-GCM) utilizando la clave pública oficial provista por Google Play Console (<code class="text-brand-300 font-mono">encryption_public_key.pem</code>). El usuario es responsable de verificar la autenticidad del certificado público descargado desde su propia consola de desarrollador de Google antes de proceder al cifrado de su clave privada.
-        </p>
-      </section>
-
-      <!-- Section 8 -->
-      <section class="border-t border-gray-800/80 pt-6">
-        <h2 class="text-xl font-bold text-white mb-3">8. Respaldos ZIP y Protección Anti-Manipulación (HMAC)</h2>
+        <h2 class="text-xl font-bold text-white mb-3">7. Respaldos ZIP y Protección Anti-Manipulación (HMAC)</h2>
         <p>
           Los archivos ZIP de respaldo generados por Signet incorporan un resumen criptográfico HMAC-SHA256 para verificar la integridad del paquete. Si un archivo de respaldo es alterado o corrompido, la aplicación rechazará automáticamente la restauración mediante una excepción de seguridad. Esta medida protege contra manipulaciones externas pero no exime al usuario de mantener sus respaldos en ubicaciones seguras.
         </p>
       </section>
 
-      <!-- Section 9 -->
+      <!-- Section 8 -->
       <section class="border-t border-gray-800/80 pt-6">
-        <h2 class="text-xl font-bold text-white mb-3">9. Distribución en Plataformas de Terceros</h2>
+        <h2 class="text-xl font-bold text-white mb-3">8. Distribución en Plataformas de Terceros</h2>
         <p>
           Signet está diseñada como software autónomo preparado para su distribución universal tanto en tiendas de aplicaciones como en plataformas comunitarias y de terceros (incluyendo Uptodown, GitHub Releases y descarga directa de APKs). Se recomienda al usuario descargar la aplicación exclusivamente desde canales oficiales y verificar los hashes o firmas de publicación para evitar versiones apócrifas.
         </p>
       </section>
 
-      <!-- Section 10 -->
+      <!-- Section 9 -->
       <section class="border-t border-gray-800/80 pt-6">
-        <h2 class="text-xl font-bold text-white mb-3">10. Cumplimiento Normativo y Control de Exportación Criptográfica</h2>
+        <h2 class="text-xl font-bold text-white mb-3">9. Cumplimiento Normativo y Control de Exportación Criptográfica</h2>
         <p>
           Signet utiliza algoritmos criptográficos de clave pública estándar de la industria (BouncyCastle JCA/JCE). El usuario se compromete a utilizar este software de conformidad con las leyes, estatutos y regulaciones aplicables en su jurisdicción, incluidas aquellas relativas a la exportación, importación y uso de software criptográfico.
         </p>
       </section>
 
-      <!-- Section 11 -->
+      <!-- Section 10 -->
       <section class="border-t border-gray-800/80 pt-6">
-        <h2 class="text-xl font-bold text-white mb-3">11. Exención Total de Garantías (Disclaimer "AS IS")</h2>
+        <h2 class="text-xl font-bold text-white mb-3">10. Exención Total de Garantías (Disclaimer "AS IS")</h2>
         <div class="p-5 rounded-2xl bg-oled-900 border border-gray-800 text-xs font-mono text-gray-400 uppercase leading-relaxed">
           DE CONFORMIDAD CON LAS SECCIONES 15 Y 16 DE LA LICENCIA GNU GPL V3, EL SOFTWARE SE ENTREGA "TAL CUAL" Y "SEGÚN DISPONIBILIDAD", SIN GARANTÍAS DE NINGUNA CLASE, SEAN EXPRESAS O IMPLÍCITAS, INCLUYENDO, SIN LIMITACIÓN, LAS GARANTÍAS DE COMERCIABILIDAD, APTITUD PARA UN PROPÓSITO DETERMINADO O NO INFRACCIÓN. TODO EL RIESGO RELATIVO A LA CALIDAD, DESEMPEÑO Y ADECUACIÓN DEL PROGRAMA RECAE EXCLUSIVAMENTE EN EL USUARIO.
         </div>
       </section>
 
-      <!-- Section 12 -->
+      <!-- Section 11 -->
       <section class="border-t border-gray-800/80 pt-6">
-        <h2 class="text-xl font-bold text-white mb-3">12. Limitación Estricta de Responsabilidad</h2>
+        <h2 class="text-xl font-bold text-white mb-3">11. Limitación Estricta de Responsabilidad</h2>
         <p>
           En la máxima medida permitida por la legislación aplicable, bajo ninguna circunstancia los desarrolladores, autores, colaboradores o distribuidores de Signet serán legalmente responsables por daños directos, indirectos, incidentales, especiales, punitivos o consecuentes (incluyendo, entre otros, la pérdida de claves de firma, imposibilidad de actualizar aplicaciones, fallos de compilación en CI/CD, corrupción de datos, interrupción de actividades comerciales o lucro cesante) que surjan del uso o la incapacidad de uso de este software.
         </p>
       </section>
 
-      <!-- Section 13 -->
+      <!-- Section 12 -->
       <section class="border-t border-gray-800/80 pt-6">
-        <h2 class="text-xl font-bold text-white mb-3">13. Modificaciones, Divisibilidad y Vigencia</h2>
+        <h2 class="text-xl font-bold text-white mb-3">12. Modificaciones, Divisibilidad y Vigencia</h2>
         <p>
           Los presentes Términos fueron formalizados con fecha <strong>16 de agosto de 2026</strong>. Si cualquier cláusula de este documento fuese declarada inválida o inaplicable por un tribunal competente, dicha disposición se interpretará en la medida estrictamente necesaria para hacerla ejecutable, manteniéndose en pleno vigor el resto de las disposiciones.
         </p>

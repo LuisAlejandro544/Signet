@@ -50,7 +50,6 @@ enum class CodeSnippetTab(
 ) {
     GRADLE_KTS("build.gradle.kts", Icons.Default.Code),
     GITHUB_ACTIONS("GitHub Actions (.yml)", Icons.Default.IntegrationInstructions),
-    PEPK_CLI("Google Play (.pepk)", Icons.Default.CloudUpload),
     GRADLE_GROOVY("build.gradle (Groovy)", Icons.Default.Code),
     APKSIGNER("apksigner CLI", Icons.Default.Terminal),
     PEM_CERT("Certificado PEM", Icons.Default.Security)
@@ -136,7 +135,6 @@ fun KeystoreCodeSnippetsCard(
             val currentSnippet = when (selectedSnippetTab) {
                 CodeSnippetTab.GRADLE_KTS -> SnippetGenerator.generateGradleKtsSnippet(details.fileName, details.alias)
                 CodeSnippetTab.GITHUB_ACTIONS -> SnippetGenerator.generateGitHubActionsWorkflow(details.fileName, details.alias)
-                CodeSnippetTab.PEPK_CLI -> SnippetGenerator.generatePepkSnippet(details.fileName, details.alias)
                 CodeSnippetTab.GRADLE_GROOVY -> SnippetGenerator.generateGradleGroovySnippet(details.fileName, details.alias)
                 CodeSnippetTab.APKSIGNER -> SnippetGenerator.generateApksignerSnippet(details.fileName, details.alias)
                 CodeSnippetTab.PEM_CERT -> details.certificatePem
@@ -145,7 +143,6 @@ fun KeystoreCodeSnippetsCard(
             val currentDescription = when (selectedSnippetTab) {
                 CodeSnippetTab.GRADLE_KTS -> "Pega este bloque en 'app/build.gradle.kts'. Lee las contraseñas de variables de entorno para máxima seguridad."
                 CodeSnippetTab.GITHUB_ACTIONS -> "Crea el archivo '.github/workflows/build-and-sign.yml' en tu repositorio y agrega el secreto 'KEYSTORE_BASE64' (Settings > Secrets)."
-                CodeSnippetTab.PEPK_CLI -> "Comando oficial con pepk.jar para cifrar y exportar la clave de firma hacia Google Play App Signing."
                 CodeSnippetTab.GRADLE_GROOVY -> "Para proyectos con Groovy DSL tradicional (Flutter / React Native / Android heredado)."
                 CodeSnippetTab.APKSIGNER -> "Comandos oficiales para alinear con zipalign y firmar APKs con soporte de firma v1, v2 y v3."
                 CodeSnippetTab.PEM_CERT -> "Certificado público X.509 en formato PEM para consolas de APIs y proveedores de autenticación."

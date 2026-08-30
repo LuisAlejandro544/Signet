@@ -16,17 +16,15 @@ Plan estratégico de evolución técnica y funcionalidades para el proyecto **Si
 - [x] Conversión y visualización en tiempo real a Base64.
 - [x] Copia de credenciales y contraseñas con un solo toque.
 - [x] Persistencia local con Room Database y exportación SAF.
+- [x] **Cifrado en Reposo de Contraseñas & Seguridad del Portapapeles**:
+  - [x] Cifrado automático de contraseñas de almacén y claves con **AES-256-GCM** y claves de hardware en **Android KeyStore** (`KeystoreEncryptionManager`).
+  - [x] Integración de bandera `ClipDescription.EXTRA_IS_SENSITIVE` (API 33+) y advertencias contextuales al copiar credenciales y datos confidenciales.
 - [x] **Paquetes de Respaldo ZIP y Restauración con Firma Anti-Manipulación**:
   - [x] Generación de paquetes `.zip` con keystore, contraseñas, `key.properties`, `base64.txt` y manifiesto JSON firmado.
   - [x] Mecanismo de verificación criptográfica HMAC-SHA256 para prevenir restauraciones de archivos manipulados o apócrifos.
   - [x] Corrección y robustecimiento del flujo de descompresión de streams ZIP (`SignetBackupManager`).
   - [x] Restauración instantánea hacia la base de datos Room.
 - [x] Pestaña de Configuración con personalización de color, Material You, modo Negro 100% (AMOLED) y paletas de autor.
-- [x] **Generación y Exportación de Claves Cifradas para Google Play (.pepk)**:
-  - [x] Cifrado híbrido on-device con RSA-OAEP (SHA-256) + AES-256-GCM y paquete binario `.pepk`.
-  - [x] Selector y parser de claves públicas `encryption_public_key.pem` de Google Play Console.
-  - [x] Exportación dual: archivo binario `.pepk` suelto o **Paquete ZIP Completo** (Keystore + `.pepk` + credenciales + `key.properties` + `base64.txt`).
-  - [x] Generador de comandos CLI oficiales para `pepk.jar`.
 - [x] **Validador Forense de Coincidencia APK vs Keystore (APK Matcher)**:
   - [x] Extracción nativa de certificados X.509 de firmas v1 (JAR Signature / PKCS#7 en `META-INF`), v2 (APK Signing Block) y v3.
   - [x] Lectura de metadatos del paquete APK (Package Name, Version Name, Version Code).
@@ -35,7 +33,7 @@ Plan estratégico de evolución técnica y funcionalidades para el proyecto **Si
 - [x] **Generador y Visualizador Interactivo de Snippets**:
   - [x] Visualizador interactivo de bloques `signingConfigs` para `build.gradle.kts` (Kotlin DSL) y `build.gradle` (Groovy).
   - [x] Generador de workflows automatizados para GitHub Actions (`.github/workflows/android-build-and-sign.yml`) con decodificación de `KEYSTORE_BASE64` y firma en runners.
-  - [x] Comandos CLI para `apksigner`, `zipalign` y `pepk.jar`.
+  - [x] Comandos CLI para `apksigner` y `zipalign`.
 - [x] Limpieza de dependencias innecesarias de Google Play para distribución universal (Uptodown, GitHub Releases, APKs).
 - [x] Publicación bajo licencia **GNU General Public License v3.0 (GPL v3)** y definición de directrices de contribución en `CONTRIBUTING.md`.
 - [x] Pipeline CI/CD en GitHub Actions manual (`build-debug-apk.yml` con `workflow_dispatch`) con descarga de código, caché de Gradle, generación de clave en runner y compilación de APK Debug.
@@ -53,7 +51,7 @@ Plan estratégico de evolución técnica y funcionalidades para el proyecto **Si
 - [x] **Portal Web Oficial, Términos & Privacidad para Cloudflare Pages (`web/`)**:
   - [x] Sitio estático de alto rendimiento en **Astro 5 + Tailwind CSS** con tema OLED y Emerald.
   - [x] Declaración explícita de Política de Privacidad (`/privacy`) con fecha de entrada en vigor al **16 de agosto de 2026**, **Cero Recolección de Datos** y Cero Telemetría.
-  - [x] Términos y Condiciones de Uso (`/terms`) ampliados al **16 de agosto de 2026** con 13 secciones jurídicas y técnicas bajo licencia GPL v3, soberanía de claves, custodia, CI/CD, APK Matcher, PEPK, anti-tampering HMAC, tiendas de terceros y exención de garantías "AS IS".
+  - [x] Términos y Condiciones de Uso (`/terms`) ampliados al **16 de agosto de 2026** con 12 secciones jurídicas y técnicas bajo licencia GPL v3, soberanía de claves, custodia, CI/CD, APK Matcher, anti-tampering HMAC, tiendas de terceros y exención de garantías "AS IS".
   - [x] Configuración lista para despliegue global en Cloudflare Pages (`wrangler.toml`).
 - [x] **Flujo de Bienvenida Interactivo (Onboarding) & Integración Legal en la App**:
   - [x] Pantallas de bienvenida (`WelcomeScreen`) de 4 pasos explicando las capacidades del sistema y la privacidad 100% offline.
