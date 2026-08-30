@@ -32,10 +32,12 @@ Generador y administrador profesional de Keystores (`.jks` y `.keystore`) para A
   - **Acceso Directo al Portal Legal**: Enlaces directos para abrir en el navegador los [Términos y Condiciones](https://signet-web.luisalejandrososacamacho9.workers.dev/terms/) y la [Política de Privacidad](https://signet-web.luisalejandrososacamacho9.workers.dev/privacy/).
   - Persistencia automática de preferencias visuales y estado de aceptación en el dispositivo.
 
-- **Exportación, Respaldos ZIP & CI/CD**:
-  - **Paquetes de Respaldo Portables (.zip) con Firma Anti-Manipulación**: Exporta un archivo ZIP completo que contiene el binario del keystore (`.jks`/`.keystore`), credenciales en texto plano (`credentials.txt`), archivo `key.properties` para Gradle, `base64.txt` para pipelines de CI/CD, instrucciones y un manifiesto firmado (`signet-backup.json`).
+- **Exportación, Respaldos ZIP, Bóveda Completa & CI/CD**:
+  - **Bóveda Completa Multi-Keystore (.zip) en Subcarpetas**: Permite exportar absolutamente todos los Keystores almacenados en una sola bóveda comprimida `.zip`. Cada clave se empaqueta en su propia subcarpeta aislada (`keystores/1_alias/`, `keystores/2_alias/`, etc.) acompañada de su binario, `credentials.txt`, `key.properties`, `base64.txt`, `README-BACKUP.txt` y manifiesto individual.
+  - **Manifiesto Maestro Anti-Manipulación (`signet-vault-backup.json`) e Inventario (`VAULT-SUMMARY.txt`)**: La raíz del archivo ZIP incluye un manifiesto global firmado criptográficamente con HMAC-SHA256 que vincula las huellas SHA-256 de todos los binarios, previniendo cualquier alteración externa o inyección de archivos no autorizados.
+  - **Paquetes de Respaldo Portables Individuales (.zip) con Firma Anti-Manipulación**: Exporta un archivo ZIP completo que contiene el binario del keystore (`.jks`/`.keystore`), credenciales en texto plano (`credentials.txt`), archivo `key.properties` para Gradle, `base64.txt` para pipelines de CI/CD, instrucciones y un manifiesto firmado (`signet-backup.json`).
   - **Mecanismo de Seguridad Criptográfica**: El manifiesto incluye una firma criptográfica HMAC-SHA256 y hash SHA-256 del binario. Si alguien altera las contraseñas, el alias o el archivo del keystore externamente, Signet rechazará automáticamente la restauración garantizando la integridad absoluta.
-  - **Restauración Instantánea**: Permite restaurar el paquete ZIP completo con un solo toque incluso si la app fue desinstalada o reinstalada.
+  - **Restauración Inteligente de Bóvedas y Respaldos**: Detecta y restaura automáticamente con un solo toque tanto paquetes individuales como bóvedas maestras completas con múltiples keystores.
   - **Visualizador Interactivo de Código Gradle**: Genera y previsualiza directamente bloques listos para `app/build.gradle.kts` (Kotlin DSL) y `build.gradle` (Groovy) con soporte de variables de entorno (`KEYSTORE_PATH`, `KEYSTORE_PASSWORD`, etc.).
   - **Generador de Workflows para GitHub Actions**: Plantilla completa y optimizada `.github/workflows/android-build-and-sign.yml` para decodificar el keystore Base64 y firmar APKs de lanzamiento automáticamente en runners CI/CD.
   - Conversión instantánea a **Base64** para variables de entorno en pipelines de CI/CD (GitHub Actions `KEYSTORE_BASE64`, Fastlane, Bitrise, Codemagic).
@@ -53,7 +55,7 @@ Generador y administrador profesional de Keystores (`.jks` y `.keystore`) para A
   - Visualización del certificado en formato estándar PEM (`-----BEGIN CERTIFICATE-----`).
 
 - **Gestión Local Segura & Cifrado en Reposo (Android KeyStore + AES-256-GCM)**:
-  - **Cifrado en Reposo de Credenciales**: Las contraseñas del almacén y de claves se cifran automáticamente en la base de datos local Room usando **AES-256-GCM** respaldado por **Android KeyStore** (`enc:v1:`). Ninguna contraseña reside en texto plano dentro del almacenamiento del dispositivo.
+  - **Cifrado Automático en Importación y Creación**: Tanto al generar un nuevo keystore como al importar respaldos individuales o restaurar una bóveda completa (.zip), todas las contraseñas se cifran de forma transparente en la base de datos Room usando **AES-256-GCM** protegido por **Android KeyStore** (`enc:v1:`). El usuario accede y copia sus credenciales con normalidad desde la UI, pero el almacenamiento físico en SQLite queda 100% protegido contra accesos indebidos de apps maliciosas o usuarios con acceso root.
   - **Protección del Portapapeles (Android 13+ / API 33+)**: Integración de la bandera del sistema `ClipDescription.EXTRA_IS_SENSITIVE` al copiar contraseñas y binarios Base64 para prevenir previsualizaciones flotantes no deseadas, acompañado de un aviso contextual preventivo sobre acceso de terceros al portapapeles.
   - Almacenamiento seguro en base de datos local **Room** (100% offline, sin telemetría, sin analíticas ni servidores externos).
   - Visualización y copia rápida de credenciales (Alias, Contraseña del Keystore, Contraseña de la Clave).

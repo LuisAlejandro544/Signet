@@ -22,10 +22,15 @@ app/
 │   │   │   │   │   └── AxmlManifestParser.kt    # Extractor de packageName desde el string pool binario de AndroidManifest.xml
 │   │   │   │   ├── KeystoreGenerator.kt         # Motor criptográfico de generación de pares de claves y empaquetado PKCS#12
 │   │   │   │   ├── PasswordGenerator.kt         # Generador criptográfico CSPRNG de contraseñas ultra seguras y cálculo de entropía
-│   │   │   │   ├── SignetBackupManager.kt       # Fachada orquestadora de exportación ZIP y restauración de respaldos
+│   │   │   │   ├── SignetBackupManager.kt       # Fachada orquestadora de exportación/restauración de respaldos individuales y bóvedas completas
 │   │   │   │   ├── backup/
-│   │   │   │   │   ├── BackupTemplates.kt       # Generador de plantillas de texto (credentials.txt, key.properties, README-BACKUP.txt)
-│   │   │   │   │   └── BackupIntegrityVerifier.kt # Cálculo de SHA-256, firma HMAC-SHA256 y verificación de integridad anti-tamper
+│   │   │   │   │   ├── BackupTemplates.kt       # Generador de plantillas de texto (credentials.txt, key.properties, README-BACKUP.txt, VAULT-SUMMARY.txt)
+│   │   │   │   │   ├── BackupIntegrityVerifier.kt # Fachada de verificación de integridad y enlace a submódulos especializados
+│   │   │   │   │   ├── HmacSignatureEngine.kt   # Motor criptográfico centralizado para hashes SHA-256 y firmas HMAC-SHA256 con tiempo constante
+│   │   │   │   │   ├── SignetManifestParser.kt  # Parser, generador y validador de manifiestos individuales (signet-backup.json)
+│   │   │   │   │   ├── SignetVaultManifestParser.kt # Parser, generador y validador de manifiestos maestros de bóveda (signet-vault-backup.json)
+│   │   │   │   │   ├── ZipPackageBuilder.kt     # Empaquetador de flujos binarios ZIP para respaldos individuales y bóvedas maestras
+│   │   │   │   │   └── ZipPackageExtractor.kt   # Extractor y analizador de flujos ZIP en memoria
 │   │   │   │   ├── x509/
 │   │   │   │   │   ├── X509CertificateInspector.kt # Inspección y lectura de certificados en almacenes PKCS12, JKS y BKS
 │   │   │   │   │   └── X509CertificateUtils.kt    # Utilidades de cálculo de huellas digitales y formateo PEM estándar
@@ -69,7 +74,13 @@ app/
 │   │   │       │   ├── inspect/
 │   │   │       │   │   ├── KeystoreInspectorSection.kt   # Formulario de carga de archivo externo, contraseña y visor
 │   │   │       │   │   ├── CertificateDetailsResultCard.kt # Tarjeta de visualización de certificados X.509 y huellas
-│   │   │       │   │   └── ApkMatcherSection.kt          # Interfaz interactiva de validación forense APK vs Keystore
+│   │   │       │   │   ├── ApkMatcherSection.kt          # Orquestador y layout principal de validación forense APK vs Keystore
+│   │   │       │   │   └── apk/
+│   │   │       │   │       ├── ApkFileSelectorCard.kt        # Tarjeta de selección de archivo APK mediante SAF
+│   │   │       │   │       ├── ApkDetailsInfoCard.kt         # Visualizador de metadatos del paquete y firmas v1/v2/v3 detectadas
+│   │   │       │   │       ├── ApkKeystoreSelectorSection.kt # Selector interactivo entre almacenes guardados y archivo JKS/PKCS12 externo
+│   │   │       │   │       ├── ApkMatchResultCard.kt         # Banner de diagnóstico comparativo de huellas SHA-256 y dictamen
+│   │   │       │   │       └── ApkErrorCard.kt               # Tarjeta de visualización de errores y advertencias de análisis
 │   │   │       │   ├── SavedKeystoresScreen.kt  # Orquestador de historial de almacenes de claves guardados
 │   │   │       │   ├── saved/
 │   │   │       │   │   ├── SavedKeystoresHeader.kt       # Banner de restauración de respaldos ZIP
@@ -112,6 +123,7 @@ app/
 │       ├── security-scan.yml                    # Auditoría de seguridad estática en modo Stealth
 │       ├── emulator-e2e-test.yml                # Pruebas E2E en emulador nativo Android KVM
 │       ├── cli-interoperability-test.yml        # Validación cruzada CLI con keytool y Google apksigner
+│       ├── override-commit-message.yml          # Sincronización y reescritura del último mensaje de commit desde commit_message.txt
 │       └── sync-zip.yml                         # Respaldo automático
 └── web/                                         # Portal web estático (Astro 5 + Tailwind CSS para Cloudflare Pages)
     ├── src/
@@ -131,16 +143,19 @@ app/
 ## 🔄 Flujo de Datos y Operaciones Clave
 
 ### 1. Validación Forense de APK vs Keystore (APK Matcher Modular)
-1. **Selección del APK**: El usuario proporciona un archivo `.apk` mediante Android SAF.
+1. **Selección del APK**: El usuario proporciona un archivo `.apk` mediante Android SAF gestionado visualmente en `ApkFileSelectorCard`.
 2. **Extracción y Parsing Multi-Esquema**:
    - `ApkMatcher` coordina el análisis delegando en parsers especializados:
      * `ApkSigningBlockParser`: examina el bloque **APK Signing Block** (v2 y v3) buscando el ID `0x7109871a` y extrayendo los certificados X.509 de los signers.
      * `ApkV1SignatureParser`: examina los archivos PKCS#7 en `META-INF/*.RSA`, `META-INF/*.DSA` o `META-INF/*.EC` (v1 JAR Signature).
      * `AxmlManifestParser`: extrae metadatos del paquete (`packageName`, `versionName`, `versionCode`) desde el string pool binario.
-3. **Cruce de Huellas Digitales**:
-   - Se calculan las huellas SHA-256 de todos los certificados detectados en el APK y se contrastan con la huella del Keystore seleccionado (almacenado en Signet o externo).
-4. **Diagnóstico**:
-   - Se emite un dictamen visual inmediato: Coincidencia confirmada o Alerta de incompatibilidad de actualización.
+3. **Cruce de Huellas Digitales & UI Desacoplada**:
+   - `ApkMatcherSection` orquesta las sub-vistas desacopladas:
+     * `ApkFileSelectorCard`: Gestión de selección de archivo binario APK.
+     * `ApkDetailsInfoCard`: Despliegue de metadatos, paquetes y certificados extraídos del APK.
+     * `ApkKeystoreSelectorSection`: Selector interactivo de almacén guardado o externo.
+     * `ApkMatchResultCard`: Banner de diagnóstico comparativo de huellas SHA-256 y dictamen.
+     * `ApkErrorCard`: Presentación clara de alertas y fallos de análisis.
 
 ### 2. Generación de Keystore
 1. `GenerateScreen` recopila la configuración validada mediante sus submódulos (`GeneratePresetsSection`, `KeystoreCredentialsForm`, `KeystoreValiditySection`, `KeystoreDnFields`).
@@ -153,12 +168,15 @@ app/
 2. Extrae cadenas de certificados X.509, fechas de validez, identificadores de emisor/sujeto y números de serie.
 3. Utiliza `X509CertificateUtils` para el cálculo normalizado de huellas digitales.
 
-### 4. Respaldos ZIP & Anti-Tampering Modular
-1. `SignetBackupManager.createBackupZip`:
-   - Delega la construcción de archivos textuales en `BackupTemplates` (`credentials.txt`, `key.properties`, `README-BACKUP.txt`).
-   - Delega la generación y firma criptográfica HMAC-SHA256 del manifiesto `signet-backup.json` en `BackupIntegrityVerifier`.
-2. `SignetBackupManager.restoreFromZip`:
-   - Valida la integridad del archivo binario y del manifiesto contra la firma HMAC mediante `BackupIntegrityVerifier` antes de persistir o desbloquear.
+### 4. Respaldos ZIP, Bóveda Completa & Anti-Tampering Modular
+1. `SignetBackupManager.createBackupZip` & `createVaultBackupZip`:
+   - En respaldos individuales y bóvedas completas, delega la compresión y empaquetado binario en `ZipPackageBuilder`.
+   - Genera firmas HMAC-SHA256 seguras de tiempo constante y hashes mediante `HmacSignatureEngine`.
+   - Valida y construye manifiestos individuales y maestros mediante `SignetManifestParser` y `SignetVaultManifestParser`.
+2. `SignetBackupManager.restoreAnyFromZip` & `restoreVaultFromZip`:
+   - Delega la inspección de entradas y descompresión en memoria a `ZipPackageExtractor`.
+   - Verifica la integridad binaria y las firmas criptográficas mediante `BackupIntegrityVerifier`, `SignetManifestParser` y `SignetVaultManifestParser`.
+   - Desbloquea de forma segura los certificados antes de persistirlos en el repositorio con cifrado AES-256-GCM.
 
 ### 5. Estrategia Multi-Canal y Versionado Semántico
 - **`.debug` (`com.signet.app.debug` / `1.0.0-D`)**: Compilación interna y automática vía GitHub Actions (`build-debug-apk.yml`) firmada con `debug.keystore`.

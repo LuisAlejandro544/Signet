@@ -26,8 +26,10 @@ Primer pre-lanzamiento público oficial del **Canal Beta (`.beta`)** de Signet (
   * Generación de contraseñas de alta entropía mediante `SecureRandom` con longitud personalizable (8 a 64 caracteres) y selección de conjuntos de caracteres (mayúsculas, minúsculas, dígitos y símbolos).
 
 - 📦 **Sistema de Respaldo y Migración Anti-Manipulación**:
-  * Exportación e importación de la base de datos completa en paquetes ZIP protegidos con firma criptográfica **HMAC-SHA256** y cálculo de hash **SHA-256**.
-  * Detección y bloqueo automático de archivos ZIP alterados o corruptos mediante `SecurityException`.
+  * **Bóveda Completa Multi-Keystore (.zip)**: Exportación masiva de todos los almacenes de claves guardados en un único archivo ZIP estructurado por carpetas independientes (`keystores/1_alias/`, `keystores/2_alias/`), con binarios, credenciales, `key.properties`, `base64.txt`, `README-BACKUP.txt`, inventario `VAULT-SUMMARY.txt` y manifiesto maestro anti-manipulación `signet-vault-backup.json`.
+  * Exportación e importación de respaldos protegidos con firma criptográfica **HMAC-SHA256** y cálculo de hash **SHA-256** para integridad de datos.
+  * Detección y bloqueo automático de archivos ZIP o manifiestos alterados mediante `SecurityException`.
+  * Restauración inteligente polimórfica que detecta e importa paquetes individuales o bóvedas completas con un solo toque.
 
 - 🚀 **Presets Rápidos para Entornos**:
   * Plantillas de 1 toque para inicializar configuraciones de firma para **Desarrollo**, **Play Store / Distribución** y **Empresarial / Alta Seguridad**.

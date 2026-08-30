@@ -20,8 +20,22 @@ sealed interface GenerationUiState {
 sealed interface RestoreUiState {
     object Idle : RestoreUiState
     object Restoring : RestoreUiState
-    data class Success(val details: KeystoreDetails) : RestoreUiState
+    data class Success(
+        val details: KeystoreDetails,
+        val isVault: Boolean = false,
+        val restoredList: List<KeystoreDetails> = listOf(details)
+    ) : RestoreUiState
     data class Error(val message: String) : RestoreUiState
+}
+
+/**
+ * UI State for the Bulk Vault Export workflow.
+ */
+sealed interface VaultExportUiState {
+    object Idle : VaultExportUiState
+    object Exporting : VaultExportUiState
+    data class Ready(val zipBytes: ByteArray, val count: Int, val fileName: String) : VaultExportUiState
+    data class Error(val message: String) : VaultExportUiState
 }
 
 /**

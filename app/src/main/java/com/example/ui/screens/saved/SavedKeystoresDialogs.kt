@@ -55,7 +55,7 @@ fun SavedKeystoresDialogs(
     if (restoreState is RestoreUiState.Restoring) {
         AlertDialog(
             onDismissRequest = {},
-            title = { Text("Restaurando Keystore...") },
+            title = { Text("Restaurando Respaldo / Bóveda...") },
             text = {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,

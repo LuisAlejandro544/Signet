@@ -99,4 +99,61 @@ object BackupTemplates {
             Si el archivo es modificado manualmente, Signet rechazará la importación por seguridad.
         """.trimIndent()
     }
+
+    /**
+     * Builds a comprehensive VAULT-SUMMARY.txt instruction and inventory file for multi-keystore vault backups.
+     */
+    fun buildVaultSummaryText(items: List<KeystoreDetails>, vaultCreatedAt: Long): String {
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss z", Locale.ROOT)
+        val vaultDateStr = dateFormat.format(Date(vaultCreatedAt))
+
+        val sb = StringBuilder()
+        sb.appendLine("========================================================================")
+        sb.appendLine("SIGNET - RESUMEN DE BÓVEDA COMPLETA DE IDENTIDADES CRIPTOGRÁFICAS")
+        sb.appendLine("========================================================================")
+        sb.appendLine("Fecha de Exportación : $vaultDateStr")
+        sb.appendLine("Total de Keystores   : ${items.size}")
+        sb.appendLine("Firma Anti-Manipulación: Master HMAC-SHA256 en signet-vault-backup.json")
+        sb.appendLine()
+        sb.appendLine("ESTRUCTURA DEL PAQUETE:")
+        sb.appendLine("├── signet-vault-backup.json  (Manifiesto maestro con firmas anti-manipulación)")
+        sb.appendLine("├── VAULT-SUMMARY.txt         (Este documento)")
+        sb.appendLine("└── keystores/")
+        for ((idx, item) in items.withIndex()) {
+            val folderName = "${idx + 1}_${item.fileName.substringBeforeLast(".").replace("[^a-zA-Z0-9_-]".toRegex(), "_")}"
+            sb.appendLine("    ├── $folderName/")
+            sb.appendLine("    │   ├── ${item.fileName}")
+            sb.appendLine("    │   ├── credentials.txt")
+            sb.appendLine("    │   ├── key.properties")
+            sb.appendLine("    │   ├── base64.txt")
+            sb.appendLine("    │   ├── README-BACKUP.txt")
+            sb.appendLine("    │   └── signet-backup.json")
+        }
+        sb.appendLine()
+        sb.appendLine("------------------------------------------------------------------------")
+        sb.appendLine("INVENTARIO DETALLADO DE KEYSTORES")
+        sb.appendLine("------------------------------------------------------------------------")
+        for ((idx, item) in items.withIndex()) {
+            val fromStr = if (item.validFrom > 0) dateFormat.format(Date(item.validFrom)) else "N/A"
+            val untilStr = if (item.validUntil > 0) dateFormat.format(Date(item.validUntil)) else "N/A"
+            sb.appendLine("[#${idx + 1}] Archivo: ${item.fileName} | Alias: ${item.alias}")
+            sb.appendLine("     Algoritmo     : ${item.algorithm}")
+            sb.appendLine("     Contraseña Key: ${item.storePassword}")
+            sb.appendLine("     SHA-256       : ${item.sha256Fingerprint}")
+            sb.appendLine("     Vigencia      : $fromStr hasta $untilStr")
+            sb.appendLine("     Propietario   : ${item.subjectDn}")
+            sb.appendLine()
+        }
+        sb.appendLine("========================================================================")
+        sb.appendLine("INSTRUCCIONES DE RESTAURACIÓN:")
+        sb.appendLine("Para restaurar toda tu bóveda en cualquier dispositivo:")
+        sb.appendLine("1. Abre la app Signet.")
+        sb.appendLine("2. Dirígete a la pestaña 'Mis Keystores'.")
+        sb.appendLine("3. Pulsa 'Restaurar (.zip)' y selecciona este archivo ZIP.")
+        sb.appendLine("4. Signet validará la firma maestra y restaurará automáticamente todos los")
+        sb.appendLine("   keystores a tu almacenamiento protegido y base de datos.")
+        sb.appendLine("========================================================================")
+
+        return sb.toString().trimIndent()
+    }
 }

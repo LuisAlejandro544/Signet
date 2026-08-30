@@ -54,6 +54,42 @@ class KeystoreRepository(private val database: AppDatabase) {
         }
     }
 
+    suspend fun restoreAndSaveAnyFromZip(
+        context: Context,
+        zipBytes: ByteArray
+    ): Result<List<KeystoreDetails>> = withContext(Dispatchers.IO) {
+        try {
+            val list = SignetBackupManager.restoreAnyFromZip(context, zipBytes)
+            val persistedList = list.map { details ->
+                val entity = KeystoreEntity.fromDetails(details)
+                val id = database.keystoreDao().insertKeystore(entity)
+                details.copy(id = id)
+            }
+            Result.success(persistedList)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun createVaultBackupZip(keystores: List<KeystoreDetails>): Result<ByteArray> = withContext(Dispatchers.IO) {
+        try {
+            val items = keystores.map { details ->
+                val bytes = if (details.filePath.isNotBlank() && File(details.filePath).exists()) {
+                    File(details.filePath).readBytes()
+                } else if (details.base64Content.isNotBlank()) {
+                    Base64.decode(details.base64Content, Base64.DEFAULT)
+                } else {
+                    throw IllegalStateException("No se encontraron los datos binarios del keystore '${details.fileName}'.")
+                }
+                Pair(details, bytes)
+            }
+            val zipBytes = SignetBackupManager.createVaultBackupZip(items)
+            Result.success(zipBytes)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun createBackupZip(details: KeystoreDetails): Result<ByteArray> = withContext(Dispatchers.IO) {
         try {
             val bytes = if (details.filePath.isNotBlank() && File(details.filePath).exists()) {

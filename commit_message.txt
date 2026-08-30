@@ -1,3 +1,57 @@
+refactor(architecture): modularizar ApkMatcherSection, SignetBackupManager y BackupIntegrityVerifier
+
+- Modularización de `ApkMatcherSection.kt` en componentes UI desacoplados:
+  * Crear subpaquete `com.example.ui.screens.inspect.apk` con componentes reutilizables y atómicos.
+  * `ApkFileSelectorCard.kt`: Componente de selección de archivo binario APK con selector SAF, visualización de tamaño y estado.
+  * `ApkDetailsInfoCard.kt`: Visualizador de metadatos extraídos del APK (`packageName`, `versionName`, `versionCode`), esquemas de firma soportados (v1 JAR, v2 Full APK, v3 App Bundles) y huellas digitales de certificados con opción de copia segura.
+  * `ApkKeystoreSelectorSection.kt`: Selector de origen de keystore para contraste (almacenes guardados en Signet con dropdown interactivo o archivo externo JKS/PKCS12 con campo de contraseña protegida).
+  * `ApkMatchResultCard.kt`: Tarjeta de diagnóstico comparativo de huellas digitales SHA-256 con dictamen de compatibilidad de actualización inmediata.
+  * `ApkErrorCard.kt`: Componente de visualización de errores y excepciones de análisis.
+  * Reducir `ApkMatcherSection.kt` a un orquestador limpio y enfocado exclusivamente en diseño de layout y estado.
+
+- Desacoplamiento criptográfico y modularización de `BackupIntegrityVerifier.kt`:
+  * Crear `com.example.crypto.backup.HmacSignatureEngine.kt`: Motor centralizado de cálculo criptográfico de huellas SHA-256 y firmas HMAC-SHA256 para manifiestos individuales y bóvedas maestras con verificación en tiempo constante (`MessageDigest.isEqual`).
+  * Crear `com.example.crypto.backup.SignetManifestParser.kt`: Parser, generador y validador de integridad para manifiestos individuales (`signet-backup.json`).
+  * Crear `com.example.crypto.backup.SignetVaultManifestParser.kt`: Parser, generador y validador de integridad para manifiestos maestros de bóveda (`signet-vault-backup.json`).
+  * Refactorizar `BackupIntegrityVerifier.kt` como una fachada limpia que delega a los motores especializados manteniendo compatibilidad total.
+
+- Modularización de flujos de compresión y descompresión en `SignetBackupManager.kt`:
+  * Crear `com.example.crypto.backup.ZipPackageBuilder.kt`: Encapsula la lógica de empaquetado de flujos ZIP en memoria para respaldos individuales y bóvedas completas con subcarpetas.
+  * Crear `com.example.crypto.backup.ZipPackageExtractor.kt`: Encapsula la lectura, detección de esquemas y descompresión en memoria de paquetes ZIP.
+  * Refactorizar `SignetBackupManager.kt` como un orquestador de alto nivel centrado en ciclo de vida y persistencia en Room.
+
+- Actualización de documentación:
+  * `STRUCTURE.md`: Actualizado el árbol de archivos y los flujos de datos para reflejar los nuevos submódulos sin eliminar información existente.
+
+---
+
+feat(backup): implementar exportación y restauración de bóveda completa multi-keystore en ZIP con subcarpetas y firma HMAC
+
+- Implementación del motor de respaldo y exportación de bóveda completa (`Master Vault`):
+  * Crear `createVaultBackupZip` en `SignetBackupManager.kt`: empaqueta todos los almacenes de claves guardados en una estructura de subcarpetas (`keystores/1_alias/`, `keystores/2_alias/`), conteniendo cada una su binario (.jks/.keystore), `credentials.txt`, `key.properties`, `base64.txt`, `README-BACKUP.txt` y manifiesto local `signet-backup.json`.
+  * Generar en la raíz el manifiesto maestro `signet-vault-backup.json` firmado criptográficamente con HMAC-SHA256 y el inventario legible `VAULT-SUMMARY.txt` con metadatos y huellas.
+  * Añadir `buildSignedVaultManifest`, `verifyVaultManifestAndIntegrity` y `computeVaultMasterHmac` en `BackupIntegrityVerifier.kt` para vincular de forma estricta los hashes SHA-256 de todos los binarios y sus rutas relativas.
+  * Añadir `buildVaultSummaryText` en `BackupTemplates.kt` para generar el resumen e inventario de la bóveda.
+
+- Restauración inteligente y polimórfica:
+  * Implementar `restoreAnyFromZip` y `restoreVaultFromZip` en `SignetBackupManager.kt`: detecta automáticamente si el archivo ZIP es un respaldo individual o una bóveda completa multi-keystore.
+  * Verificar de forma estricta las firmas criptográficas HMAC del manifiesto maestro y hashes de binarios, lanzando `SecurityException` si algún archivo o dato fue alterado externamente.
+  * Desbloquear y persistir todas las claves en la base de datos Room mediante `KeystoreRepository.restoreAndSaveAnyFromZip`, aplicando automáticamente cifrado en reposo AES-256-GCM (`enc:v1:`) respaldado por Android KeyStore para evitar fugas de datos frente a malware o accesos root.
+
+- Integración en Capa de Presentación (UI / Compose):
+  * Actualizar `SavedKeystoresHeader.kt`: incorporar botón "Exportar Bóveda" y contador dinámico de keystores.
+  * Actualizar `SavedKeystoresScreen.kt`: agregar lanzador `exportVaultLauncher` para guardar el archivo ZIP de la bóveda mediante Android SAF y soporte reactivo de restauración masiva.
+  * Actualizar `KeystoreUiStates.kt`: ampliar `RestoreUiState.Success` y añadir `VaultExportUiState`.
+  * Actualizar `SavedKeystoresDialogs.kt`: reflejar estados de restauración de bóvedas y respaldos.
+
+- Cobertura de Pruebas Unitarias con Robolectric:
+  * Ampliar `SignetBackupIntegrityTest.kt` con pruebas para creación y restauración de bóvedas ZIP con subcarpetas y verificación de rechazo ante manipulación del manifiesto maestro.
+
+- Actualización integral de documentación:
+  * `README.md`, `ROADMAP.md`, `AI_CONTEXT.md`, `STRUCTURE.md` y `Changelog-release.md` actualizados con la arquitectura de la bóveda completa sin eliminar información existente.
+
+---
+
 feat(security): implementar cifrado en reposo AES-256-GCM y protección de portapapeles
 
 - Implementación de cifrado en reposo para credenciales de Keystores en Room:

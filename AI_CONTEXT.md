@@ -62,8 +62,11 @@ Este documento proporciona contexto técnico, decisiones de arquitectura y direc
 10. **Distribución Fuera de Google Play (Uptodown, GitHub Releases, APKs)**:
     - La aplicación no requiere ni incluye servicios innecesarios de Google Play (`play-services-*`, `firebase-*`, etc.). Es 100% autónoma, funcional offline y compatible con cualquier dispositivo Android / ROM personalizada (LineageOS, GrapheneOS, microG).
 
-11. **Paquetes de Respaldo ZIP & Mecanismo Anti-Manipulación (`SignetBackupManager`)**:
-    - Generación y descompresión de paquetes ZIP con `signet-backup.json`, firma HMAC-SHA256, hash de contenido y credenciales.
+11. **Paquetes de Respaldo ZIP, Bóveda Completa & Mecanismo Anti-Manipulación (`SignetBackupManager`)**:
+    - Generación y descompresión de paquetes ZIP individuales con `signet-backup.json`, firma HMAC-SHA256, hash de contenido y credenciales.
+    - **Exportación de Bóveda Completa (`createVaultBackupZip`)**: Empaqueta todos los Keystores guardados en una estructura de subcarpetas (`keystores/1_alias/`, `keystores/2_alias/`) conteniendo cada una sus credenciales, properties, base64 y manifiesto local.
+    - **Manifiesto Maestro de Bóveda (`signet-vault-backup.json`)**: Firma global HMAC-SHA256 generada mediante `BackupIntegrityVerifier.buildSignedVaultManifest`, vinculando de manera estricta los hashes SHA-256 de todos los binarios y sus rutas relativas.
+    - **Restauración Polimórfica (`restoreAnyFromZip`) y Cifrado Automático**: Determina de forma automática e inteligente si el paquete ZIP proporcionado corresponde a un respaldo individual o a una bóveda multi-keystore. Tras verificar las firmas HMAC y validar los binarios, todas las credenciales importadas se cifran automáticamente en reposo mediante **AES-256-GCM** en Android KeyStore (`KeystoreEntity.fromDetails`), protegiendo la base de datos contra accesos no autorizados de malware o usuarios root mientras el usuario accede con total transparencia y normalidad.
     - Se garantiza la lectura atómica de entradas ZIP sin cierres prematuros de streams.
 
 12. **Portal Web Oficial, Términos y Privacidad (`web/`)**:

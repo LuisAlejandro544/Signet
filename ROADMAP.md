@@ -17,11 +17,12 @@ Plan estratégico de evolución técnica y funcionalidades para el proyecto **Si
 - [x] Copia de credenciales y contraseñas con un solo toque.
 - [x] Persistencia local con Room Database y exportación SAF.
 - [x] **Cifrado en Reposo de Contraseñas & Seguridad del Portapapeles**:
-  - [x] Cifrado automático de contraseñas de almacén y claves con **AES-256-GCM** y claves de hardware en **Android KeyStore** (`KeystoreEncryptionManager`).
+  - [x] Cifrado automático de contraseñas de almacén y claves con **AES-256-GCM** y claves de hardware en **Android KeyStore** (`KeystoreEncryptionManager`) tanto en creación inicial como al importar respaldos y bóvedas completas.
   - [x] Integración de bandera `ClipDescription.EXTRA_IS_SENSITIVE` (API 33+) y advertencias contextuales al copiar credenciales y datos confidenciales.
 - [x] **Paquetes de Respaldo ZIP y Restauración con Firma Anti-Manipulación**:
   - [x] Generación de paquetes `.zip` con keystore, contraseñas, `key.properties`, `base64.txt` y manifiesto JSON firmado.
-  - [x] Mecanismo de verificación criptográfica HMAC-SHA256 para prevenir restauraciones de archivos manipulados o apócrifos.
+  - [x] **Bóveda Completa Multi-Keystore (.zip)**: Exportación consolidada de todos los keystores en un único archivo ZIP organizado por subcarpetas (`keystores/1_alias/`, `keystores/2_alias/`) con manifiesto maestro `signet-vault-backup.json` firmado con HMAC-SHA256 y resumen `VAULT-SUMMARY.txt`.
+  - [x] Mecanismo de verificación criptográfica HMAC-SHA256 para prevenir restauraciones de archivos manipulados o apócrifos tanto en respaldos individuales como en bóvedas completas.
   - [x] Corrección y robustecimiento del flujo de descompresión de streams ZIP (`SignetBackupManager`).
   - [x] Restauración instantánea hacia la base de datos Room.
 - [x] Pestaña de Configuración con personalización de color, Material You, modo Negro 100% (AMOLED) y paletas de autor.

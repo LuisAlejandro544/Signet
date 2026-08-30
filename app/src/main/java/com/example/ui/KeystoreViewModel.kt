@@ -255,9 +255,17 @@ class KeystoreViewModel(application: Application) : AndroidViewModel(application
     fun restoreFromZip(context: Context, zipBytes: ByteArray) {
         _restoreState.value = RestoreUiState.Restoring
         viewModelScope.launch {
-            val result = repository.restoreAndSaveKeystoreFromZip(context, zipBytes)
-            result.onSuccess { details ->
-                _restoreState.value = RestoreUiState.Success(details)
+            val result = repository.restoreAndSaveAnyFromZip(context, zipBytes)
+            result.onSuccess { list ->
+                if (list.isEmpty()) {
+                    _restoreState.value = RestoreUiState.Error("No se encontraron claves válidas en el archivo.")
+                } else {
+                    _restoreState.value = RestoreUiState.Success(
+                        details = list.first(),
+                        isVault = list.size > 1,
+                        restoredList = list
+                    )
+                }
             }.onFailure { error ->
                 _restoreState.value = RestoreUiState.Error(
                     error.localizedMessage ?: "Error al restaurar el paquete de respaldo ZIP."
@@ -276,6 +284,14 @@ class KeystoreViewModel(application: Application) : AndroidViewModel(application
 
     suspend fun createBackupZip(details: KeystoreDetails): Result<ByteArray> {
         return repository.createBackupZip(details)
+    }
+
+    suspend fun createVaultBackupZip(): Result<ByteArray> {
+        val currentKeystores = savedKeystores.value
+        if (currentKeystores.isEmpty()) {
+            return Result.failure(IllegalStateException("No tienes ningún keystore guardado para exportar."))
+        }
+        return repository.createVaultBackupZip(currentKeystores)
     }
 
     fun inspectKeystoreFile(bytes: ByteArray, password: String) {

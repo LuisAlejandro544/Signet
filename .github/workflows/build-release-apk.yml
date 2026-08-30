@@ -44,6 +44,12 @@ jobs:
           java-version: '17'
           cache: 'gradle'
 
+      - name: 🐘 Setup Gradle Environment & Cache
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.3.1"
+          cache-read-only: false
+
       - name: 🔑 Decode Keystore from Base64 Secret
         id: decode_keystore
         env:
@@ -71,7 +77,8 @@ jobs:
       - name: 🐘 Ensure Gradle Wrapper & Permissions
         run: |
           if [ ! -f "./gradlew" ]; then
-            gradle wrapper --gradle-version 8.11.1
+            echo "ℹ️ ./gradlew no encontrado. Generando Gradle Wrapper 9.3.1..."
+            gradle wrapper --gradle-version 9.3.1
           fi
           chmod +x ./gradlew
 
