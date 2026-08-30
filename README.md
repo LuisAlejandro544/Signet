@@ -9,10 +9,18 @@ Generador y administrador profesional de Keystores (`.jks` y `.keystore`) para A
 - **Generación Criptográfica Completa**:
   - Algoritmos soportados: **RSA 2048**, **RSA 4096** y **Curva Elíptica (EC P-256)** con firmas SHA-256.
   - Soporte de extensiones estándar: `.jks` (estándar moderno de Android Studio) y `.keystore` (formato tradicional).
+  - **Modo Efímero / Sin Rastro (Zero-Footprint Mode)**: Opción para generar el keystore exclusivamente en memoria RAM sin guardarlo en la base de datos de la app ni en el almacenamiento interno. Permite exportar el archivo `.jks`, descargar el ZIP de respaldo o copiar el Base64, y al cerrar la hoja o la app, desaparece por completo sin dejar rastro en el dispositivo.
   - **Generador de Contraseñas Ultra Seguras (CSPRNG Nativo)**: Motor aleatorio basado en `SecureRandom` con longitud seleccionable (16, 20, 24, 32 caracteres), inclusión obligatoria de mayúsculas, minúsculas, dígitos y símbolos seguros para Gradle/Terminal, acompañado de medidor en tiempo real de bits de entropía y nivel de seguridad.
   - **Validez de Certificado Personalizada & Deslizable**: Control interactivo mediante slider (1 a 100 años), indicador de días totales y atajos rápidos (1, 5, 10, 25, 30, 50, 100 años).
   - **Campos de Certificado con Guía de Identidad**: Distinción clara entre campos obligatorios por estándar Google/Android (`CN`, `O`) y opcionales (`OU`, `L`, `ST`, `C`), con aviso de soporte para datos inventados o seudónimos artísticos para preservar la privacidad.
   - Presets rápidos de 1 clic: *Google Play Release*, *Upload Key* y *Alta Seguridad*.
+
+- **Firmador Profesional de APKs en el Dispositivo (APK Signer & Zipalign)**:
+  - **Doble Esquema de Firma Nativo**: Implementación criptográfica completa en el dispositivo de **Esquema v1 (JAR Signing con `META-INF/MANIFEST.MF`, `CERT.SF` y bloque PKCS#7 `CERT.RSA/EC`)** y **Esquema v2 (APK Signature Scheme v2 con APK Signing Block inyectado antes del Central Directory)**.
+  - **Motor Nativo de Zipalign (Alineación a 4 Bytes)**: Alinea automáticamente todas las entradas `STORED` (sin comprimir) a límites múltiplos de 4 bytes antes de firmar, garantizando optimización de memoria `mmap` y compatibilidad universal con los instaladores de Android.
+  - **Compatibilidad con Claves de la Bóveda y Externas**: Permite firmar aplicaciones utilizando cualquier Keystore guardado en la app (con desbloqueo transparente y descifrado AES-256-GCM) o importando archivos `.jks`/`.keystore`/`.p12` externos del almacenamiento.
+  - **Instalación y Distribución Inmediata**: Botón de un toque para instalar directamente el APK recién firmado en el dispositivo móvil vía `Intent.ACTION_INSTALL_PACKAGE`, compartir mediante el menú nativo de Android o transferir directamente a la pestaña de Inspección (APK Matcher) para validación cruzada.
+  - **Opciones de Salida Personalizables**: Configuración granular de nombre de archivo firmado (`app-release-signed.apk`), selección independiente de esquemas de firma v1/v2 y activación/desactivación de zipalign.
 
 - **Validador Forense APK vs Keystore (APK Matcher)**:
   - **Detección Multi-Esquema**: Inspecciona y extrae automáticamente los certificados X.509 de archivos `.apk` firmados con **Esquema v1 (JAR / PKCS#7 en `META-INF`)**, **Esquema v2 (APK Signing Block)** y **Esquema v3**.

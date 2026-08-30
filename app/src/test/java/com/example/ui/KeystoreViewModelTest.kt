@@ -71,5 +71,10 @@ class KeystoreViewModelTest {
         assertEquals(24, formWithPwd.storePassword.length)
         assertEquals(formWithPwd.storePassword, formWithPwd.confirmPassword)
         assertTrue(formWithPwd.isStorePasswordVisible)
+
+        // Ephemeral Mode Toggle
+        assertFalse(viewModel.formState.value.isEphemeral)
+        viewModel.updateForm { it.copy(isEphemeral = true) }
+        assertTrue(viewModel.formState.value.isEphemeral)
     }
 }

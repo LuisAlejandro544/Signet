@@ -49,8 +49,13 @@ object KeystoreGenerator {
 
     /**
      * Generates a new PKCS12 keystore file and returns its details and fingerprints.
+     * When [saveToFile] is false, the keystore is generated purely in memory (Zero-Footprint / Ephemeral mode).
      */
-    fun generateKeystore(context: Context, config: KeystoreConfig): KeystoreDetails {
+    fun generateKeystore(
+        context: Context,
+        config: KeystoreConfig,
+        saveToFile: Boolean = true
+    ): KeystoreDetails {
         val provider = bcProvider
 
         // 1. Generate KeyPair
@@ -160,15 +165,29 @@ object KeystoreGenerator {
             }
         }
 
-        val outputFile = File(keystoresDir, sanitizedFileName)
         val keystoreBytes: ByteArray
         java.io.ByteArrayOutputStream().use { baos ->
             keyStore.store(baos, config.storePassword.toCharArray())
             keystoreBytes = baos.toByteArray()
         }
 
-        FileOutputStream(outputFile).use { fos ->
-            fos.write(keystoreBytes)
+        val finalFilePath: String
+        val finalFileSize: Long
+
+        if (saveToFile) {
+            val keystoresDir = File(context.filesDir, "keystores")
+            if (!keystoresDir.exists()) {
+                keystoresDir.mkdirs()
+            }
+            val outputFile = File(keystoresDir, sanitizedFileName)
+            FileOutputStream(outputFile).use { fos ->
+                fos.write(keystoreBytes)
+            }
+            finalFilePath = outputFile.absolutePath
+            finalFileSize = outputFile.length()
+        } else {
+            finalFilePath = ""
+            finalFileSize = keystoreBytes.size.toLong()
         }
 
         val base64String = java.util.Base64.getEncoder().encodeToString(keystoreBytes)
@@ -183,8 +202,8 @@ object KeystoreGenerator {
         return KeystoreDetails(
             fileName = sanitizedFileName,
             alias = config.alias.trim(),
-            filePath = outputFile.absolutePath,
-            fileSizeBytes = outputFile.length(),
+            filePath = finalFilePath,
+            fileSizeBytes = finalFileSize,
             storePassword = config.storePassword,
             keyPassword = keyPassword,
             base64Content = base64String,

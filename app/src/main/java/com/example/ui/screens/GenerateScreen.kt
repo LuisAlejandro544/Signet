@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.KeystoreViewModel
 import com.example.ui.state.GenerationUiState
+import com.example.ui.screens.generate.EphemeralModeSection
 import com.example.ui.screens.generate.GeneratePresetsSection
 import com.example.ui.screens.generate.KeystoreCredentialsForm
 import com.example.ui.screens.generate.KeystoreDnFields
@@ -182,6 +183,14 @@ fun GenerateScreen(
             onLocalityChange = { loc -> viewModel.updateForm { it.copy(locality = loc) } },
             onStateChange = { st -> viewModel.updateForm { it.copy(state = st) } },
             onCountryCodeChange = { code -> viewModel.updateForm { it.copy(countryCode = code) } }
+        )
+
+        // Section 4: Ephemeral Zero-Footprint Mode Switch
+        EphemeralModeSection(
+            formState = formState,
+            onToggleEphemeral = { enabled ->
+                viewModel.updateForm { it.copy(isEphemeral = enabled) }
+            }
         )
 
         // Submit / Generate Button

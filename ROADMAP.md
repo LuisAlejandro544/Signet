@@ -7,6 +7,7 @@ Plan estratégico de evolución técnica y funcionalidades para el proyecto **Si
 ## 📍 Fase 1: Fundamentos, Seguridad & Modularización (Completado ✅)
 - [x] Establecimiento de identidad y nombre oficial: **Signet**.
 - [x] Motor de generación criptográfica X.509 con BouncyCastle (RSA 2048, RSA 4096, EC P-256).
+- [x] **Modo Efímero / Sin Rastro (Zero-Footprint Mode)**: Generación volátil 100% en memoria RAM sin persistencia en disco ni base de datos Room, con exportación SAF (.jks), descarga de ZIP de respaldo y soporte para compartir seguro vía caché temporal.
 - [x] Soporte para extensiones `.jks` y `.keystore`.
 - [x] **Generador Criptográfico de Contraseñas (CSPRNG Nativo)**: Entropía calculada en tiempo real, selección de longitud (16, 20, 24, 32 caracteres), inclusión garantizada de mayúsculas, minúsculas, dígitos y símbolos seguros para Gradle/Terminal.
 - [x] **Guía de Campos y Requisitos de Identidad Google**: Claridad entre campos obligatorios (`CN`, `O`) y opcionales (`OU`, `L`, `ST`, `C`) con soporte para seudónimos y nombres inventados para privacidad.
@@ -68,11 +69,15 @@ Plan estratégico de evolución técnica y funcionalidades para el proyecto **Si
 
 ---
 
-## 📍 Fase 2: Firmador Integrado de APKs & Utilidades (Próximo 🚀)
-- [ ] **Firmador de APKs en el Dispositivo**:
-  - Implementación de firma APK Signature Scheme v1 (JAR signing) y v2 (APK Signature Scheme v2) directamente en el móvil.
-  - Firma de APKs desalineados con proceso automático de `zipalign`.
+## 📍 Fase 2: Firmador Integrado de APKs & Utilidades (En Progreso 🚀)
+- [x] **Firmador Profesional de APKs en el Dispositivo (APK Signer & Zipalign)**:
+  - [x] Implementación nativa de **APK Signature Scheme v1 (JAR signing)** generando `MANIFEST.MF`, `CERT.SF` y bloque PKCS#7 (`CERT.RSA`/`CERT.EC`).
+  - [x] Implementación nativa de **APK Signature Scheme v2 (APK Signing Block)** inyectando el bloque de firma criptográfica con ID `0x7109871a` antes del Central Directory.
+  - [x] Motor nativo de **Zipalign a 4 bytes** para optimización de entradas `STORED` (sin comprimir) garantizando soporte `mmap` e instalación inmediata.
+  - [x] Soporte para firma con Keystores de la bóveda interna (con descifrado automático AES-256-GCM) o archivos externos `.jks`/`.keystore`/`.p12`.
+  - [x] Interfaz de usuario interactiva en Jetpack Compose (`SignApkScreen`) con selección de APK, Keystore, opciones personalizadas, progreso, instalación directa e integración con APK Matcher.
 - [ ] **Conversión de Formatos**:
   - Conversión bidireccional entre JKS/PKCS12 y PEM/CRT/KEY.
 - [ ] **Herramienta Multiplataforma (Signet Desktop)**:
   - Versión Compose Multiplatform (Desktop JVM) para desarrolladores en Linux, macOS y Windows.
+

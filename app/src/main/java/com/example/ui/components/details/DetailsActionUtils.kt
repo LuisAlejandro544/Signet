@@ -42,15 +42,26 @@ object DetailsActionUtils {
 
     fun shareKeystoreFile(context: Context, details: KeystoreDetails) {
         try {
-            val file = File(details.filePath)
-            if (!file.exists()) {
-                Toast.makeText(context, "El archivo original ya no está en el almacenamiento local.", Toast.LENGTH_SHORT).show()
+            val fileToShare: File = if (details.filePath.isNotBlank() && File(details.filePath).exists()) {
+                File(details.filePath)
+            } else if (details.base64Content.isNotBlank()) {
+                val shareDir = File(context.cacheDir, "shared")
+                if (!shareDir.exists()) {
+                    shareDir.mkdirs()
+                }
+                val tempFile = File(shareDir, details.fileName)
+                val bytes = android.util.Base64.decode(details.base64Content, android.util.Base64.DEFAULT)
+                tempFile.writeBytes(bytes)
+                tempFile
+            } else {
+                Toast.makeText(context, "No se encontraron los datos binarios para compartir.", Toast.LENGTH_SHORT).show()
                 return
             }
+
             val uri = FileProvider.getUriForFile(
                 context,
                 "${context.packageName}.fileprovider",
-                file
+                fileToShare
             )
             val intent = Intent(Intent.ACTION_SEND).apply {
                 type = "application/octet-stream"

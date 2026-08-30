@@ -24,12 +24,23 @@ class KeystoreRepository(private val database: AppDatabase) {
     suspend fun generateAndSaveKeystore(
         context: Context,
         config: KeystoreConfig
+    ): Result<KeystoreDetails> = generateKeystore(context, config, saveToDatabase = true)
+
+    suspend fun generateKeystore(
+        context: Context,
+        config: KeystoreConfig,
+        saveToDatabase: Boolean = true
     ): Result<KeystoreDetails> = withContext(Dispatchers.IO) {
         try {
-            val details = KeystoreGenerator.generateKeystore(context, config)
-            val entity = KeystoreEntity.fromDetails(details)
-            val id = database.keystoreDao().insertKeystore(entity)
-            Result.success(details.copy(id = id))
+            val details = KeystoreGenerator.generateKeystore(context, config, saveToFile = saveToDatabase)
+            if (saveToDatabase) {
+                val entity = KeystoreEntity.fromDetails(details)
+                val id = database.keystoreDao().insertKeystore(entity)
+                Result.success(details.copy(id = id))
+            } else {
+                // Ephemeral zero-footprint mode: not saved in database or persistent files
+                Result.success(details.copy(id = 0L))
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }

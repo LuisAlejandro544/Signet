@@ -16,6 +16,11 @@ app/
 │   │   │   ├── crypto/
 │   │   │   │   ├── ApkMatcher.kt                # Fachada orquestadora forense APK vs Keystore (análisis y coincidencia)
 │   │   │   │   ├── KeystoreEncryptionManager.kt # Gestor de cifrado en reposo AES-256-GCM y AndroidKeyStore para contraseñas
+│   │   │   │   ├── signer/
+│   │   │   │   │   ├── ApkSigner.kt             # Fachada orquestadora del firmador de APKs (v1, v2, Zipalign)
+│   │   │   │   │   ├── ApkV1Signer.kt           # Motor de firma JAR (v1) con MANIFEST.MF, CERT.SF y CMS PKCS#7
+│   │   │   │   │   ├── ApkV2Signer.kt           # Motor de inyección de APK Signing Block (Esquema v2)
+│   │   │   │   │   └── ApkZipalignEngine.kt     # Motor de alineación a 4-bytes para optimización mmap en APKs
 │   │   │   │   ├── apk/
 │   │   │   │   │   ├── ApkSigningBlockParser.kt # Parser binario de bajo nivel para esquemas v2 y v3 (APK Signing Block)
 │   │   │   │   │   ├── ApkV1SignatureParser.kt  # Extractor de firmas PKCS#7 en META-INF mediante BouncyCastle CMS (v1 JAR)
@@ -42,10 +47,10 @@ app/
 │   │   │   │   │   ├── KeystoreDao.kt            # Operaciones DAO (insert, query, delete)
 │   │   │   │   │   └── KeystoreEntity.kt         # Entidad de persistencia de keystores con Base64 y credenciales
 │   │   │   │   └── model/
-│   │   │   │       └── KeystoreModels.kt        # Modelos de dominio (KeystoreConfig, KeystoreDetails, ApkInfo, ApkMatchResult, etc.)
+│   │   │   │       └── KeystoreModels.kt        # Modelos de dominio (KeystoreConfig, KeystoreDetails, ApkInfo, ApkSigningOptions, ApkSigningResult, etc.)
 │   │   │   └── ui/
 │   │   │       ├── KeystoreViewModel.kt         # ViewModel central desacoplado: StateFlows, validaciones y orquestación
-│   │   │       ├── MainScreen.kt                # Barra de navegación de 4 pestañas y contenedor de vistas
+│   │   │       ├── MainScreen.kt                # Barra de navegación de 5 pestañas y contenedor de vistas
 │   │   │       ├── components/
 │   │   │       │   ├── KeystoreDetailsSheet.kt  # BottomSheet orquestador de exportación SAF, compartir y detalles
 │   │   │       │   └── details/
@@ -69,7 +74,14 @@ app/
 │   │   │       │   │   ├── GeneratePresetsSection.kt     # Chips de plantillas rápidas (Release, Upload, RSA 4096)
 │   │   │       │   │   ├── KeystoreCredentialsForm.kt    # Formato, contraseñas, medidor de entropía y generador CSPRNG
 │   │   │       │   │   ├── KeystoreValiditySection.kt    # Slider interactivo de años, chips y selector de algoritmo
-│   │   │       │   │   └── KeystoreDnFields.kt           # Formulario X.500 con distinción de obligatorios Google y opcionales
+│   │   │       │   │   ├── KeystoreDnFields.kt           # Formulario X.500 con distinción de obligatorios Google y opcionales
+│   │   │       │   │   └── EphemeralModeSection.kt       # Selector interactivo del Modo Efímero (Zero-Footprint en memoria RAM)
+│   │   │       │   ├── SignApkScreen.kt         # Pantalla principal de firmado de APKs en el dispositivo
+│   │   │       │   ├── sign/
+│   │   │       │   │   ├── SelectApkCard.kt              # Tarjeta de selección de APK a firmar
+│   │   │       │   │   ├── SelectKeystoreForSigningCard.kt # Selector entre Keystores guardados y archivo externo con contraseñas
+│   │   │       │   │   ├── SigningOptionsCard.kt         # Opciones de Schemes v1/v2, Zipalign y nombre de salida
+│   │   │       │   │   └── SigningResultCard.kt          # Tarjeta de resultado con detalles, botón de instalación e inspección
 │   │   │       │   ├── InspectScreen.kt         # Orquestador con TabRow para inspección de archivos y validación APK
 │   │   │       │   ├── inspect/
 │   │   │       │   │   ├── KeystoreInspectorSection.kt   # Formulario de carga de archivo externo, contraseña y visor

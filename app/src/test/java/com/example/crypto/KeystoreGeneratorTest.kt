@@ -112,4 +112,43 @@ class KeystoreGeneratorTest {
         assertEquals(details.sha256Fingerprint, results[0].sha256Fingerprint)
         assertEquals(details.sha1Fingerprint, results[0].sha1Fingerprint)
     }
+
+    @Test
+    fun `generate ephemeral keystore in memory without creating file`() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val config = KeystoreConfig(
+            fileName = "zero-trace.jks",
+            storePassword = "EphemeralSecret123!",
+            alias = "ephemeral_alias",
+            useSamePassword = true,
+            validityYears = 15,
+            algorithm = KeyAlgorithm.RSA_2048,
+            distinguishedName = DistinguishedName(commonName = "Ephemeral App")
+        )
+
+        val details = KeystoreGenerator.generateKeystore(context, config, saveToFile = false)
+
+        assertNotNull(details)
+        assertEquals("zero-trace.jks", details.fileName)
+        assertEquals("ephemeral_alias", details.alias)
+        assertEquals("", details.filePath)
+        assertTrue("File size in bytes should be positive", details.fileSizeBytes > 0)
+        assertTrue("Base64 string should not be blank", details.base64Content.isNotBlank())
+        assertTrue("SHA-256 fingerprint should not be blank", details.sha256Fingerprint.isNotBlank())
+
+        // Verify that no physical file was created
+        val targetFile = File(File(context.filesDir, "keystores"), "zero-trace.jks")
+        assertTrue("No file should exist in storage for ephemeral keystore", !targetFile.exists())
+
+        // Inspect the generated in-memory Base64 bytes
+        val decodedBytes = java.util.Base64.getDecoder().decode(details.base64Content)
+        val inspected = X509CertificateInspector.inspectKeystore(
+            bytes = decodedBytes,
+            password = "EphemeralSecret123!",
+            provider = KeystoreGenerator.bcProvider
+        )
+        assertEquals(1, inspected.size)
+        assertEquals("ephemeral_alias", inspected[0].alias)
+        assertEquals(details.sha256Fingerprint, inspected[0].sha256Fingerprint)
+    }
 }

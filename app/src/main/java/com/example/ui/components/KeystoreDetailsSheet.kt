@@ -9,18 +9,28 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetState
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.data.model.KeystoreDetails
 import com.example.ui.components.details.DetailsActionUtils
@@ -68,16 +78,23 @@ fun KeystoreDetailsSheet(
     val exportFileLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/octet-stream")
     ) { uri ->
-        if (uri != null && details.filePath.isNotBlank()) {
+        if (uri != null) {
             try {
-                val sourceFile = File(details.filePath)
-                if (sourceFile.exists()) {
+                val bytes = if (details.filePath.isNotBlank() && File(details.filePath).exists()) {
+                    File(details.filePath).readBytes()
+                } else if (details.base64Content.isNotBlank()) {
+                    android.util.Base64.decode(details.base64Content, android.util.Base64.DEFAULT)
+                } else {
+                    null
+                }
+
+                if (bytes != null) {
                     context.contentResolver.openOutputStream(uri)?.use { out ->
-                        FileInputStream(sourceFile).use { input ->
-                            input.copyTo(out)
-                        }
+                        out.write(bytes)
                     }
                     Toast.makeText(context, "Archivo keystore guardado exitosamente.", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(context, "No se encontraron los datos binarios para exportar.", Toast.LENGTH_LONG).show()
                 }
             } catch (e: Exception) {
                 Toast.makeText(context, "Error al guardar: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
@@ -145,6 +162,42 @@ fun KeystoreDetailsSheet(
                     DetailsActionUtils.shareKeystoreFile(context, details)
                 }
             )
+
+            // Ephemeral Mode Notice Card
+            if (details.id == 0L || details.filePath.isBlank()) {
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f)
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.VisibilityOff,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.tertiary
+                        )
+                        Column {
+                            Text(
+                                text = "Modo Efímero (Sin Rastro Activo)",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer
+                            )
+                            Text(
+                                text = "Esta clave existe únicamente en memoria RAM y NO está guardada en la app. Exporta el ZIP, guarda el archivo o copia tus credenciales antes de cerrar.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.9f)
+                            )
+                        }
+                    }
+                }
+            }
 
             // Saved Credentials Card (File name, Key alias, Passwords with visibility & copy)
             KeystoreCredentialsCard(

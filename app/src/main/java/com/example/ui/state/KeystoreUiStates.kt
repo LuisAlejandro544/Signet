@@ -60,3 +60,45 @@ sealed interface ApkMatcherUiState {
     ) : ApkMatcherUiState
     data class Error(val message: String) : ApkMatcherUiState
 }
+
+/**
+ * UI State for the Sovereign APK Signing & Zipalign workflow.
+ */
+sealed interface ApkSigningUiState {
+    object Idle : ApkSigningUiState
+    data class Signing(val stepMessage: String, val progress: Float) : ApkSigningUiState
+    data class Success(val result: com.example.data.model.ApkSigningResult) : ApkSigningUiState
+    data class Error(val message: String) : ApkSigningUiState
+}
+
+enum class KeystoreSourceMode {
+    SAVED_KEYSTORE,
+    EXTERNAL_FILE
+}
+
+data class SignApkFormState(
+    val apkFileName: String = "",
+    val apkFileSizeBytes: Long = 0L,
+    val apkBytes: ByteArray? = null,
+    val detectedPackageName: String? = null,
+    val detectedVersionName: String? = null,
+    val hasExistingSignatures: Boolean = false,
+    val existingSchemes: List<String> = emptyList(),
+
+    val keystoreSourceMode: KeystoreSourceMode = KeystoreSourceMode.SAVED_KEYSTORE,
+    val selectedSavedKeystore: KeystoreDetails? = null,
+
+    val externalKeystoreFileName: String = "",
+    val externalKeystoreBytes: ByteArray? = null,
+    val keystorePassword: String = "",
+    val isKeystorePasswordVisible: Boolean = false,
+    val alias: String = "",
+    val keyPassword: String = "",
+    val isKeyPasswordVisible: Boolean = false,
+    val useSamePassword: Boolean = true,
+
+    val signV1: Boolean = true,
+    val signV2: Boolean = true,
+    val zipalign: Boolean = true,
+    val outputFileName: String = "app-signed.apk"
+)

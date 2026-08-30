@@ -14,9 +14,16 @@ Primer pre-lanzamiento público oficial del **Canal Beta (`.beta`)** de Signet (
 ### ✨ Características Principales Incluidas
 - 🔐 **Generador Criptográfico de Keystores**:
   * Creación de almacenes de claves en formatos estándares de la industria: **JKS (Java KeyStore)** y **PKCS12 (.p12 / .pfx)**.
+  * **Modo Efímero / Sin Rastro (Zero-Footprint Mode)**: Generación opcional 100% en memoria RAM sin persistir en la base de datos Room ni almacenar archivos en disco local, con soporte para exportación SAF, descarga de ZIP y copia de Base64 antes de destruir la sesión.
   * Soporte completo para algoritmos asimétricos modernos: **RSA (2048, 3072, 4096 bits)** y **Elliptic Curve / Curvas Elípticas (EC secp256r1, secp384r1, secp521r1)**.
   * Generador de certificados digitales X.509 v3 auto-firmados con período de validez configurable (de 1 a 100 años) y metadatos estándar (CN, OU, O, L, ST, C).
   * Compatibilidad estricta con los esquemas de firma de Android **APK Signature Scheme v1, v2 y v3** (`apksigner`).
+
+- ✍️ **Firmador de APKs en el Dispositivo (APK Signer & Zipalign)**:
+  * **Firma Dual Scheme v1 + Scheme v2**: Generación nativa de firmas JAR (`META-INF/MANIFEST.MF`, `CERT.SF`, `CERT.RSA/EC`) e inyección de bloques de firma `APK Sig Block 42` antes del Central Directory.
+  * **Motor Zipalign 4-Bytes**: Alineación automática de entradas sin comprimir (`STORED`) en múltiplos de 4 bytes para optimización `mmap` y soporte nativo de instalación.
+  * **Firma con Keystores de la Bóveda o Externos**: Selección transparente de claves guardadas en SQLite (con descifrado AES-256-GCM) o carga directa de archivos `.jks`/`.keystore`/`.p12` externos.
+  * **Instalación y Verificación Directa**: Botón para instalar el APK firmado directamente en el teléfono e integración con APK Matcher para validación de certificados.
 
 - ⚡ **Integración Inmediata con Pipelines de CI/CD**:
   * Conversión y exportación automática a **Base64** con un solo toque desde la interfaz, listo para copiar y pegar en **GitHub Secrets**, Bitrise, GitLab CI o Fastlane sin intermediarios.

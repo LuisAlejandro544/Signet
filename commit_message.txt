@@ -1,93 +1,48 @@
-refactor(architecture): modularizar ApkMatcherSection, SignetBackupManager y BackupIntegrityVerifier
+feat(crypto): implementar modo efímero sin rastro (zero-footprint) en memoria RAM
 
-- Modularización de `ApkMatcherSection.kt` en componentes UI desacoplados:
-  * Crear subpaquete `com.example.ui.screens.inspect.apk` con componentes reutilizables y atómicos.
-  * `ApkFileSelectorCard.kt`: Componente de selección de archivo binario APK con selector SAF, visualización de tamaño y estado.
-  * `ApkDetailsInfoCard.kt`: Visualizador de metadatos extraídos del APK (`packageName`, `versionName`, `versionCode`), esquemas de firma soportados (v1 JAR, v2 Full APK, v3 App Bundles) y huellas digitales de certificados con opción de copia segura.
-  * `ApkKeystoreSelectorSection.kt`: Selector de origen de keystore para contraste (almacenes guardados en Signet con dropdown interactivo o archivo externo JKS/PKCS12 con campo de contraseña protegida).
-  * `ApkMatchResultCard.kt`: Tarjeta de diagnóstico comparativo de huellas digitales SHA-256 con dictamen de compatibilidad de actualización inmediata.
-  * `ApkErrorCard.kt`: Componente de visualización de errores y excepciones de análisis.
-  * Reducir `ApkMatcherSection.kt` a un orquestador limpio y enfocado exclusivamente en diseño de layout y estado.
+- Modo de Generación Efímero (Zero-Footprint):
+  * Añadir bandera `isEphemeral: Boolean` en `FormState.kt` para permitir al usuario alternar entre persistencia estándar y generación estrictamente volátil en memoria.
+  * Modificar `KeystoreGenerator.kt` con parámetro opcional `saveToFile: Boolean = true`. Cuando es falso, el almacén de claves (.jks / .keystore / .p12) y sus certificados X.509 se generan en memoria RAM mediante BouncyCastle y se codifican en Base64 sin escribir archivos en el almacenamiento interno de la app (`context.filesDir`).
+  * Actualizar `KeystoreRepository.kt` agregando `generateKeystore(context, config, saveToDatabase: Boolean = true)` para omitir la inserción en la base de datos Room (`AppDatabase`) cuando el modo efímero esté activo, retornando un identificador efímero (`id = 0L`).
+  * Actualizar `KeystoreViewModel.kt` para coordinar la generación efímera en base al estado del formulario.
 
-- Desacoplamiento criptográfico y modularización de `BackupIntegrityVerifier.kt`:
-  * Crear `com.example.crypto.backup.HmacSignatureEngine.kt`: Motor centralizado de cálculo criptográfico de huellas SHA-256 y firmas HMAC-SHA256 para manifiestos individuales y bóvedas maestras con verificación en tiempo constante (`MessageDigest.isEqual`).
-  * Crear `com.example.crypto.backup.SignetManifestParser.kt`: Parser, generador y validador de integridad para manifiestos individuales (`signet-backup.json`).
-  * Crear `com.example.crypto.backup.SignetVaultManifestParser.kt`: Parser, generador y validador de integridad para manifiestos maestros de bóveda (`signet-vault-backup.json`).
-  * Refactorizar `BackupIntegrityVerifier.kt` como una fachada limpia que delega a los motores especializados manteniendo compatibilidad total.
+- Interfaz de Usuario y Experiencia en Compose:
+  * Crear componente `EphemeralModeSection.kt` en `com.example.ui.screens.generate`: tarjeta Material 3 con switch interactivo, indicador visual y descripción clara sobre la ausencia de persistencia en disco.
+  * Integrar `EphemeralModeSection` en `GenerateScreen.kt` permitiendo activar o desactivar el modo antes de la generación.
+  * Actualizar `KeystoreDetailsSheet.kt`:
+    - Incorporar banner informativo destacado cuando una clave es efímera, advirtiendo al usuario de exportar sus datos antes de cerrar la vista.
+    - Adaptar `exportFileLauncher` para exportar el archivo binario `.jks` mediante SAF directamente desde el payload en Base64 en memoria cuando no exista archivo local en disco.
+    - Adaptar `DetailsActionUtils.shareKeystoreFile` para permitir compartir claves efímeras mediante un archivo temporal protegido en la caché de la aplicación (`cache-path`).
+  * Actualizar `file_paths.xml` agregando la ruta `<cache-path name="shared_keystores" path="shared/" />` para el `FileProvider`.
 
-- Modularización de flujos de compresión y descompresión en `SignetBackupManager.kt`:
-  * Crear `com.example.crypto.backup.ZipPackageBuilder.kt`: Encapsula la lógica de empaquetado de flujos ZIP en memoria para respaldos individuales y bóvedas completas con subcarpetas.
-  * Crear `com.example.crypto.backup.ZipPackageExtractor.kt`: Encapsula la lectura, detección de esquemas y descompresión en memoria de paquetes ZIP.
-  * Refactorizar `SignetBackupManager.kt` como un orquestador de alto nivel centrado en ciclo de vida y persistencia en Room.
+- Pruebas y Validación:
+  * Añadir caso de prueba `generate ephemeral keystore in memory without creating file` en `KeystoreGeneratorTest.kt` verificando que no se creen archivos en disco y que el Base64 generado sea íntegro e inspeccionable.
+  * Añadir prueba en `KeystoreViewModelTest.kt` para verificar el cambio de estado del modo efímero en el formulario.
 
-- Actualización de documentación:
-  * `STRUCTURE.md`: Actualizado el árbol de archivos y los flujos de datos para reflejar los nuevos submódulos sin eliminar información existente.
+- Documentación:
+  * Actualizar `README.md`, `ROADMAP.md`, `AI_CONTEXT.md`, `STRUCTURE.md` y `Changelog-release.md` documentando la arquitectura y funcionamiento del modo efímero.
 
----
+feat(signer): implementar motor nativo de firma de APKs (v1, v2) y Zipalign en el dispositivo
 
-feat(backup): implementar exportación y restauración de bóveda completa multi-keystore en ZIP con subcarpetas y firma HMAC
+- Motor Criptográfico de Firma de APKs (`com.example.crypto.signer`):
+  * Crear `ApkV1Signer.kt`: Genera manifiesto JAR `META-INF/MANIFEST.MF`, archivo de firmas `META-INF/CERT.SF` con hashes SHA-256 de todas las entradas del paquete y bloque de firma PKCS#7 (`CERT.RSA` / `CERT.EC`) firmado mediante BouncyCastle `CMSSignedDataGenerator`.
+  * Crear `ApkV2Signer.kt`: Inyecta el bloque **APK Signing Block** con ID `0x7109871a` y magic `APK Sig Block 42` antes del Central Directory con cálculo de resúmenes por chunks de 1 MB de las secciones del APK.
+  * Crear `ApkZipalignEngine.kt`: Motor de alineación a 4 bytes para entradas sin comprimir (`STORED`), asegurando compatibilidad con el cargador de Android (`mmap`) y optimización de memoria.
+  * Crear `ApkSigner.kt`: Fachada central que orquesta el flujo completo de firma, admitiendo Keystores internos de la bóveda (con descifrado AES-256-GCM) o archivos externos `.jks`/`.keystore`/`.p12`.
 
-- Implementación del motor de respaldo y exportación de bóveda completa (`Master Vault`):
-  * Crear `createVaultBackupZip` en `SignetBackupManager.kt`: empaqueta todos los almacenes de claves guardados en una estructura de subcarpetas (`keystores/1_alias/`, `keystores/2_alias/`), conteniendo cada una su binario (.jks/.keystore), `credentials.txt`, `key.properties`, `base64.txt`, `README-BACKUP.txt` y manifiesto local `signet-backup.json`.
-  * Generar en la raíz el manifiesto maestro `signet-vault-backup.json` firmado criptográficamente con HMAC-SHA256 y el inventario legible `VAULT-SUMMARY.txt` con metadatos y huellas.
-  * Añadir `buildSignedVaultManifest`, `verifyVaultManifestAndIntegrity` y `computeVaultMasterHmac` en `BackupIntegrityVerifier.kt` para vincular de forma estricta los hashes SHA-256 de todos los binarios y sus rutas relativas.
-  * Añadir `buildVaultSummaryText` en `BackupTemplates.kt` para generar el resumen e inventario de la bóveda.
+- Interfaz de Usuario y Navegación en Jetpack Compose:
+  * Crear componentes desacoplados en `ui/screens/sign`:
+    - `SelectApkCard.kt`: Selector de archivo APK mediante Android SAF con lectura de tamaño y nombre.
+    - `SelectKeystoreForSigningCard.kt`: Selector interactivo entre Keystores de la bóveda interna (con auto-rellenado de alias y descifrado seguro de contraseñas) y archivos externos con campos de contraseña.
+    - `SigningOptionsCard.kt`: Configuración de esquemas de firma v1, v2, Zipalign y personalización del nombre de salida.
+    - `SigningResultCard.kt`: Visualizador de resultados con huella digital SHA-256, botones de instalación directa vía `Intent.ACTION_INSTALL_PACKAGE`, compartir y análisis cruzado en `InspectScreen`.
+  * Crear `SignApkScreen.kt` e integrarlo en la barra de navegación de 5 pestañas de `MainScreen.kt`.
 
-- Restauración inteligente y polimórfica:
-  * Implementar `restoreAnyFromZip` y `restoreVaultFromZip` en `SignetBackupManager.kt`: detecta automáticamente si el archivo ZIP es un respaldo individual o una bóveda completa multi-keystore.
-  * Verificar de forma estricta las firmas criptográficas HMAC del manifiesto maestro y hashes de binarios, lanzando `SecurityException` si algún archivo o dato fue alterado externamente.
-  * Desbloquear y persistir todas las claves en la base de datos Room mediante `KeystoreRepository.restoreAndSaveAnyFromZip`, aplicando automáticamente cifrado en reposo AES-256-GCM (`enc:v1:`) respaldado por Android KeyStore para evitar fugas de datos frente a malware o accesos root.
+- Modelos de Datos, ViewModel y FileProvider:
+  * Extender `KeystoreModels.kt` y `KeystoreUiStates.kt` con `ApkSigningOptions`, `ApkSigningResult`, `ApkSigningUiState` y `SignApkFormState`.
+  * Actualizar `KeystoreViewModel.kt` con métodos para selección de archivos, configuración de opciones, ejecución asíncrona en `Dispatchers.IO` y acciones de instalación/compartir.
+  * Actualizar `file_paths.xml` con `<cache-path name="signed_apks" path="signed_apks/" />` para permitir compartir e instalar APKs firmados mediante `FileProvider`.
 
-- Integración en Capa de Presentación (UI / Compose):
-  * Actualizar `SavedKeystoresHeader.kt`: incorporar botón "Exportar Bóveda" y contador dinámico de keystores.
-  * Actualizar `SavedKeystoresScreen.kt`: agregar lanzador `exportVaultLauncher` para guardar el archivo ZIP de la bóveda mediante Android SAF y soporte reactivo de restauración masiva.
-  * Actualizar `KeystoreUiStates.kt`: ampliar `RestoreUiState.Success` y añadir `VaultExportUiState`.
-  * Actualizar `SavedKeystoresDialogs.kt`: reflejar estados de restauración de bóvedas y respaldos.
+- Pruebas Automatizadas:
+  * Crear `ApkSignerTest.kt` con Robolectric (API 36) verificando la firma dual (v1 y v2), Zipalign, presencia de la marca mágica APK Sig Block 42, integración con `ApkMatcher` y manejo de errores con contraseñas inválidas.
 
-- Cobertura de Pruebas Unitarias con Robolectric:
-  * Ampliar `SignetBackupIntegrityTest.kt` con pruebas para creación y restauración de bóvedas ZIP con subcarpetas y verificación de rechazo ante manipulación del manifiesto maestro.
-
-- Actualización integral de documentación:
-  * `README.md`, `ROADMAP.md`, `AI_CONTEXT.md`, `STRUCTURE.md` y `Changelog-release.md` actualizados con la arquitectura de la bóveda completa sin eliminar información existente.
-
----
-
-feat(security): implementar cifrado en reposo AES-256-GCM y protección de portapapeles
-
-- Implementación de cifrado en reposo para credenciales de Keystores en Room:
-  * Crear `com.example.crypto.KeystoreEncryptionManager.kt`: motor de cifrado AES-256-GCM respaldado por `AndroidKeyStore` (y derivación segura en JVM/Desktop) que protege `storePassword` y `keyPassword` con prefijo `enc:v1:`.
-  * Actualizar `com.example.data.local.KeystoreEntity.kt`: cifrado transparente al persistir entidades y descifrado al convertir a `KeystoreDetails`, garantizando compatibilidad total hacia atrás con registros previos.
-  * Añadir `com.example.crypto.KeystoreEncryptionManagerTest.kt`: suite de pruebas unitarias verificando cifrado, descifrado, manejo de registros heredados y entidades Room.
-
-- Refuerzo de seguridad del portapapeles en UI:
-  * Actualizar `com.example.ui.components.details.DetailsActionUtils.kt`: soporte para bandera `ClipDescription.EXTRA_IS_SENSITIVE` (Android 13+ / API 33+) para evitar previsualizaciones inseguras del sistema y desplegar advertencia contextual sobre apps de terceros al copiar secretos.
-  * Actualizar `KeystoreCredentialsCard.kt`, `KeystoreBase64Card.kt` y `ApkMatcherSection.kt` para activar la protección de contenido sensible al copiar contraseñas, secretos Base64 y huellas.
-
-- Actualización integral de documentación:
-  * `README.md`, `ROADMAP.md`, `AI_CONTEXT.md`, `STRUCTURE.md` y `Changelog-release.md` actualizados para detallar la arquitectura de cifrado en reposo y protección del portapapeles.
-
----
-
-refactor(crypto): eliminar generador y referencias a exportación .pepk ficticia
-
-- Eliminación completa de componentes criptográficos y UI de .pepk:
-  * Eliminar `com.example.crypto.PepkGenerator.kt`: se remueve la implementación ficticia que simulaba la herramienta propietaria pepk.jar de Google Play.
-  * Eliminar `com.example.ui.components.details.PepkExportDialog.kt`: se remueve el diálogo modal de exportación .pepk y selección de clave pública.
-  * Eliminar `com.example.crypto.PepkGeneratorTest.kt`: se remueven los tests unitarios asociados a la lógica eliminada.
-
-- Limpieza y adaptación del núcleo criptográfico y UI:
-  * `SignetBackupManager.kt`: Simplificar `createBackupZip` removiendo los parámetros opcionales y empaquetado de archivos .pepk.
-  * `BackupTemplates.kt`: Eliminar referencias a .pepk en las plantillas de `credentials.txt` y `README-BACKUP.txt`.
-  * `SnippetGenerator.kt`: Remover la función `generatePepkSnippet` y comando CLI para pepk.jar.
-  * `KeystoreHeaderSection.kt`: Eliminar botón de exportación para Google Play (.pepk) y su callback correspondiente.
-  * `KeystoreDetailsSheet.kt`: Remover estado reactivo `showPepkDialog` e invocación de `PepkExportDialog`.
-  * `KeystoreCodeSnippetsCard.kt`: Remover pestaña `PEPK_CLI` del selector de snippets y sus descripciones asociadas.
-  * `WelcomeModels.kt`: Actualizar tarjeta de onboarding número 2 ("Respaldos & CI/CD") enfocándola exclusivamente en respaldos ZIP anti-manipulación, integración con secretos y snippets para Gradle/CI-CD.
-  * `SnippetGeneratorTest.kt`: Remover assertions relacionadas con la generación de snippets para pepk.jar.
-
-- Actualización integral de documentación y términos legales:
-  * `README.md`: Eliminar sección de exportación .pepk, comandos CLI de pepk.jar y actualizar el resumen de onboarding y términos a 12 secciones.
-  * `AI_CONTEXT.md`: Actualizar la descripción de propósito del proyecto y marco legal removiendo referencias a .pepk.
-  * `ROADMAP.md`: Remover hitos y tareas relacionadas con el generador .pepk.
-  * `STRUCTURE.md`: Actualizar el árbol del proyecto y la descripción de snippets/términos sin archivos ni componentes .pepk.
-  * `web/src/pages/privacy.astro` y `web/src/pages/terms.astro`: Remover menciones a archivos .pepk y eliminar la cláusula específica de cifrado PEPK para Google Play, reordenando las secciones legales de 13 a 12.

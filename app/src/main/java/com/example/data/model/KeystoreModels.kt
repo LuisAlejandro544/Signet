@@ -89,3 +89,26 @@ data class ApkMatchResult(
     val matchedFingerprintSha256: String?,
     val reasonMessage: String
 )
+
+data class ApkSigningOptions(
+    val signV1: Boolean = true,
+    val signV2: Boolean = true,
+    val zipalign: Boolean = true,
+    val outputFileName: String = "app-signed.apk"
+)
+
+data class ApkSigningResult(
+    val isSuccess: Boolean,
+    val signedApkBytes: ByteArray? = null,
+    val signedApkFile: java.io.File? = null,
+    val outputFileName: String,
+    val outputFileSizeBytes: Long = 0L,
+    val packageName: String? = null,
+    val versionName: String? = null,
+    val versionCode: Long? = null,
+    val sha256Fingerprint: String = "",
+    val appliedSchemes: List<String> = emptyList(),
+    val zipalignApplied: Boolean = false,
+    val durationMs: Long = 0L,
+    val errorMessage: String? = null
+)

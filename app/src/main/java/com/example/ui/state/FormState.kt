@@ -23,7 +23,8 @@ data class FormState(
     val locality: String = "",
     val state: String = "",
     val countryCode: String = "",
-    val isAdvancedDnExpanded: Boolean = true
+    val isAdvancedDnExpanded: Boolean = true,
+    val isEphemeral: Boolean = false
 ) {
     val fullFileName: String
         get() {

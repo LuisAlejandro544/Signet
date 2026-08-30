@@ -26,9 +26,10 @@ Este documento proporciona contexto técnico, decisiones de arquitectura y direc
    - Longitud parametrizada (16, 20, 24, 32 caracteres) garantizando inclusión de mayúsculas, minúsculas, números y símbolos seguros para terminal y Gradle.
    - Cálculo en tiempo real de entropía (bits) y fortaleza para retroalimentación visual en Compose.
 
-4. **Formatos Soportados & Validez**:
+4. **Formatos Soportados, Validez & Modo Efímero**:
    - Generación: Estándar PKCS#12 (.jks y .keystore) compatible al 100% con `apksigner`, `jarsigner` y Android Studio Gradle Plugin.
    - Algoritmos: `RSA` (2048 y 4096 bits) con `SHA256WithRSAEncryption` y `EC` (Curva `secp256r1`/P-256) con `SHA256withECDSA`.
+   - **Modo Efímero / Sin Rastro (Zero-Footprint)**: Generación 100% en memoria RAM sin persistir en base de datos Room (`AppDatabase`) ni crear archivos físicos en `context.filesDir`. Permite exportar vía SAF (escribiendo bytes decodificados de Base64), generar el ZIP de respaldo o compartir con archivo temporal de caché. Al cerrar la hoja o la app, los datos desaparecen sin dejar rastro en el dispositivo.
    - Validez interactiva: Control deslizable (1 a 100 años) con valor recomendado de 25+ años para cumplir requerimientos de actualización de APKs.
    - Requisitos de identidad: Diferenciación clara entre obligatorios por estándar Google/Android (`CN`, `O`) y opcionales (`OU`, `L`, `ST`, `C`), con soporte para datos inventados o seudónimos para proteger la privacidad.
 
@@ -91,4 +92,12 @@ Este documento proporciona contexto técnico, decisiones de arquitectura y direc
     - Decodifica el keystore en `app/signet-beta-key.jks`, compila con R8 (`isMinifyEnabled = true`, `isShrinkResources = true`) aplicando las reglas de `app/proguard-rules.pro`.
     - Genera el checksum SHA-256 y adjunta automáticamente el APK firmado a los assets del Pre-Release de GitHub.
     - Registro de versiones documentado en `Changelog-release.md`.
+
+16. **Firmador Profesional de APKs & Motor Zipalign (`com.example.crypto.signer`)**:
+    - `ApkSigner`: Orquestador central que extrae el par de claves/certificado del Keystore (interno de la bóveda o archivo externo), ejecuta `ApkZipalignEngine`, aplica `ApkV1Signer` y/o `ApkV2Signer`, y genera el APK firmado con guardado/caché y opción de instalación nativa.
+    - `ApkV1Signer`: Firma basada en JAR (`META-INF/MANIFEST.MF`, `CERT.SF`, `CERT.RSA`/`CERT.EC`) usando BouncyCastle CMS `CMSSignedDataGenerator`.
+    - `ApkV2Signer`: Inyección del **APK Signing Block** con ID `0x7109871a` y magic `APK Sig Block 42` antes del Central Directory con cálculo de digesiones de 1 MB de las 3 secciones del APK (ZIP entries, Central Directory, EOCD ajustado).
+    - `ApkZipalignEngine`: Alineación de entradas sin comprimir (`STORED`) en múltiplos exactos de 4 bytes para compatibilidad de mapeo en memoria `mmap`.
+    - `SignApkScreen`: Interfaz en Compose con selector de APK, selector de Keystore, opciones configurables y tarjeta de resultados interactiva (con botón de instalación mediante `Intent.ACTION_INSTALL_PACKAGE` y navegación hacia `InspectScreen`).
+
 

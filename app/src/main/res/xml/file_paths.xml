@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
     <files-path name="keystores" path="keystores/" />
+    <cache-path name="shared_keystores" path="shared/" />
+    <cache-path name="signed_apks" path="signed_apks/" />
 </paths>

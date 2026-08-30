@@ -38,8 +38,11 @@ import com.example.ui.screens.GenerateScreen
 import com.example.ui.screens.InspectScreen
 import com.example.ui.screens.SavedKeystoresScreen
 import com.example.ui.screens.SettingsScreen
+import com.example.ui.screens.sign.SignApkScreen
 import com.example.ui.state.GenerationUiState
 import kotlinx.coroutines.launch
+import androidx.compose.material.icons.filled.Draw
+import androidx.compose.material.icons.outlined.Draw
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,8 +75,9 @@ fun MainScreen(
                         text = when (selectedTab) {
                             0 -> "Generar Keystore"
                             1 -> "Mis Keystores"
-                            2 -> "Inspeccionar Keystore"
-                            3 -> "Configuración"
+                            2 -> "Firmar APK"
+                            3 -> "Inspeccionar"
+                            4 -> "Configuración"
                             else -> "Signet"
                         },
                         fontWeight = FontWeight.Bold,
@@ -140,7 +144,24 @@ fun MainScreen(
                     onClick = { viewModel.setSelectedTab(2) },
                     icon = {
                         Icon(
-                            imageVector = if (selectedTab == 2) Icons.Filled.Search else Icons.Outlined.Search,
+                            imageVector = if (selectedTab == 2) Icons.Filled.Draw else Icons.Outlined.Draw,
+                            contentDescription = "Firmar APK"
+                        )
+                    },
+                    label = { Text("Firmar") },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = MaterialTheme.colorScheme.primary,
+                        indicatorColor = MaterialTheme.colorScheme.primaryContainer
+                    ),
+                    modifier = Modifier.testTag("tab_sign_apk")
+                )
+
+                NavigationBarItem(
+                    selected = selectedTab == 3,
+                    onClick = { viewModel.setSelectedTab(3) },
+                    icon = {
+                        Icon(
+                            imageVector = if (selectedTab == 3) Icons.Filled.Search else Icons.Outlined.Search,
                             contentDescription = "Inspeccionar"
                         )
                     },
@@ -153,11 +174,11 @@ fun MainScreen(
                 )
 
                 NavigationBarItem(
-                    selected = selectedTab == 3,
-                    onClick = { viewModel.setSelectedTab(3) },
+                    selected = selectedTab == 4,
+                    onClick = { viewModel.setSelectedTab(4) },
                     icon = {
                         Icon(
-                            imageVector = if (selectedTab == 3) Icons.Filled.Settings else Icons.Outlined.Settings,
+                            imageVector = if (selectedTab == 4) Icons.Filled.Settings else Icons.Outlined.Settings,
                             contentDescription = "Configuración"
                         )
                     },
@@ -180,8 +201,15 @@ fun MainScreen(
             when (selectedTab) {
                 0 -> GenerateScreen(viewModel = viewModel)
                 1 -> SavedKeystoresScreen(viewModel = viewModel)
-                2 -> InspectScreen(viewModel = viewModel)
-                3 -> SettingsScreen(viewModel = viewModel)
+                2 -> SignApkScreen(
+                    viewModel = viewModel,
+                    onNavigateToInspectWithApk = { bytes, name ->
+                        viewModel.analyzeApk(null, bytes, name)
+                        viewModel.setSelectedTab(3)
+                    }
+                )
+                3 -> InspectScreen(viewModel = viewModel)
+                4 -> SettingsScreen(viewModel = viewModel)
             }
         }
     }
