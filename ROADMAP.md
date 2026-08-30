@@ -75,10 +75,14 @@ Plan estratégico de evolución técnica y funcionalidades para el proyecto **Si
   - [x] **Estructura del Módulo Compartido (KMP / Shared UI)**:
     * Abstracción unificada de servicios del sistema operativo `PlatformServices` y `LocalPlatformServices` (inyección desacoplada de selección/guardado de archivos, portapapeles, explorador nativo e instalación).
     * Capa de UI compartida 100% desacoplada en Jetpack Compose / Compose Multiplatform (pantallas de Generación, Firma de APKs, Inspección forense, Historial, Bienvenida y Ajustes).
-    * `KeystoreViewModel` reactivo gobernado puramente por Kotlin Coroutines `StateFlow` sin dependencias de `android.content.Context`.
+    * Adaptación y centralización de recursos y textos de interfaz en `SignetStrings` (`com.example.ui.res.SignetStrings`) eliminando dependencias de `android.R` y `stringResource`.
+    * Desacoplamiento de `LocalContext` en pantallas (`GenerateScreen`, `SignApkScreen`, `LegalLinksSection`, `SettingsScreen`) delegando en `LocalPlatformServices`.
+    * Configuración de fuentes compartidas de UI y datos en `desktop/build.gradle.kts` (`sourceSets`).
+    * `KeystoreViewModel` reactivo gobernado puramente por Kotlin Coroutines `StateFlow` con sobrecargas agnósticas de plataforma para generación y firma.
     * Núcleo criptográfico común de alta seguridad (`com.example.crypto`) e inmutabilidad en modelos de dominio (`com.example.data.model`).
-- [ ] **Distribución y CI/CD de Signet Desktop**:
-  - [ ] Pipeline de CI/CD para compilación automatizada de instaladores Windows (.exe / .msi) y Linux (.deb / AppImage).
+- [x] **Distribución y CI/CD de Signet Desktop**:
+  - [x] Pipeline de CI/CD en GitHub Actions (`build-release-desktop.yml`) para compilación y empaquetado automatizado de ejecutables nativos de Windows (`.exe`), instaladores MSI (`.msi`) y paquetes portables (`.zip`), con hashes SHA-256, publicación en GitHub Releases y notificación a Telegram.
+  - [ ] Compilación empaquetada para Linux (.deb / AppImage) y macOS (.dmg).
 
 
 

@@ -23,3 +23,27 @@ feat(kmp): formalizar estructura del módulo compartido (KMP / Shared UI) y cont
   * Núcleo criptográfico común de alta seguridad en `com.example.crypto` (BouncyCastle) y modelos inmutables de dominio en `com.example.data.model`.
   * Garantía de compatibilidad nativa en arquitecturas x86_64 y ARM64 (Windows on ARM / Snapdragon X / Apple Silicon / Linux aarch64).
 
+feat(ci): implementar workflow de GitHub Actions para compilar y empaquetar ejecutables nativos de Windows (.exe, .msi y .zip portable)
+
+- Pipeline de CI/CD para Windows Desktop (`.github/workflows/build-release-desktop.yml`):
+  * Activación automática sincronizada con releases, tags de versión (`v*`, `v*-B`, `v*-desktop*`) y ejecución manual `workflow_dispatch`.
+  * Compilación del Fat JAR del módulo `:desktop` con dependencias completas de BouncyCastle y corrutinas.
+  * Generación de paquetes mediante `jpackage` en runner Windows: ejecutable autónomo `Signet.exe`, instalador MSI (`.msi`) y bundle portable comprimido (`.zip`).
+  * Cálculo de hashes SHA-256 para verificación criptográfica y adjunción automática a GitHub Releases.
+  * Notificación y envío directo del binario a Telegram privado mediante Bot API / MTProto.
+
+feat(ui): configurar UI en módulo :desktop, desacoplar recursos Android y modularizar arquitectura de presentación multiplataforma
+
+- Configuración y Enlace de UI en Módulo :desktop:
+  * Inclusión de las fuentes compartidas de UI (`../app/src/main/java/com/example/ui`) y repositorios (`../app/src/main/java/com/example/data`) en el `sourceSets` del módulo `:desktop` (`desktop/build.gradle.kts`).
+  * Enlace con Compose Multiplatform para permitir la renderización directa de los composables en entornos JVM / Windows.
+
+- Adaptación de Recursos y Textos Agnósticos de Plataforma:
+  * Creación del catálogo unificado `SignetStrings` (`com.example.ui.res.SignetStrings`) eliminando dependencias de `android.R` y `stringResource`.
+  * Consolidación de títulos, descripciones, plantillas y etiquetas accesibles de forma multiplataforma.
+
+- Desacoplamiento Modular de Contexto en Componentes UI:
+  * Refactorización de `GenerateScreen`, `SignApkScreen`, `LegalLinksSection` y `SettingsScreen` para consumir `LocalPlatformServices` en lugar de `LocalContext`.
+  * Adaptación de la API de firma en `ApkSigner` y `KeystoreViewModel` con firmas nativas basadas en `File` y directorios de almacenamiento multiplataforma.
+
+

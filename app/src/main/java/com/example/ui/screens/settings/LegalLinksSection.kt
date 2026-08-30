@@ -1,6 +1,5 @@
 package com.example.ui.screens.settings
 
-import android.content.Context
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -30,14 +29,15 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.platform.LocalPlatformServices
 import com.example.ui.KeystoreViewModel
 
 @Composable
 fun LegalLinksSection(
-    context: Context,
     viewModel: KeystoreViewModel,
     modifier: Modifier = Modifier
 ) {
+    val platformServices = LocalPlatformServices.current
     Card(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
@@ -79,7 +79,7 @@ fun LegalLinksSection(
             // Botón Términos y Condiciones
             OutlinedButton(
                 onClick = {
-                    viewModel.openWebUrl(context, KeystoreViewModel.URL_TERMS)
+                    platformServices.openUrl(KeystoreViewModel.URL_TERMS)
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -120,7 +120,7 @@ fun LegalLinksSection(
             // Botón Política de Privacidad
             OutlinedButton(
                 onClick = {
-                    viewModel.openWebUrl(context, KeystoreViewModel.URL_PRIVACY)
+                    platformServices.openUrl(KeystoreViewModel.URL_PRIVACY)
                 },
                 modifier = Modifier
                     .fillMaxWidth()

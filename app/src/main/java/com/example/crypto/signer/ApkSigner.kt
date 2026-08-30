@@ -1,6 +1,5 @@
 package com.example.crypto.signer
 
-import android.content.Context
 import com.example.crypto.apk.AxmlManifestParser
 import com.example.data.model.ApkSigningOptions
 import com.example.data.model.ApkSigningResult
@@ -42,7 +41,7 @@ object ApkSigner {
         alias: String,
         keyPassword: String,
         options: ApkSigningOptions = ApkSigningOptions(),
-        context: Context? = null,
+        outputDirectory: File? = null,
         onProgress: ((step: String, progress: Float) -> Unit)? = null
     ): ApkSigningResult {
         val startTime = System.currentTimeMillis()
@@ -112,11 +111,10 @@ object ApkSigner {
                 }
             }
 
-            // 6. Save signed APK to cache or desktop directory
-            val outputDir: File = if (context != null) {
-                File(context.cacheDir, "signed_apks").apply { mkdirs() }
-            } else {
-                File(com.example.crypto.DesktopStorageUtils.getAppDirectory(), "signed_apks").apply { mkdirs() }
+            // 6. Save signed APK to output directory or desktop directory
+            val outputDir: File = outputDirectory ?: File(com.example.crypto.DesktopStorageUtils.getAppDirectory(), "signed_apks").apply { mkdirs() }
+            if (!outputDir.exists()) {
+                outputDir.mkdirs()
             }
             val cleanOutputName = if (options.outputFileName.endsWith(".apk", ignoreCase = true)) {
                 options.outputFileName

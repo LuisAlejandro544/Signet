@@ -479,7 +479,11 @@ open class KeystoreViewModel(
         _apkSigningState.value = ApkSigningUiState.Idle
     }
 
-    fun signApk(context: Context? = null) {
+    fun signApk(context: Context) {
+        signApk(outputDir = File(context.cacheDir, "signed_apks"))
+    }
+
+    fun signApk(outputDir: File = com.example.crypto.DesktopStorageUtils.getAppDirectory()) {
         val form = _signApkFormState.value
         val apkBytes = form.apkBytes
 
@@ -573,7 +577,7 @@ open class KeystoreViewModel(
                 alias = alias,
                 keyPassword = keyPassword,
                 options = options,
-                context = context,
+                outputDirectory = outputDir,
                 onProgress = { step, progress ->
                     _apkSigningState.value = ApkSigningUiState.Signing(step, progress)
                 }

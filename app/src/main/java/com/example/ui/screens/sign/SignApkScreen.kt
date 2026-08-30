@@ -21,10 +21,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.platform.LocalPlatformServices
 import com.example.ui.KeystoreViewModel
 import com.example.ui.state.ApkSigningUiState
 
@@ -34,7 +34,7 @@ fun SignApkScreen(
     onNavigateToInspectWithApk: (ByteArray, String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
+    val platformServices = LocalPlatformServices.current
     val formState by viewModel.signApkFormState.collectAsState()
     val savedKeystores by viewModel.savedKeystores.collectAsState()
     val signingState by viewModel.apkSigningState.collectAsState()
@@ -99,7 +99,7 @@ fun SignApkScreen(
         val canSign = formState.apkBytes != null && !isSigning
 
         Button(
-            onClick = { viewModel.signApk(context) },
+            onClick = { viewModel.signApk() },
             enabled = canSign,
             modifier = Modifier
                 .fillMaxWidth()
@@ -123,7 +123,7 @@ fun SignApkScreen(
         SigningResultCard(
             signingState = signingState,
             onInstallApk = { file ->
-                viewModel.installSignedApk(context, file)
+                platformServices.installApk(file)
             },
             onInspectApk = { bytes, name ->
                 onNavigateToInspectWithApk(bytes, name)

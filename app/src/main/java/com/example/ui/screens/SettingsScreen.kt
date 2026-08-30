@@ -56,7 +56,6 @@ fun SettingsScreen(
 
         // Sección 3: Marco Legal y Políticas de Uso (Portal Web Oficial)
         LegalLinksSection(
-            context = context,
             viewModel = viewModel
         )
 

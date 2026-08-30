@@ -75,6 +75,8 @@ app/
 │   │   │       ├── preferences/
 │   │   │       │   ├── AppPreferencesManager.kt # Gestor modular de preferencias de usuario (tema, paleta y estado de bienvenida)
 │   │   │       │   └── PreferencesDataSource.kt # Abstracción multiplataforma de preferencias (Android SharedPreferences / Desktop .properties)
+│   │   │       ├── res/
+│   │   │       │   └── SignetStrings.kt         # Catálogo centralizado de recursos y cadenas de texto agnósticas (sin dependencias de android.R)
 │   │   │       ├── screens/
 │   │   │       │   ├── WelcomeScreen.kt         # Orquestador ligero de bienvenida, explicación de capacidades y navegación
 │   │   │       │   ├── welcome/
@@ -153,6 +155,7 @@ app/
 │   └── workflows/
 │       ├── build-debug-apk.yml                  # Compilación y despacho confidencial de APK Debug (Canal .debug)
 │       ├── build-release-apk.yml                # Compilación, R8 ProGuard, firma y publicación de APK Pre-Release (Canal .beta)
+│       ├── build-release-desktop.yml            # Compilación, empaquetado jpackage nativo Windows (.exe, .msi, .zip) y publicación
 │       ├── security-scan.yml                    # Auditoría de seguridad estática en modo Stealth
 │       ├── emulator-e2e-test.yml                # Pruebas E2E en emulador nativo Android KVM
 │       ├── cli-interoperability-test.yml        # Validación cruzada CLI con keytool y Google apksigner
@@ -221,6 +224,8 @@ app/
      * `DesktopPlatformServices`: Implementa AWT `FileDialog`, portapapeles del sistema operativo (`Toolkit.systemClipboard`), ejecución de explorador de archivos (Windows Explorer `explorer.exe /select,`, macOS `open`, Linux `xdg-open`).
    - **UI y Estado Reactivo Compartido**:
      * Pantallas y componentes construidos en Jetpack Compose / Compose Multiplatform desacoplados de APIs de Android.
+     * Catálogo centralizado de recursos y cadenas de texto en `SignetStrings` (`com.example.ui.res.SignetStrings`) garantizando independencia total de `android.R` y `stringResource`.
+     * Consumo desacoplado de servicios del SO mediante `LocalPlatformServices` en lugar de `LocalContext`.
      * `KeystoreViewModel` maneja estados y flujos reactivos mediante Kotlin Coroutines `StateFlow`, operando de manera idéntica en Android y Desktop.
      * Sistema de diseño `MyApplicationTheme` (M3) con esquemas de color dinámicos, paletas y tipografía compartida.
    - **Núcleo Criptográfico Común**:

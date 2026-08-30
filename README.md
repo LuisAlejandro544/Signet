@@ -74,6 +74,8 @@ Generador y administrador profesional de Keystores (`.jks` y `.keystore`) para A
   - **Módulo de Escritorio Nativo (`:desktop`)**: Vinculado en `settings.gradle.kts` e integrado con Compose Multiplatform en `desktop/build.gradle.kts` para empaquetado nativo en Windows (`.exe` / `.msi` vía `jpackage`), ejecución JVM y tarea `runDesktop`.
   - **Estructura del Módulo Compartido (KMP / Shared UI)**:
     * Capa de presentación compartida en Jetpack Compose / Compose Multiplatform desacoplada de dependencias exclusivas de Android.
+    * Catálogo centralizado de recursos y cadenas de texto en `SignetStrings` (`com.example.ui.res.SignetStrings`) eliminando dependencias de `android.R` y `stringResource`.
+    * Inyección desacoplada de servicios de sistema mediante `LocalPlatformServices` en todas las pantallas (`GenerateScreen`, `SignApkScreen`, `LegalLinksSection`, `SettingsScreen`).
     * Orquestación de estado desacoplada en `KeystoreViewModel` con flujos reactivos puros `StateFlow`.
     * Núcleo criptográfico común de alta seguridad (`com.example.crypto`) respaldado por BouncyCastle puro.
     * Compatibilidad nativa en arquitecturas x86_64 y ARM64 (Windows on ARM / Snapdragon X / Apple Silicon / Linux aarch64).
@@ -197,6 +199,16 @@ El repositorio cuenta con pipelines automatizados en GitHub Actions orientados a
   - `KEY_ALIAS_BETA` (o `KEY_ALIAS`): Alias de la clave de firma (por defecto: `signet-beta`).
   - `KEY_PASSWORD_BETA` (o `KEY_PASSWORD`): Contraseña específica del alias Beta.
 - **Registro de Versiones**: Consulta [Changelog-release.md](Changelog-release.md) para el historial detallado de notas de lanzamiento.
+
+### 6. Compilación y Empaquetado de Windows Desktop (.EXE, .MSI, .ZIP) (`.github/workflows/build-release-desktop.yml`)
+- **Pipeline Automatizado para Windows**: Se activa automáticamente al publicar un release, empujar tags (`v*`, `v*-B`, `v*-desktop*`) o de forma manual vía `workflow_dispatch`.
+- **Empaquetado Nativo con `jpackage`**: Compila el Fat JAR del módulo `:desktop` y genera en el runner de Windows los paquetes:
+  * **`.exe` (Signet.exe autónomo)** y **`.zip` portable** con runtime embebido.
+  * **`.msi` (Instalador oficial de Windows)** con accesos directos en el menú de inicio y escritorio.
+- **Publicación y Entrega Segura**: Genera hashes `SHA-256`, adjunta todos los archivos a GitHub Releases y envía una notificación confidencial con el archivo a Telegram.
+- **Secretos en GitHub (reutiliza automáticamente los ya existentes)**:
+  - `TELEGRAM_BOT_TOKEN_RELEASE_DESKTOP` (o `TELEGRAM_BOT_TOKEN_RELEASE_APK` / `TELEGRAM_BOT_TOKEN`).
+  - `TELEGRAM_CHAT_ID_RELEASE_DESKTOP` (o `TELEGRAM_CHAT_ID_RELEASE_APK` / `TELEGRAM_CHAT_ID`).
 
 ---
 

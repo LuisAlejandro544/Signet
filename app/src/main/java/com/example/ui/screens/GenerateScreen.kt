@@ -32,11 +32,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.platform.LocalPlatformServices
 import com.example.ui.KeystoreViewModel
 import com.example.ui.state.GenerationUiState
 import com.example.ui.screens.generate.EphemeralModeSection
@@ -50,7 +50,7 @@ fun GenerateScreen(
     viewModel: KeystoreViewModel,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
+    val platformServices = LocalPlatformServices.current
     val formState by viewModel.formState.collectAsState()
     val generationState by viewModel.generationState.collectAsState()
 
@@ -196,7 +196,7 @@ fun GenerateScreen(
         // Submit / Generate Button
         Button(
             onClick = {
-                viewModel.generateKeystore(context)
+                viewModel.generateKeystore()
             },
             enabled = !isGenerating,
             modifier = Modifier

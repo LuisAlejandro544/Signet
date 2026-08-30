@@ -63,8 +63,10 @@ Primer pre-lanzamiento público oficial del **Canal Beta (`.beta`)** de Signet (
   * Abstracción de Room con `KeystoreDataSource` y persistencia en índice JSON para Desktop (`vault_index.json`).
   * Desacoplamiento de `android.content.Context` en el generador criptográfico, respaldos ZIP y repositorio.
   * Compatibilidad verificada con Windows (%APPDATA%/Signet), Linux y emulación en Winlator.
-  * Módulo Gradle `:desktop` con target JVM y empaquetado nativo para Windows (`.exe` / `.msi`).
+  * Módulo Gradle `:desktop` con target JVM, enlace de fuentes compartidas de UI (`sourceSets`) y empaquetado nativo para Windows (`.exe` / `.msi`).
   * Punto de entrada de escritorio `DesktopLauncher` (`Main.kt`) con soporte para ejecución interactiva y comandos CLI (`--open-vault`, `--version`, `--help`).
+  * Catálogo centralizado de recursos y cadenas de texto en `SignetStrings` (`com.example.ui.res.SignetStrings`) eliminando dependencias de `android.R` y `stringResource`.
+  * Desacoplamiento de `LocalContext` en componentes UI delegando en `LocalPlatformServices`.
   * UX Adaptativo y Ergonomía de Escritorio en Compose (`NavigationRail` en pantallas de escritorio y `NavigationBar` en móviles).
 - **Pipeline Automatizado de CI/CD**: Workflow de GitHub Actions con firma desatendida mediante variables `KEYSTORE_BETA_BASE64` y publicación automática de assets.
 

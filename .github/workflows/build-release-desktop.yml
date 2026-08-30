@@ -1,0 +1,220 @@
+name: Release Windows Desktop (EXE & MSI)
+
+on:
+  release:
+    types: [published, created, prereleased]
+  push:
+    tags:
+      - 'v*'
+      - 'v*-B'
+      - 'v*-dev'
+      - 'v*-E'
+      - 'v*-desktop*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag de la versión (ej: v1.0.0-B)'
+        required: false
+        default: 'v1.0.0-B'
+      is_prerelease:
+        description: 'Marcar como Pre-Release'
+        type: boolean
+        default: true
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-windows-binaries:
+    name: 🪟 Build Windows Desktop (.EXE, .MSI & Portable ZIP)
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: ☕ Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: 🐘 Setup Gradle Environment & Cache
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.3.1"
+          cache-read-only: false
+
+      - name: 🔨 Build Desktop Fat JAR
+        shell: pwsh
+        run: |
+          Write-Host "Compilando Fat JAR del módulo :desktop..."
+          ./gradlew.bat :desktop:fatJar --stacktrace --no-daemon
+
+      - name: 📦 Package Windows Native Binaries (EXE, MSI & Portable Bundle)
+        id: package_windows
+        shell: pwsh
+        run: |
+          $TAG = "${{ github.event.release.tag_name || github.ref_name || inputs.tag_name || 'v1.0.0-B' }}"
+          $CLEAN_TAG = $TAG -replace '^v', ''
+          $JAR_PATH = (Get-ChildItem -Path "desktop/build/libs" -Filter "*.jar" | Select-Object -First 1).FullName
+          
+          if (-not $JAR_PATH -or -not (Test-Path $JAR_PATH)) {
+            Write-Error "No se encontró el Fat JAR en desktop/build/libs"
+            exit 1
+          }
+
+          Write-Host "JAR encontrado: $JAR_PATH"
+          New-Item -ItemType Directory -Force -Path "./dist-windows" | Out-Null
+
+          # 1. Empaquetar App Image Portable (Contiene Signet.exe y runtime embebido)
+          Write-Host "==> Generando Signet Portable App-Image con Signet.exe..."
+          jpackage `
+            --type app-image `
+            --name "Signet" `
+            --app-version "$CLEAN_TAG" `
+            --input "desktop/build/libs" `
+            --main-jar (Split-Path $JAR_PATH -Leaf) `
+            --main-class "com.example.desktop.DesktopLauncher" `
+            --dest "./dist-windows" `
+            --java-options "-Dfile.encoding=UTF-8" `
+            --java-options "-Dsun.java2d.dpiaware=true"
+
+          # Comprimir la versión portable en un archivo ZIP con el ejecutable Signet.exe
+          $PORTABLE_ZIP = "./Signet-${TAG}-windows-x64-portable.zip"
+          Write-Host "==> Comprimiendo paquete portable en $PORTABLE_ZIP..."
+          Compress-Archive -Path "./dist-windows/Signet/*" -DestinationPath $PORTABLE_ZIP -Force
+
+          # 2. Empaquetar Instalador Windows MSI
+          $MSI_DEST = "./dist-windows-msi"
+          New-Item -ItemType Directory -Force -Path $MSI_DEST | Out-Null
+          Write-Host "==> Generando instalador Windows MSI..."
+          try {
+            jpackage `
+              --type msi `
+              --name "Signet" `
+              --app-version "$CLEAN_TAG" `
+              --input "desktop/build/libs" `
+              --main-jar (Split-Path $JAR_PATH -Leaf) `
+              --main-class "com.example.desktop.DesktopLauncher" `
+              --dest $MSI_DEST `
+              --win-dir-chooser `
+              --win-menu `
+              --win-shortcut `
+              --java-options "-Dfile.encoding=UTF-8" `
+              --java-options "-Dsun.java2d.dpiaware=true"
+
+            $MSI_FILE = (Get-ChildItem -Path $MSI_DEST -Filter "*.msi" | Select-Object -First 1).FullName
+            $FINAL_MSI = "./Signet-${TAG}-windows-x64-installer.msi"
+            Copy-Item -Path $MSI_FILE -Destination $FINAL_MSI
+            Write-Host "MSI generado exitosamente: $FINAL_MSI"
+          } catch {
+            Write-Warning "No se pudo generar MSI directamente. Se utilizará el paquete portable y ejecutable."
+            $FINAL_MSI = ""
+          }
+
+          # Copiar también el ejecutable Signet.exe directo para distribución rápida
+          $EXE_DIRECT = "./Signet-${TAG}-windows-x64.exe"
+          if (Test-Path "./dist-windows/Signet/Signet.exe") {
+            Copy-Item -Path "./dist-windows/Signet/Signet.exe" -Destination $EXE_DIRECT
+          }
+
+          # Generar Checksums SHA-256
+          $HASH_ZIP = (Get-FileHash -Path $PORTABLE_ZIP -Algorithm SHA256).Hash
+          "$HASH_ZIP  $(Split-Path $PORTABLE_ZIP -Leaf)" | Out-File -FilePath "$PORTABLE_ZIP.sha256" -Encoding ascii
+
+          if ($FINAL_MSI -and (Test-Path $FINAL_MSI)) {
+            $HASH_MSI = (Get-FileHash -Path $FINAL_MSI -Algorithm SHA256).Hash
+            "$HASH_MSI  $(Split-Path $FINAL_MSI -Leaf)" | Out-File -FilePath "$FINAL_MSI.sha256" -Encoding ascii
+            echo "msi_path=$FINAL_MSI" >> $env:GITHUB_OUTPUT
+            echo "msi_checksum=$FINAL_MSI.sha256" >> $env:GITHUB_OUTPUT
+            echo "msi_sha256=$HASH_MSI" >> $env:GITHUB_OUTPUT
+          }
+
+          if (Test-Path $EXE_DIRECT) {
+            $HASH_EXE = (Get-FileHash -Path $EXE_DIRECT -Algorithm SHA256).Hash
+            "$HASH_EXE  $(Split-Path $EXE_DIRECT -Leaf)" | Out-File -FilePath "$EXE_DIRECT.sha256" -Encoding ascii
+            echo "exe_path=$EXE_DIRECT" >> $env:GITHUB_OUTPUT
+            echo "exe_checksum=$EXE_DIRECT.sha256" >> $env:GITHUB_OUTPUT
+            echo "exe_sha256=$HASH_EXE" >> $env:GITHUB_OUTPUT
+          }
+
+          echo "zip_path=$PORTABLE_ZIP" >> $env:GITHUB_OUTPUT
+          echo "zip_checksum=$PORTABLE_ZIP.sha256" >> $env:GITHUB_OUTPUT
+          echo "zip_sha256=$HASH_ZIP" >> $env:GITHUB_OUTPUT
+          echo "tag_name=$TAG" >> $env:GITHUB_OUTPUT
+
+      - name: 📦 Upload Windows Binaries as Workflow Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: signet-windows-desktop-binaries
+          path: |
+            ${{ steps.package_windows.outputs.zip_path }}
+            ${{ steps.package_windows.outputs.zip_checksum }}
+            ${{ steps.package_windows.outputs.msi_path }}
+            ${{ steps.package_windows.outputs.msi_checksum }}
+            ${{ steps.package_windows.outputs.exe_path }}
+            ${{ steps.package_windows.outputs.exe_checksum }}
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: 🏷️ Attach Windows Binaries to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.package_windows.outputs.tag_name }}
+          prerelease: ${{ github.event.release.prerelease || inputs.is_prerelease || true }}
+          files: |
+            ${{ steps.package_windows.outputs.zip_path }}
+            ${{ steps.package_windows.outputs.zip_checksum }}
+            ${{ steps.package_windows.outputs.msi_path }}
+            ${{ steps.package_windows.outputs.msi_checksum }}
+            ${{ steps.package_windows.outputs.exe_path }}
+            ${{ steps.package_windows.outputs.exe_checksum }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 📱 Send Windows Binaries to Private Telegram (MTProto / Bot API)
+        shell: pwsh
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN_RELEASE_DESKTOP || secrets.TELEGRAM_BOT_TOKEN_RELEASE_APK || secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID_RELEASE_DESKTOP || secrets.TELEGRAM_CHAT_ID_RELEASE_APK || secrets.TELEGRAM_CHAT_ID }}
+          ZIP_PATH: ${{ steps.package_windows.outputs.zip_path }}
+          MSI_PATH: ${{ steps.package_windows.outputs.msi_path }}
+          TAG_NAME: ${{ steps.package_windows.outputs.tag_name }}
+          SHA256_ZIP: ${{ steps.package_windows.outputs.zip_sha256 }}
+        run: |
+          if (-not $env:TELEGRAM_BOT_TOKEN -or -not $env:TELEGRAM_CHAT_ID) {
+            Write-Host "::warning ::Secretos de Telegram no configurados (TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID). Se omite el envío a Telegram."
+            exit 0
+          }
+
+          $COMMIT_SHA = "$($env:GITHUB_SHA)".Substring(0, 7)
+          $CAPTION = "🪟 *Signet Windows Desktop Release*`n🏷️ *Versión*: `$($env:TAG_NAME)`n🔨 *Commit*: `$COMMIT_SHA`n🔐 *SHA-256 (ZIP)*: `$($env:SHA256_ZIP)`n📦 *Formatos*: .EXE / .MSI / .ZIP Portable"
+
+          # Enviar archivo principal (Portable ZIP o MSI) vía Telegram Bot API
+          $FILE_TO_SEND = if ($env:MSI_PATH -and (Test-Path $env:MSI_PATH)) { $env:MSI_PATH } else { $env:ZIP_PATH }
+          
+          if ($FILE_TO_SEND -and (Test-Path $FILE_TO_SEND)) {
+            Write-Host "Enviando $FILE_TO_SEND a Telegram..."
+            $uri = "https://api.telegram.org/bot$($env:TELEGRAM_BOT_TOKEN)/sendDocument"
+            $form = @{
+              chat_id = $env:TELEGRAM_CHAT_ID
+              caption = $CAPTION
+              parse_mode = "Markdown"
+              document = Get-Item -Path $FILE_TO_SEND
+            }
+            try {
+              $response = Invoke-RestMethod -Uri $uri -Method Post -Form $form
+              Write-Host "Respuesta Telegram: $($response | ConvertTo-Json -Compress)"
+            } catch {
+              Write-Warning "No se pudo enviar archivo a Telegram: $_"
+            }
+          }

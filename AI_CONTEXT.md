@@ -119,8 +119,11 @@ Este documento proporciona contexto técnico, decisiones de arquitectura y direc
     - **Punto de Entrada `DesktopLauncher` (`app/src/main/java/com/example/desktop/Main.kt`)**: Soporte para ejecución de escritorio con bucle de ventana gráfica Swing/Compose, detección headless, optimización HiDPI y argumentos CLI (`--open-vault`, `--version`, `--help`).
     - **Contenedor UI `SignetDesktopApp` (`app/src/main/java/com/example/desktop/SignetDesktopApp.kt`)**: Proveedor Compose Desktop que enlaza con `DesktopPlatformServices` e instancia `KeystoreViewModel` sin dependencias de Android.
     - **Estructura del Módulo Compartido (KMP / Shared UI)**:
-      * Capa de UI compartida en Jetpack Compose / Compose Multiplatform desacoplada de `android.content.Context`.
-      * `KeystoreViewModel` reactivo gobernado puramente por Kotlin Coroutines `StateFlow` e inyección de `PlatformServices`.
+      * Capa de UI compartida en Jetpack Compose / Compose Multiplatform desacoplada de `android.content.Context` y APIs de Android.
+      * Catálogo centralizado de recursos y cadenas de texto en `SignetStrings` (`com.example.ui.res.SignetStrings`) evitando el uso de `android.R` y `stringResource`.
+      * Consumo desacoplado de servicios del sistema operativo mediante `LocalPlatformServices` en todas las pantallas (`GenerateScreen`, `SignApkScreen`, `LegalLinksSection`, `SettingsScreen`).
+      * Configuración de `sourceSets` en `desktop/build.gradle.kts` para enlazar directamente las fuentes de UI, repositorios y criptografía.
+      * `KeystoreViewModel` reactivo gobernado puramente por Kotlin Coroutines `StateFlow` con sobrecargas de funciones agnósticas de plataforma.
       * Contratos multiplataforma para almacenamiento de archivos, portapapeles y explorador de archivos nativo.
       * Compatibilidad cruzada garantizada en arquitecturas x86_64 y ARM64 (Windows on ARM / Snapdragon X / macOS Apple Silicon / Linux aarch64).
     - **UX Adaptativo y Ergonomía (`MainScreen.kt`)**: Diseño responsivo con `BoxWithConstraints`:
@@ -131,3 +134,8 @@ Este documento proporciona contexto técnico, decisiones de arquitectura y direc
 19. **Filtrado de Arquitecturas Móviles (ABI Filters) en APKs**:
     - **Exclusividad Móvil**: Las versiones compiladas de Android (canales `.beta`, `.dev`, `.estable`, etc.) incorporan exclusivamente arquitecturas de telefonía celular móvil: **ARM de 64 bits (`arm64-v8a`)** y **ARM de 32 bits (`armeabi-v7a`)** configuradas mediante `ndk.abiFilters`.
     - **Exclusión de PC/Emulador**: Se excluyen explícitamente las librerías nativas de arquitecturas de PC y emuladores (`x86`, `x86_64`) mediante `packaging.jniLibs.excludes`, optimizando el peso de los paquetes de distribución y garantizando que los APKs estén enfocados 100% a dispositivos móviles reales.
+
+20. **Workflow de GitHub Actions para Distribución en Windows (`build-release-desktop.yml`)**:
+    - **Disparadores Homólogos**: Se activa ante creación de releases, tags (`v*`, `v*-B`, `v*-desktop*`) y ejecución manual `workflow_dispatch`.
+    - **Empaquetado Nativo con `jpackage` en Windows Runner**: Genera binarios `.exe` autónomos, instaladores Windows Installer `.msi` y paquetes portables `.zip` con JDK 17 embebido.
+    - **Hashes Criptográficos**: Calcula hashes SHA-256 para verificación de integridad de cada archivo generado y los adjunta a GitHub Releases y notificaciones de Telegram.
