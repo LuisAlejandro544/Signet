@@ -40,10 +40,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.platform.rememberPlatformFilePicker
 import com.example.ui.state.SignApkFormState
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.util.Locale
 
 @Composable
@@ -54,36 +52,10 @@ fun SelectApkCard(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
 
-    val apkPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        if (uri != null) {
-            scope.launch {
-                val (name, size, bytes) = withContext(Dispatchers.IO) {
-                    var resolvedName = "app.apk"
-                    var resolvedSize = 0L
-                    try {
-                        context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
-                            val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-                            val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
-                            if (cursor.moveToFirst()) {
-                                if (nameIndex != -1) resolvedName = cursor.getString(nameIndex) ?: "app.apk"
-                                if (sizeIndex != -1) resolvedSize = cursor.getLong(sizeIndex)
-                            }
-                        }
-                    } catch (_: Exception) {}
-
-                    val streamBytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: ByteArray(0)
-                    if (resolvedSize == 0L) resolvedSize = streamBytes.size.toLong()
-                    Triple(resolvedName, resolvedSize, streamBytes)
-                }
-
-                if (bytes.isNotEmpty()) {
-                    onApkSelected(name, size, bytes, context)
-                }
-            }
+    val apkPickerLauncher = rememberPlatformFilePicker { platformFile ->
+        if (platformFile != null && platformFile.bytes.isNotEmpty()) {
+            onApkSelected(platformFile.name, platformFile.size, platformFile.bytes, context)
         }
     }
 
@@ -141,7 +113,13 @@ fun SelectApkCard(
                 )
 
                 Button(
-                    onClick = { apkPickerLauncher.launch("*/*") },
+                    onClick = {
+                        apkPickerLauncher.launch(
+                            title = "Seleccionar archivo APK",
+                            mimeType = "application/vnd.android.package-archive",
+                            allowedExtensions = listOf("apk")
+                        )
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("btn_pick_apk_file")

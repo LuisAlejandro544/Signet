@@ -115,7 +115,9 @@ object ApkMatcher {
                 val info = buildCertInfo(cert, "v1 (JAR Signing)")
                 if (certificates.none { it.sha256Fingerprint == info.sha256Fingerprint }) {
                     certificates.add(info)
-                    if (!schemesFound.contains("v1 (JAR)")) schemesFound.add("v1 (JAR)")
+                }
+                if (!schemesFound.contains("v1 (JAR)")) {
+                    schemesFound.add("v1 (JAR)")
                 }
             }
         } catch (_: Exception) {}
@@ -127,7 +129,9 @@ object ApkMatcher {
                 val info = buildCertInfo(cert, schemeName)
                 if (certificates.none { it.sha256Fingerprint == info.sha256Fingerprint }) {
                     certificates.add(info)
-                    if (!schemesFound.contains(schemeName)) schemesFound.add(schemeName)
+                }
+                if (!schemesFound.contains(schemeName)) {
+                    schemesFound.add(schemeName)
                 }
             }
         } catch (_: Exception) {}

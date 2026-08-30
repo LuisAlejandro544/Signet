@@ -45,12 +45,19 @@ typealias ApkMatcherUiState = com.example.ui.state.ApkMatcherUiState
 typealias ApkSigningUiState = com.example.ui.state.ApkSigningUiState
 typealias SignApkFormState = com.example.ui.state.SignApkFormState
 
-class KeystoreViewModel(application: Application) : AndroidViewModel(application) {
+open class KeystoreViewModel(
+    private val preferencesManager: AppPreferencesManager,
+    private val repository: KeystoreRepository
+) : androidx.lifecycle.ViewModel() {
 
-    private val preferencesManager = AppPreferencesManager(application)
+    constructor(application: Application) : this(
+        AppPreferencesManager(application),
+        KeystoreRepository(AppDatabase.getDatabase(application))
+    )
 
-    private val repository: KeystoreRepository = KeystoreRepository(
-        AppDatabase.getDatabase(application)
+    constructor() : this(
+        AppPreferencesManager(),
+        KeystoreRepository(com.example.crypto.DesktopStorageUtils.getDesktopDataDir())
     )
 
     val savedKeystores: StateFlow<List<KeystoreDetails>> = repository.allKeystores
@@ -185,7 +192,9 @@ class KeystoreViewModel(application: Application) : AndroidViewModel(application
         _formState.value = _formState.value.copy(fileExtension = ext)
     }
 
-    fun generateKeystore(context: Context) {
+    fun generateKeystore(context: Context) = generateKeystore(context.filesDir)
+
+    fun generateKeystore(outputDir: File = com.example.crypto.DesktopStorageUtils.getDesktopDataDir()) {
         val form = _formState.value
 
         // Validate inputs
@@ -236,9 +245,9 @@ class KeystoreViewModel(application: Application) : AndroidViewModel(application
 
         viewModelScope.launch {
             val result = if (form.isEphemeral) {
-                repository.generateKeystore(context, config, saveToDatabase = false)
+                repository.generateKeystore(outputDir, config, saveToDatabase = false)
             } else {
-                repository.generateKeystore(context, config, saveToDatabase = true)
+                repository.generateKeystore(outputDir, config, saveToDatabase = true)
             }
             result.onSuccess { details ->
                 _generationState.value = GenerationUiState.Success(details)
@@ -271,10 +280,15 @@ class KeystoreViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun restoreFromZip(context: Context, zipBytes: ByteArray) {
+    fun restoreFromZip(context: Context, zipBytes: ByteArray) = restoreFromZip(context.filesDir, zipBytes)
+
+    fun restoreFromZip(
+        outputDir: File = com.example.crypto.DesktopStorageUtils.getDesktopDataDir(),
+        zipBytes: ByteArray
+    ) {
         _restoreState.value = RestoreUiState.Restoring
         viewModelScope.launch {
-            val result = repository.restoreAndSaveAnyFromZip(context, zipBytes)
+            val result = repository.restoreAndSaveAnyFromZip(outputDir, zipBytes)
             result.onSuccess { list ->
                 if (list.isEmpty()) {
                     _restoreState.value = RestoreUiState.Error("No se encontraron claves válidas en el archivo.")
@@ -447,7 +461,7 @@ class KeystoreViewModel(application: Application) : AndroidViewModel(application
         _apkSigningState.value = ApkSigningUiState.Idle
     }
 
-    fun signApk(context: Context) {
+    fun signApk(context: Context? = null) {
         val form = _signApkFormState.value
         val apkBytes = form.apkBytes
 
@@ -456,8 +470,8 @@ class KeystoreViewModel(application: Application) : AndroidViewModel(application
             return
         }
 
-        if (!form.signV1 && !form.signV2) {
-            _apkSigningState.value = ApkSigningUiState.Error("Debes habilitar al menos un esquema de firma (Esquema v1 o Esquema v2).")
+        if (!form.signV1 && !form.signV2 && !form.signV3) {
+            _apkSigningState.value = ApkSigningUiState.Error("Debes habilitar al menos un esquema de firma (Esquema v1, Esquema v2 o Esquema v3).")
             return
         }
 
@@ -493,7 +507,7 @@ class KeystoreViewModel(application: Application) : AndroidViewModel(application
             keystoreBytes = if (localFile.exists()) {
                 localFile.readBytes()
             } else if (ks.base64Content.isNotBlank()) {
-                android.util.Base64.decode(ks.base64Content, android.util.Base64.NO_WRAP)
+                com.example.crypto.Base64Compat.decode(ks.base64Content)
             } else {
                 _apkSigningState.value = ApkSigningUiState.Error("No se pudo localizar el archivo binario del Keystore.")
                 return
@@ -523,6 +537,7 @@ class KeystoreViewModel(application: Application) : AndroidViewModel(application
         val options = ApkSigningOptions(
             signV1 = form.signV1,
             signV2 = form.signV2,
+            signV3 = form.signV3,
             zipalign = form.zipalign,
             outputFileName = if (form.outputFileName.isBlank()) "app-signed.apk" else form.outputFileName
         )

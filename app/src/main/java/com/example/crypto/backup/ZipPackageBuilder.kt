@@ -1,6 +1,6 @@
 package com.example.crypto.backup
 
-import android.util.Base64
+import com.example.crypto.Base64Compat
 import com.example.data.model.KeystoreDetails
 import java.io.ByteArrayOutputStream
 import java.util.zip.ZipEntry
@@ -53,7 +53,7 @@ object ZipPackageBuilder {
             val base64Content = if (details.base64Content.isNotBlank()) {
                 details.base64Content
             } else {
-                Base64.encodeToString(keystoreBytes, Base64.NO_WRAP)
+                Base64Compat.encodeToString(keystoreBytes, noWrap = true)
             }
             zos.putNextEntry(ZipEntry("base64.txt"))
             zos.write(base64Content.toByteArray(Charsets.UTF_8))
@@ -131,7 +131,7 @@ object ZipPackageBuilder {
                 val base64Content = if (details.base64Content.isNotBlank()) {
                     details.base64Content
                 } else {
-                    Base64.encodeToString(keystoreBytes, Base64.NO_WRAP)
+                    Base64Compat.encodeToString(keystoreBytes, noWrap = true)
                 }
                 zos.putNextEntry(ZipEntry("$prefix/base64.txt"))
                 zos.write(base64Content.toByteArray(Charsets.UTF_8))

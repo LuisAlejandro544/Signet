@@ -25,22 +25,20 @@ object ApkSigningBlockParser {
         if (centralDirOffset < 32 || centralDirOffset > apkBytes.size) return results
 
         // Check for APK Signing Block magic right before Central Directory
-        // Magic string is 16 bytes: 8 bytes size + 8 bytes "APK Sig Block 42"
+        // Magic string is 16 bytes: "APK Sig Block 42"
         val magicOffset = (centralDirOffset - 16).toInt()
-        if (magicOffset < 0) return results
+        if (magicOffset < 8) return results
 
         buffer.position(magicOffset)
-        val magicString = "APK Sig Block 42"
         val magicBytes = ByteArray(16)
-        buffer.position(magicOffset)
         buffer.get(magicBytes)
+        val magicString = "APK Sig Block 42"
+        if (String(magicBytes, Charsets.US_ASCII) != magicString) return results
 
-        val isMagicMatch = String(magicBytes.copyOfRange(8, 16), Charsets.US_ASCII) == magicString ||
-                String(magicBytes, Charsets.US_ASCII).contains("APK Sig Block")
+        val footerSizeOffset = (centralDirOffset - 24).toInt()
+        if (footerSizeOffset < 0) return results
 
-        if (!isMagicMatch) return results
-
-        buffer.position(magicOffset)
+        buffer.position(footerSizeOffset)
         val blockSizeInFooter = buffer.long
         val blockStartOffset = (centralDirOffset - blockSizeInFooter - 8).toInt()
         if (blockStartOffset < 0) return results
@@ -52,7 +50,7 @@ object ApkSigningBlockParser {
         // Parse key-value ID-value pairs in the block
         val cf = CertificateFactory.getInstance("X.509")
         val pairsBuffer = buffer.slice().order(ByteOrder.LITTLE_ENDIAN)
-        pairsBuffer.limit((blockSizeInHeader - 16).toInt())
+        pairsBuffer.limit((blockSizeInHeader - 24).toInt())
 
         while (pairsBuffer.remaining() >= 12) {
             val pairLength = pairsBuffer.long.toInt()

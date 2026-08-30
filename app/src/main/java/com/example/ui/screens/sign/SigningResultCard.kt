@@ -39,22 +39,16 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.core.content.FileProvider
 import com.example.data.model.ApkSigningResult
+import com.example.platform.LocalPlatformServices
+import com.example.platform.rememberPlatformFileSaver
 import com.example.ui.state.ApkSigningUiState
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.Locale
 
@@ -66,9 +60,7 @@ fun SigningResultCard(
     onReset: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
-    val clipboardManager = LocalClipboardManager.current
-    val scope = rememberCoroutineScope()
+    val platformServices = LocalPlatformServices.current
 
     when (signingState) {
         is ApkSigningUiState.Idle -> {
@@ -157,20 +149,11 @@ fun SigningResultCard(
 
         is ApkSigningUiState.Success -> {
             val result = signingState.result
-            val saveApkLauncher = rememberLauncherForActivityResult(
-                contract = ActivityResultContracts.CreateDocument("application/vnd.android.package-archive")
-            ) { uri: Uri? ->
-                if (uri != null && result.signedApkBytes != null) {
-                    scope.launch {
-                        withContext(Dispatchers.IO) {
-                            try {
-                                context.contentResolver.openOutputStream(uri)?.use { out ->
-                                    out.write(result.signedApkBytes)
-                                }
-                            } catch (_: Exception) {}
-                        }
-                        Toast.makeText(context, "¡APK guardado correctamente!", Toast.LENGTH_SHORT).show()
-                    }
+            val saveApkSaver = rememberPlatformFileSaver { saveResult ->
+                saveResult.onSuccess {
+                    platformServices.showToast("¡APK guardado correctamente!", false)
+                }.onFailure { err ->
+                    platformServices.showToast("Error al guardar APK: ${err.localizedMessage}", true)
                 }
             }
 
@@ -275,8 +258,8 @@ fun SigningResultCard(
                                     )
                                     IconButton(
                                         onClick = {
-                                            clipboardManager.setText(AnnotatedString(result.sha256Fingerprint))
-                                            Toast.makeText(context, "Huella copiada", Toast.LENGTH_SHORT).show()
+                                            platformServices.copyToClipboard("SHA-256", result.sha256Fingerprint)
+                                            platformServices.showToast("Huella copiada", false)
                                         }
                                     ) {
                                         Icon(
@@ -312,7 +295,13 @@ fun SigningResultCard(
                         ) {
                             // 2. Save / Export
                             FilledTonalButton(
-                                onClick = { saveApkLauncher.launch(result.outputFileName) },
+                                onClick = {
+                                    saveApkSaver.launch(
+                                        defaultFileName = result.outputFileName,
+                                        mimeType = "application/vnd.android.package-archive",
+                                        bytes = result.signedApkBytes ?: ByteArray(0)
+                                    )
+                                },
                                 modifier = Modifier
                                     .weight(1f)
                                     .testTag("btn_save_signed_apk")
@@ -326,21 +315,10 @@ fun SigningResultCard(
                             if (result.signedApkFile != null) {
                                 OutlinedButton(
                                     onClick = {
-                                        try {
-                                            val uri = FileProvider.getUriForFile(
-                                                context,
-                                                "${context.packageName}.fileprovider",
-                                                result.signedApkFile
-                                            )
-                                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                                type = "application/vnd.android.package-archive"
-                                                putExtra(Intent.EXTRA_STREAM, uri)
-                                                flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
-                                            }
-                                            context.startActivity(Intent.createChooser(shareIntent, "Compartir APK firmado"))
-                                        } catch (e: Exception) {
-                                            Toast.makeText(context, "Error al compartir: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
-                                        }
+                                        platformServices.shareFile(
+                                            file = result.signedApkFile,
+                                            mimeType = "application/vnd.android.package-archive"
+                                        )
                                     },
                                     modifier = Modifier
                                         .weight(1f)

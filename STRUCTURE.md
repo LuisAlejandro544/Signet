@@ -15,11 +15,14 @@ app/
 │   │   │   ├── MainActivity.kt                  # Punto de entrada de la actividad, Navigation y tema reactivo
 │   │   │   ├── crypto/
 │   │   │   │   ├── ApkMatcher.kt                # Fachada orquestadora forense APK vs Keystore (análisis y coincidencia)
-│   │   │   │   ├── KeystoreEncryptionManager.kt # Gestor de cifrado en reposo AES-256-GCM y AndroidKeyStore para contraseñas
+│   │   │   │   ├── Base64Compat.kt              # Wrapper universal de Base64 compatible con Android y JVM/Desktop (java.util.Base64)
+│   │   │   │   ├── DesktopStorageUtils.kt       # Resolución de rutas de almacenamiento en escritorio (%APPDATA%/Signet, XDG)
+│   │   │   │   ├── KeystoreEncryptionManager.kt # Gestor de cifrado en reposo AES-256-GCM (AndroidKeyStore en móvil / archivo en escritorio)
 │   │   │   │   ├── signer/
-│   │   │   │   │   ├── ApkSigner.kt             # Fachada orquestadora del firmador de APKs (v1, v2, Zipalign)
+│   │   │   │   │   ├── ApkSigner.kt             # Fachada orquestadora del firmador de APKs (v1, v2, v3, Zipalign)
 │   │   │   │   │   ├── ApkV1Signer.kt           # Motor de firma JAR (v1) con MANIFEST.MF, CERT.SF y CMS PKCS#7
 │   │   │   │   │   ├── ApkV2Signer.kt           # Motor de inyección de APK Signing Block (Esquema v2)
+│   │   │   │   │   ├── ApkV3Signer.kt           # Motor de inyección de APK Signing Block v3 (ID 0xf05368c0, rotación de claves)
 │   │   │   │   │   └── ApkZipalignEngine.kt     # Motor de alineación a 4-bytes para optimización mmap en APKs
 │   │   │   │   ├── apk/
 │   │   │   │   │   ├── ApkSigningBlockParser.kt # Parser binario de bajo nivel para esquemas v2 y v3 (APK Signing Block)
@@ -41,6 +44,7 @@ app/
 │   │   │   │   │   └── X509CertificateUtils.kt    # Utilidades de cálculo de huellas digitales y formateo PEM estándar
 │   │   │   │   └── SnippetGenerator.kt          # Generador modular de snippets: Gradle KTS, Groovy, GitHub Actions y apksigner
 │   │   │   ├── data/
+│   │   │   │   ├── KeystoreDataSource.kt        # Abstracción desacoplada de persistencia (RoomKeystoreDataSource / DesktopKeystoreDataSource)
 │   │   │   │   ├── KeystoreRepository.kt        # Repositorio que orquesta base de datos y operaciones
 │   │   │   │   ├── local/
 │   │   │   │   │   ├── AppDatabase.kt           # Definición de Room Database (v2) con migraciones
@@ -61,7 +65,8 @@ app/
 │   │   │       │       ├── KeystoreFingerprintsCard.kt   # Huellas SHA-256, SHA-1, MD5 y datos X.509
 │   │   │       │       └── KeystoreCodeSnippetsCard.kt   # Visor interactivo de código Gradle, Groovy, YAML y CLI
 │   │   │       ├── preferences/
-│   │   │       │   └── AppPreferencesManager.kt # Gestor modular de preferencias de usuario (tema, paleta y estado de bienvenida)
+│   │   │       │   ├── AppPreferencesManager.kt # Gestor modular de preferencias de usuario (tema, paleta y estado de bienvenida)
+│   │   │       │   └── PreferencesDataSource.kt # Abstracción multiplataforma de preferencias (Android SharedPreferences / Desktop .properties)
 │   │   │       ├── screens/
 │   │   │       │   ├── WelcomeScreen.kt         # Orquestador ligero de bienvenida, explicación de capacidades y navegación
 │   │   │       │   ├── welcome/
@@ -80,7 +85,7 @@ app/
 │   │   │       │   ├── sign/
 │   │   │       │   │   ├── SelectApkCard.kt              # Tarjeta de selección de APK a firmar
 │   │   │       │   │   ├── SelectKeystoreForSigningCard.kt # Selector entre Keystores guardados y archivo externo con contraseñas
-│   │   │       │   │   ├── SigningOptionsCard.kt         # Opciones de Schemes v1/v2, Zipalign y nombre de salida
+│   │   │       │   │   ├── SigningOptionsCard.kt         # Opciones de Schemes v1/v2/v3, Zipalign y nombre de salida
 │   │   │       │   │   └── SigningResultCard.kt          # Tarjeta de resultado con detalles, botón de instalación e inspección
 │   │   │       │   ├── InspectScreen.kt         # Orquestador con TabRow para inspección de archivos y validación APK
 │   │   │       │   ├── inspect/
@@ -120,6 +125,8 @@ app/
 │           ├── ExampleRobolectricTest.kt        # Suite de pruebas de humo e integración end-to-end
 │           ├── crypto/
 │           │   ├── ApkMatcherTest.kt            # Pruebas de análisis forense y detección de coincidencia de firmas
+│           │   ├── ApkSignerTest.kt             # Pruebas de firmado multi-esquema (v1, v2, v3) y motor Zipalign
+│           │   ├── DesktopMultiplatformTest.kt  # Pruebas de persistencia Desktop, Base64Compat y rutas del sistema operativo
 │           │   ├── KeystoreEncryptionManagerTest.kt # Pruebas de cifrado en reposo AES-256-GCM y mapeo en Room
 │           │   ├── KeystoreGeneratorTest.kt     # Pruebas de generación RSA 2048, EC P256 e inspección
 │           │   ├── PasswordGeneratorTest.kt     # Pruebas de contraseñas CSPRNG, cálculo de entropía y clasificación

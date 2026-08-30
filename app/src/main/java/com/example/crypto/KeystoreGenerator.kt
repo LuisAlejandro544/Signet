@@ -52,7 +52,7 @@ object KeystoreGenerator {
      * When [saveToFile] is false, the keystore is generated purely in memory (Zero-Footprint / Ephemeral mode).
      */
     fun generateKeystore(
-        context: Context,
+        outputDir: File,
         config: KeystoreConfig,
         saveToFile: Boolean = true
     ): KeystoreDetails {
@@ -151,7 +151,7 @@ object KeystoreGenerator {
         )
 
         // 6. Save Keystore to application storage
-        val keystoresDir = File(context.filesDir, "keystores")
+        val keystoresDir = File(outputDir, "keystores")
         if (!keystoresDir.exists()) {
             keystoresDir.mkdirs()
         }
@@ -175,7 +175,7 @@ object KeystoreGenerator {
         val finalFileSize: Long
 
         if (saveToFile) {
-            val keystoresDir = File(context.filesDir, "keystores")
+            val keystoresDir = File(outputDir, "keystores")
             if (!keystoresDir.exists()) {
                 keystoresDir.mkdirs()
             }
@@ -190,7 +190,7 @@ object KeystoreGenerator {
             finalFileSize = keystoreBytes.size.toLong()
         }
 
-        val base64String = java.util.Base64.getEncoder().encodeToString(keystoreBytes)
+        val base64String = Base64Compat.encodeToString(keystoreBytes, noWrap = true)
 
         // 7. Compute Fingerprints and PEM
         val certEncoded = x509Cert.encoded
@@ -219,6 +219,17 @@ object KeystoreGenerator {
             certificatePem = pem,
             createdAt = System.currentTimeMillis()
         )
+    }
+
+    /**
+     * Delegado para invocación con Android Context.
+     */
+    fun generateKeystore(
+        context: Context,
+        config: KeystoreConfig,
+        saveToFile: Boolean = true
+    ): KeystoreDetails {
+        return generateKeystore(context.filesDir, config, saveToFile)
     }
 
     /**

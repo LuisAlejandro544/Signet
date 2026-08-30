@@ -16,11 +16,11 @@ Generador y administrador profesional de Keystores (`.jks` y `.keystore`) para A
   - Presets rápidos de 1 clic: *Google Play Release*, *Upload Key* y *Alta Seguridad*.
 
 - **Firmador Profesional de APKs en el Dispositivo (APK Signer & Zipalign)**:
-  - **Doble Esquema de Firma Nativo**: Implementación criptográfica completa en el dispositivo de **Esquema v1 (JAR Signing con `META-INF/MANIFEST.MF`, `CERT.SF` y bloque PKCS#7 `CERT.RSA/EC`)** y **Esquema v2 (APK Signature Scheme v2 con APK Signing Block inyectado antes del Central Directory)**.
+  - **Firma Multi-Esquema Nativa (v1, v2 y v3)**: Implementación criptográfica completa en el dispositivo de **Esquema v1 (JAR Signing con `META-INF/MANIFEST.MF`, `CERT.SF` y bloque PKCS#7 `CERT.RSA/EC`)**, **Esquema v2 (APK Signature Scheme v2 con APK Signing Block inyectado antes del Central Directory)** y **Esquema v3 (APK Signature Scheme v3 con ID `0xf05368c0`, soporte de rotación de claves criptográficas y compatibilidad nativa para Android 9.0+)**.
   - **Motor Nativo de Zipalign (Alineación a 4 Bytes)**: Alinea automáticamente todas las entradas `STORED` (sin comprimir) a límites múltiplos de 4 bytes antes de firmar, garantizando optimización de memoria `mmap` y compatibilidad universal con los instaladores de Android.
   - **Compatibilidad con Claves de la Bóveda y Externas**: Permite firmar aplicaciones utilizando cualquier Keystore guardado en la app (con desbloqueo transparente y descifrado AES-256-GCM) o importando archivos `.jks`/`.keystore`/`.p12` externos del almacenamiento.
   - **Instalación y Distribución Inmediata**: Botón de un toque para instalar directamente el APK recién firmado en el dispositivo móvil vía `Intent.ACTION_INSTALL_PACKAGE`, compartir mediante el menú nativo de Android o transferir directamente a la pestaña de Inspección (APK Matcher) para validación cruzada.
-  - **Opciones de Salida Personalizables**: Configuración granular de nombre de archivo firmado (`app-release-signed.apk`), selección independiente de esquemas de firma v1/v2 y activación/desactivación de zipalign.
+  - **Opciones de Salida Personalizables**: Configuración granular de nombre de archivo firmado (`app-release-signed.apk`), selección independiente de esquemas de firma v1, v2 y v3, y activación/desactivación de zipalign.
 
 - **Validador Forense APK vs Keystore (APK Matcher)**:
   - **Detección Multi-Esquema**: Inspecciona y extrae automáticamente los certificados X.509 de archivos `.apk` firmados con **Esquema v1 (JAR / PKCS#7 en `META-INF`)**, **Esquema v2 (APK Signing Block)** y **Esquema v3**.
@@ -69,6 +69,15 @@ Generador y administrador profesional de Keystores (`.jks` y `.keystore`) para A
   - Visualización y copia rápida de credenciales (Alias, Contraseña del Keystore, Contraseña de la Clave).
   - Garantía de Cero Recolección de Datos: ninguna clave, contraseña o huella digital sale jamás del silicio de tu dispositivo.
 
+- **🖥️ Arquitectura Multiplataforma & Soporte para Windows / Desktop**:
+  - **Desacoplamiento de las 4 Librerías Exclusivas de Android**:
+    * `android.util.Base64` sustituido universalmente por `Base64Compat` (respaldado nativamente por `java.util.Base64`).
+    * `AndroidKeyStore` adaptado con arquitectura híbrida en `KeystoreEncryptionManager` (AES-256-GCM con clave maestra `signet_master.key` en `%APPDATA%/Signet/` para entornos de escritorio).
+    * `android.content.SharedPreferences` abstraído mediante `PreferencesDataSource` y `DesktopPreferencesDataSource` (archivo `.properties` en disco).
+    * `androidx.room` abstraído mediante `KeystoreDataSource` y `DesktopKeystoreDataSource` (índice en archivo `vault_index.json` con `StateFlow` reactivo).
+  - **Resolución de Almacenamiento Desktop (`DesktopStorageUtils`)**: Compatible nativamente con Windows (`%APPDATA%/Signet`), Linux/Unix (`~/.config/signet`), macOS y emuladores Winlator.
+  - **Preparado para Compose Multiplatform Desktop**: Núcleo criptográfico y repositorio desacoplados de `android.content.Context` mediante rutas `File`, permitiendo compilación nativa en JVM de escritorio.
+
 - **Portal Web Oficial, Términos y Privacidad (`web/`)**:
   - Sitio web estático de alto rendimiento desarrollado en **Astro 5 + Tailwind CSS** optimizado para **Cloudflare Pages**.
   - Documentación pública y páginas legales actualizadas al **16 de agosto de 2026**:
@@ -96,13 +105,13 @@ Signet adopta un sistema estructurado de canales de desarrollo y distribución q
 
 | Capa | Tecnología |
 |---|---|
-| **Lenguaje Android** | Kotlin 2.0+ con Coroutines & StateFlow |
-| **UI Framework Android** | Jetpack Compose con Material Design 3 & Material You |
-| **Persistencia** | Room Database (SQLite local offline-first) & SharedPreferences |
-| **Criptografía** | BouncyCastle (SpongyCastle/BC) X.509 PKCS#12 JCA & CSPRNG SecureRandom |
+| **Lenguaje Android & JVM** | Kotlin 2.0+ con Coroutines & StateFlow |
+| **UI Framework** | Jetpack Compose (Android) & Compose Multiplatform (Desktop) con Material Design 3 |
+| **Persistencia** | Room Database (Android) / JSON Vault Index & Properties (Desktop/Windows) |
+| **Criptografía** | BouncyCastle (SpongyCastle/BC) X.509 PKCS#12 JCA, AES-256-GCM & CSPRNG SecureRandom |
 | **Análisis de APKs** | Parser nativo de APK Signing Block (v2/v3) & CMS PKCS#7 (v1) |
-| **Arquitectura** | MVVM (Model - View - ViewModel) + Clean Architecture Modular |
-| **Testing** | Robolectric 4.14+ & JUnit 4 |
+| **Arquitectura** | MVVM (Model - View - ViewModel) + Clean Architecture Multiplataforma |
+| **Testing** | Robolectric 4.14+, JUnit 4 & Suite Multiplataforma |
 | **Web & Legal (Cloudflare Pages)** | Astro 5, Tailwind CSS, TypeScript & Static HTML5 |
 
 ---

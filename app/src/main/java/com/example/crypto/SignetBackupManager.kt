@@ -1,7 +1,6 @@
 package com.example.crypto
 
 import android.content.Context
-import android.util.Base64
 import com.example.crypto.backup.BackupIntegrityVerifier
 import com.example.crypto.backup.ZipPackageBuilder
 import com.example.crypto.backup.ZipPackageExtractor
@@ -42,7 +41,7 @@ object SignetBackupManager {
     /**
      * Restores a Vault backup containing multiple keystores in folders, verifying the master anti-tamper signature.
      */
-    fun restoreVaultFromZip(context: Context, zipBytes: ByteArray): List<KeystoreDetails> {
+    fun restoreVaultFromZip(outputDir: File, zipBytes: ByteArray): List<KeystoreDetails> {
         val extracted = ZipPackageExtractor.extractEntries(zipBytes)
 
         if (extracted.manifestJsonString.isNullOrBlank()) {
@@ -55,7 +54,7 @@ object SignetBackupManager {
             keystoresMap = extracted.binaryFilesMap
         )
 
-        val keystoresDir = File(context.filesDir, "keystores")
+        val keystoresDir = File(outputDir, "keystores")
         if (!keystoresDir.exists()) {
             keystoresDir.mkdirs()
         }
@@ -93,7 +92,7 @@ object SignetBackupManager {
                 fos.write(keystoreBytes)
             }
 
-            val base64String = Base64.encodeToString(keystoreBytes, Base64.NO_WRAP)
+            val base64String = Base64Compat.encodeToString(keystoreBytes, noWrap = true)
 
             val details = KeystoreDetails(
                 id = 0,
@@ -122,19 +121,27 @@ object SignetBackupManager {
         return restoredKeystores
     }
 
+    fun restoreVaultFromZip(context: Context, zipBytes: ByteArray): List<KeystoreDetails> {
+        return restoreVaultFromZip(context.filesDir, zipBytes)
+    }
+
     /**
      * Intelligently restores any Signet ZIP backup (Single Keystore or Multi-Keystore Vault).
      */
-    fun restoreAnyFromZip(context: Context, zipBytes: ByteArray): List<KeystoreDetails> {
+    fun restoreAnyFromZip(outputDir: File, zipBytes: ByteArray): List<KeystoreDetails> {
         val extracted = ZipPackageExtractor.extractEntries(zipBytes)
 
         return when {
-            extracted.isVault -> restoreVaultFromZip(context, zipBytes)
-            extracted.hasSingleManifest -> listOf(restoreFromZip(context, zipBytes))
+            extracted.isVault -> restoreVaultFromZip(outputDir, zipBytes)
+            extracted.hasSingleManifest -> listOf(restoreFromZip(outputDir, zipBytes))
             else -> throw SecurityException(
                 "El archivo ZIP no contiene un manifiesto de respaldo válido de Signet (${BackupIntegrityVerifier.MANIFEST_FILE_NAME} o ${BackupIntegrityVerifier.VAULT_MANIFEST_FILE_NAME})."
             )
         }
+    }
+
+    fun restoreAnyFromZip(context: Context, zipBytes: ByteArray): List<KeystoreDetails> {
+        return restoreAnyFromZip(context.filesDir, zipBytes)
     }
 
     /**
@@ -145,11 +152,15 @@ object SignetBackupManager {
         return restoreFromZip(context, inputStream.readBytes())
     }
 
+    fun restoreFromZip(context: Context, zipBytes: ByteArray): KeystoreDetails {
+        return restoreFromZip(context.filesDir, zipBytes)
+    }
+
     /**
      * Reads a ZIP backup from byte array, verifies the anti-tamper signature and identity of Signet,
-     * unlocks the keystore, writes it to app storage, and returns the restored KeystoreDetails.
+     * unlocks the keystore, writes it to the specified output directory, and returns the restored KeystoreDetails.
      */
-    fun restoreFromZip(context: Context, zipBytes: ByteArray): KeystoreDetails {
+    fun restoreFromZip(outputDir: File, zipBytes: ByteArray): KeystoreDetails {
         val extracted = ZipPackageExtractor.extractEntries(zipBytes)
 
         if (extracted.manifestJsonString.isNullOrBlank()) {
@@ -187,8 +198,8 @@ object SignetBackupManager {
             ?: inspectedList.firstOrNull()
             ?: throw IllegalArgumentException("El keystore no contiene ningún certificado válido.")
 
-        // Save keystore safely to app storage
-        val keystoresDir = File(context.filesDir, "keystores")
+        // Save keystore safely to storage
+        val keystoresDir = File(outputDir, "keystores")
         if (!keystoresDir.exists()) {
             keystoresDir.mkdirs()
         }
@@ -210,7 +221,7 @@ object SignetBackupManager {
             fos.write(keystoreBytes)
         }
 
-        val base64String = Base64.encodeToString(keystoreBytes, Base64.NO_WRAP)
+        val base64String = Base64Compat.encodeToString(keystoreBytes, noWrap = true)
 
         return KeystoreDetails(
             id = 0,
@@ -235,4 +246,5 @@ object SignetBackupManager {
         )
     }
 }
+
 

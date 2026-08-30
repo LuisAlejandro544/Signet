@@ -1,24 +1,23 @@
 package com.example.ui.preferences
 
 import android.content.Context
-import android.content.SharedPreferences
 import com.example.ui.theme.ColorPalette
 import com.example.ui.theme.ThemeMode
 import com.example.ui.theme.ThemeState
 
 /**
  * Encapsulates persistent user preferences such as theming and onboarding completion.
+ * Supports both Android (SharedPreferences) and Windows/Desktop (.properties in AppData).
  */
-class AppPreferencesManager(context: Context) {
+class AppPreferencesManager(private val dataSource: PreferencesDataSource) {
 
-    private val prefs: SharedPreferences = context.getSharedPreferences(
-        PREFS_NAME,
-        Context.MODE_PRIVATE
-    )
+    constructor(context: Context) : this(AndroidPreferencesDataSource(context, PREFS_NAME))
+
+    constructor() : this(DesktopPreferencesDataSource())
 
     fun loadThemeState(): ThemeState {
-        val savedModeName = prefs.getString(KEY_THEME_MODE, ThemeMode.SYSTEM.name) ?: ThemeMode.SYSTEM.name
-        val savedPaletteName = prefs.getString(KEY_COLOR_PALETTE, ColorPalette.DYNAMIC.name) ?: ColorPalette.DYNAMIC.name
+        val savedModeName = dataSource.getString(KEY_THEME_MODE, ThemeMode.SYSTEM.name)
+        val savedPaletteName = dataSource.getString(KEY_COLOR_PALETTE, ColorPalette.DYNAMIC.name)
 
         val mode = try {
             ThemeMode.valueOf(savedModeName)
@@ -36,23 +35,23 @@ class AppPreferencesManager(context: Context) {
     }
 
     fun saveThemeMode(mode: ThemeMode) {
-        prefs.edit().putString(KEY_THEME_MODE, mode.name).apply()
+        dataSource.putString(KEY_THEME_MODE, mode.name)
     }
 
     fun saveColorPalette(palette: ColorPalette) {
-        prefs.edit().putString(KEY_COLOR_PALETTE, palette.name).apply()
+        dataSource.putString(KEY_COLOR_PALETTE, palette.name)
     }
 
     fun isOnboardingCompleted(): Boolean {
-        return prefs.getBoolean(KEY_ONBOARDING_COMPLETED, false)
+        return dataSource.getBoolean(KEY_ONBOARDING_COMPLETED, false)
     }
 
     fun setOnboardingCompleted(completed: Boolean) {
-        prefs.edit().putBoolean(KEY_ONBOARDING_COMPLETED, completed).apply()
+        dataSource.putBoolean(KEY_ONBOARDING_COMPLETED, completed)
     }
 
     companion object {
-        private const val PREFS_NAME = "keystore_generator_prefs"
+        const val PREFS_NAME = "keystore_generator_prefs"
         private const val KEY_THEME_MODE = "theme_mode"
         private const val KEY_COLOR_PALETTE = "color_palette"
         private const val KEY_ONBOARDING_COMPLETED = "onboarding_completed"

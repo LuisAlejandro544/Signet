@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.crypto.Base64Compat
 import com.example.data.model.KeystoreDetails
 import com.example.ui.components.details.DetailsActionUtils
 import com.example.ui.components.details.KeystoreBase64Card
@@ -66,7 +67,7 @@ fun KeystoreDetailsSheet(
             try {
                 val f = File(details.filePath)
                 if (f.exists()) {
-                    java.util.Base64.getEncoder().encodeToString(f.readBytes())
+                    Base64Compat.encodeToString(f.readBytes(), noWrap = true)
                 } else ""
             } catch (_: Exception) {
                 ""
@@ -83,7 +84,7 @@ fun KeystoreDetailsSheet(
                 val bytes = if (details.filePath.isNotBlank() && File(details.filePath).exists()) {
                     File(details.filePath).readBytes()
                 } else if (details.base64Content.isNotBlank()) {
-                    android.util.Base64.decode(details.base64Content, android.util.Base64.DEFAULT)
+                    Base64Compat.decode(details.base64Content)
                 } else {
                     null
                 }
@@ -111,7 +112,7 @@ fun KeystoreDetailsSheet(
                 val bytes = if (details.filePath.isNotBlank() && File(details.filePath).exists()) {
                     File(details.filePath).readBytes()
                 } else if (details.base64Content.isNotBlank()) {
-                    android.util.Base64.decode(details.base64Content, android.util.Base64.DEFAULT)
+                    Base64Compat.decode(details.base64Content)
                 } else {
                     null
                 }

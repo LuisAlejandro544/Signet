@@ -119,6 +119,105 @@ class ApkSignerTest {
     }
 
     @Test
+    fun testApkSigningWorkflow_tripleScheme_v1_v2_v3_and_zipalign() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+
+        // 1. Generate real Keystore
+        val config = KeystoreConfig(
+            fileName = "signer-test-v3-key.jks",
+            storePassword = "TestPassword2026!",
+            alias = "v3alias",
+            keyPassword = "TestPassword2026!",
+            validityYears = 25,
+            algorithm = KeyAlgorithm.RSA_2048,
+            distinguishedName = DistinguishedName(commonName = "Signet V3 Dev", organization = "Signet Labs")
+        )
+        val generated = KeystoreGenerator.generateKeystore(context, config)
+        val jksBytes = File(generated.filePath).readBytes()
+        assertNotNull(jksBytes)
+
+        val unsignedApk = createSyntheticUnsignedApk()
+
+        // 2. Sign APK with triple scheme (v1 + v2 + v3) and zipalign
+        val options = ApkSigningOptions(
+            signV1 = true,
+            signV2 = true,
+            signV3 = true,
+            zipalign = true,
+            outputFileName = "test-signed-triple.apk"
+        )
+
+        val result = ApkSigner.signApk(
+            apkBytes = unsignedApk,
+            keystoreBytes = jksBytes,
+            storePassword = config.storePassword,
+            alias = config.alias,
+            keyPassword = config.keyPassword,
+            options = options,
+            context = context
+        )
+
+        assertTrue("La firma triple del APK debería ser exitosa", result.isSuccess)
+        assertNotNull(result.signedApkBytes)
+        assertTrue(result.appliedSchemes.contains("v1 (JAR Signing)"))
+        assertTrue(result.appliedSchemes.contains("v2 (APK Signature Scheme v2)"))
+        assertTrue(result.appliedSchemes.contains("v3 (APK Signature Scheme v3)"))
+        assertEquals(generated.sha256Fingerprint, result.sha256Fingerprint)
+
+        val signedBytes = result.signedApkBytes!!
+        val magicString = String(signedBytes, Charsets.US_ASCII)
+        assertTrue("Debe contener APK Sig Block 42", magicString.contains("APK Sig Block 42"))
+
+        val analyzed = ApkMatcher.analyzeApk(context, signedBytes, "test-signed-triple.apk")
+        assertTrue("ApkMatcher debe encontrar certificados", analyzed.certificates.isNotEmpty())
+        assertTrue("Debe contener esquema v3", analyzed.signatureSchemesFound.contains("v3 (Full APK)") || analyzed.signatureSchemesFound.contains("v2/v3"))
+    }
+
+    @Test
+    fun testApkSigningWorkflow_v3Only() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+
+        val config = KeystoreConfig(
+            fileName = "signer-test-v3-only.jks",
+            storePassword = "TestPassword2026!",
+            alias = "v3onlyalias",
+            keyPassword = "TestPassword2026!"
+        )
+        val generated = KeystoreGenerator.generateKeystore(context, config)
+        val jksBytes = File(generated.filePath).readBytes()
+
+        val unsignedApk = createSyntheticUnsignedApk()
+
+        val options = ApkSigningOptions(
+            signV1 = false,
+            signV2 = false,
+            signV3 = true,
+            zipalign = true,
+            outputFileName = "test-signed-v3only.apk"
+        )
+
+        val result = ApkSigner.signApk(
+            apkBytes = unsignedApk,
+            keystoreBytes = jksBytes,
+            storePassword = config.storePassword,
+            alias = config.alias,
+            keyPassword = config.keyPassword,
+            options = options,
+            context = context
+        )
+
+        assertTrue("Firma solo v3 debe ser exitosa", result.isSuccess)
+        assertNotNull(result.signedApkBytes)
+        assertTrue(result.appliedSchemes.contains("v3 (APK Signature Scheme v3)"))
+        assertFalse(result.appliedSchemes.contains("v1 (JAR Signing)"))
+        assertFalse(result.appliedSchemes.contains("v2 (APK Signature Scheme v2)"))
+
+        val analyzed = ApkMatcher.analyzeApk(context, result.signedApkBytes!!, "test-signed-v3only.apk")
+        assertTrue(analyzed.certificates.isNotEmpty())
+        assertTrue("Debe detectar v3", analyzed.signatureSchemesFound.contains("v3 (Full APK)") || analyzed.signatureSchemesFound.contains("v2/v3"))
+    }
+
+    @Test
     fun testApkSigning_incorrectPassword_failsGracefully() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val config = KeystoreConfig(

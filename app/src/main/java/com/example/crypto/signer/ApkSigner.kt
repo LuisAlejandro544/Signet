@@ -18,7 +18,7 @@ import java.util.Locale
 
 /**
  * Sovereign APK Signing and Optimization (Zipalign) Engine.
- * Supports dual Scheme v1 (JAR) + Scheme v2 (Full APK Signature) and 4-byte memory alignment.
+ * Supports triple Scheme v1 (JAR) + Scheme v2 (Full APK Signature) + Scheme v3 (Key Rotation & Android 9+) and 4-byte memory alignment.
  */
 object ApkSigner {
 
@@ -87,25 +87,44 @@ object ApkSigner {
             onProgress?.invoke("Aplicando optimización Zipalign (alineación a 4 bytes)...", 0.7f)
             var signedZipBytes = ApkZipalignEngine.buildAlignedZip(mutableEntries)
 
-            // 5. Apply Scheme v2 (APK Signing Block) if enabled
-            if (options.signV2) {
-                onProgress?.invoke("Inyectando bloque de firma Esquema v2 (APK Signature Block)...", 0.85f)
-                signedZipBytes = ApkV2Signer.injectV2Signature(signedZipBytes, key, publicKey, cert, bcProvider)
-                appliedSchemes.add("v2 (APK Signature Scheme v2)")
+            // 5. Apply Scheme v2 and/or Scheme v3 (APK Signing Block) if enabled
+            if (options.signV2 || options.signV3) {
+                val schemesLabel = when {
+                    options.signV2 && options.signV3 -> "v2 y v3"
+                    options.signV3 -> "v3"
+                    else -> "v2"
+                }
+                onProgress?.invoke("Inyectando bloque de firma Esquema $schemesLabel (APK Signature Block)...", 0.85f)
+                signedZipBytes = ApkV3Signer.injectSignatureBlock(
+                    zipBytes = signedZipBytes,
+                    privateKey = key,
+                    publicKey = publicKey,
+                    certificate = cert,
+                    bcProvider = bcProvider,
+                    signV2 = options.signV2,
+                    signV3 = options.signV3
+                )
+                if (options.signV2) {
+                    appliedSchemes.add("v2 (APK Signature Scheme v2)")
+                }
+                if (options.signV3) {
+                    appliedSchemes.add("v3 (APK Signature Scheme v3)")
+                }
             }
 
-            // 6. Save signed APK to cache if context is available
-            var outputFile: File? = null
-            if (context != null) {
-                val outputDir = File(context.cacheDir, "signed_apks").apply { mkdirs() }
-                val cleanOutputName = if (options.outputFileName.endsWith(".apk", ignoreCase = true)) {
-                    options.outputFileName
-                } else {
-                    "${options.outputFileName}.apk"
-                }
-                outputFile = File(outputDir, cleanOutputName)
-                FileOutputStream(outputFile).use { it.write(signedZipBytes) }
+            // 6. Save signed APK to cache or desktop directory
+            val outputDir: File = if (context != null) {
+                File(context.cacheDir, "signed_apks").apply { mkdirs() }
+            } else {
+                File(com.example.crypto.DesktopStorageUtils.getAppDirectory(), "signed_apks").apply { mkdirs() }
             }
+            val cleanOutputName = if (options.outputFileName.endsWith(".apk", ignoreCase = true)) {
+                options.outputFileName
+            } else {
+                "${options.outputFileName}.apk"
+            }
+            val outputFile = File(outputDir, cleanOutputName)
+            FileOutputStream(outputFile).use { it.write(signedZipBytes) }
 
             val sha256Fingerprint = calculateSha256Fingerprint(cert.encoded)
             val duration = System.currentTimeMillis() - startTime

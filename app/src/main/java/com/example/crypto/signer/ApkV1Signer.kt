@@ -1,6 +1,6 @@
 package com.example.crypto.signer
 
-import android.util.Base64
+import com.example.crypto.Base64Compat
 import org.bouncycastle.cert.jcajce.JcaX509CertificateHolder
 import org.bouncycastle.cms.CMSProcessableByteArray
 import org.bouncycastle.cms.CMSSignedDataGenerator
@@ -36,7 +36,7 @@ object ApkV1Signer {
 
         for (entry in entries) {
             val digest = md.digest(entry.data)
-            val digestB64 = Base64.encodeToString(digest, Base64.NO_WRAP)
+            val digestB64 = Base64Compat.encodeToString(digest, noWrap = true)
 
             val sectionSb = StringBuilder()
             sectionSb.append("Name: ${entry.name}\r\n")
@@ -62,13 +62,13 @@ object ApkV1Signer {
         sfSb.append("Created-By: 1.0 (Signet - Sovereign Android Tool)\r\n")
 
         val manifestDigest = md.digest(manifestBytes)
-        val manifestDigestB64 = Base64.encodeToString(manifestDigest, Base64.NO_WRAP)
+        val manifestDigestB64 = Base64Compat.encodeToString(manifestDigest, noWrap = true)
         sfSb.append("SHA-256-Digest-Manifest: $manifestDigestB64\r\n\r\n")
 
         for (entry in entries) {
             val sectionBytes = entryManifestSections[entry.name] ?: continue
             val sectionDigest = md.digest(sectionBytes)
-            val sectionDigestB64 = Base64.encodeToString(sectionDigest, Base64.NO_WRAP)
+            val sectionDigestB64 = Base64Compat.encodeToString(sectionDigest, noWrap = true)
 
             sfSb.append("Name: ${entry.name}\r\n")
             sfSb.append("SHA-256-Digest: $sectionDigestB64\r\n\r\n")

@@ -51,11 +51,9 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.example.data.model.KeystoreDetails
+import com.example.platform.rememberPlatformFilePicker
 import com.example.ui.state.KeystoreSourceMode
 import com.example.ui.state.SignApkFormState
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 @Composable
 fun SelectKeystoreForSigningCard(
@@ -66,33 +64,9 @@ fun SelectKeystoreForSigningCard(
     onUpdateForm: ((SignApkFormState) -> SignApkFormState) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-
-    val keystorePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        if (uri != null) {
-            scope.launch {
-                val (name, bytes) = withContext(Dispatchers.IO) {
-                    var resolvedName = "custom.jks"
-                    try {
-                        context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
-                            val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-                            if (cursor.moveToFirst() && nameIndex != -1) {
-                                resolvedName = cursor.getString(nameIndex) ?: "custom.jks"
-                            }
-                        }
-                    } catch (_: Exception) {}
-
-                    val streamBytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: ByteArray(0)
-                    Pair(resolvedName, streamBytes)
-                }
-
-                if (bytes.isNotEmpty()) {
-                    onSetExternalKeystore(name, bytes)
-                }
-            }
+    val keystorePickerLauncher = rememberPlatformFilePicker { platformFile ->
+        if (platformFile != null && platformFile.bytes.isNotEmpty()) {
+            onSetExternalKeystore(platformFile.name, platformFile.bytes)
         }
     }
 
@@ -234,7 +208,13 @@ fun SelectKeystoreForSigningCard(
                 // External Keystore Mode
                 if (formState.externalKeystoreBytes == null) {
                     Button(
-                        onClick = { keystorePickerLauncher.launch("*/*") },
+                        onClick = {
+                            keystorePickerLauncher.launch(
+                                title = "Seleccionar archivo Keystore",
+                                mimeType = "*/*",
+                                allowedExtensions = listOf("jks", "keystore", "p12")
+                            )
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .testTag("btn_pick_external_keystore")
@@ -267,7 +247,15 @@ fun SelectKeystoreForSigningCard(
                                 )
                             }
 
-                            Button(onClick = { keystorePickerLauncher.launch("*/*") }) {
+                            Button(
+                                onClick = {
+                                    keystorePickerLauncher.launch(
+                                        title = "Cambiar archivo Keystore",
+                                        mimeType = "*/*",
+                                        allowedExtensions = listOf("jks", "keystore", "p12")
+                                    )
+                                }
+                            ) {
                                 Text("Cambiar")
                             }
                         }

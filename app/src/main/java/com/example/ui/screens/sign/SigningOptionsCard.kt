@@ -108,6 +108,31 @@ fun SigningOptionsCard(
                 )
             }
 
+            // Scheme v3 Switch
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Firma Esquema v3 (APK Signature Scheme v3)",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = "Soporte moderno para Android 9.0+ y rotación de claves criptográficas.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = formState.signV3,
+                    onCheckedChange = { v -> onUpdateForm { it.copy(signV3 = v) } },
+                    modifier = Modifier.testTag("switch_sign_v3")
+                )
+            }
+
             // Zipalign Switch
             Row(
                 modifier = Modifier.fillMaxWidth(),

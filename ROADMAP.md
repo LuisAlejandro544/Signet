@@ -73,11 +73,24 @@ Plan estratégico de evolución técnica y funcionalidades para el proyecto **Si
 - [x] **Firmador Profesional de APKs en el Dispositivo (APK Signer & Zipalign)**:
   - [x] Implementación nativa de **APK Signature Scheme v1 (JAR signing)** generando `MANIFEST.MF`, `CERT.SF` y bloque PKCS#7 (`CERT.RSA`/`CERT.EC`).
   - [x] Implementación nativa de **APK Signature Scheme v2 (APK Signing Block)** inyectando el bloque de firma criptográfica con ID `0x7109871a` antes del Central Directory.
+  - [x] Implementación nativa de **APK Signature Scheme v3 (APK Signature Scheme v3)** con ID `0xf05368c0`, soporte para rotación de claves criptográficas y compatibilidad completa para Android 9.0+.
+  - [x] Inyección combinada e independiente de múltiples esquemas en el APK Signing Block.
   - [x] Motor nativo de **Zipalign a 4 bytes** para optimización de entradas `STORED` (sin comprimir) garantizando soporte `mmap` e instalación inmediata.
   - [x] Soporte para firma con Keystores de la bóveda interna (con descifrado automático AES-256-GCM) o archivos externos `.jks`/`.keystore`/`.p12`.
-  - [x] Interfaz de usuario interactiva en Jetpack Compose (`SignApkScreen`) con selección de APK, Keystore, opciones personalizadas, progreso, instalación directa e integración con APK Matcher.
+  - [x] Interfaz de usuario interactiva en Jetpack Compose (`SignApkScreen`) con selección de APK, Keystore, opciones personalizadas (v1, v2, v3 y zipalign), progreso, instalación directa e integración con APK Matcher.
 - [ ] **Conversión de Formatos**:
   - Conversión bidireccional entre JKS/PKCS12 y PEM/CRT/KEY.
-- [ ] **Herramienta Multiplataforma (Signet Desktop)**:
-  - Versión Compose Multiplatform (Desktop JVM) para desarrolladores en Linux, macOS y Windows.
+- [x] **Arquitectura Multiplataforma (Signet Desktop - Preparación & Desacoplamiento)**:
+  - [x] Sustitución de las 4 dependencias exclusivas de Android por equivalentes Java/Desktop:
+    * `android.util.Base64` -> `com.example.crypto.Base64Compat` (respaldado por `java.util.Base64`).
+    * `AndroidKeyStore` -> Arquitectura híbrida en `KeystoreEncryptionManager` (AES-256 en `%APPDATA%/Signet/signet_master.key` en Windows/Desktop).
+    * `android.content.SharedPreferences` -> `PreferencesDataSource` y `DesktopPreferencesDataSource` (`%APPDATA%/Signet/signet_preferences.properties`).
+    * `androidx.room` -> `KeystoreDataSource` y `DesktopKeystoreDataSource` (`%APPDATA%/Signet/vault_index.json`).
+  - [x] Desacoplamiento del parámetro `android.content.Context` en `KeystoreGenerator`, `SignetBackupManager` y `KeystoreRepository` a `outputDir: File`.
+  - [x] Motor de resolución de almacenamiento de escritorio `DesktopStorageUtils` para Windows (%APPDATA%), Linux/Unix y macOS.
+  - [x] Suite de tests unitarios `DesktopMultiplatformTest` verificando compatibilidad en JVM/Escritorio.
+- [ ] **Empaquetado y Distribución de Signet Desktop**:
+  - [ ] Módulo Compose Multiplatform Desktop (`desktopApp`) para Windows (.exe / .msi), Linux (.deb / AppImage) y ejecución en Winlator.
+  - [ ] Pipeline de CI/CD para compilación de binarios Desktop.
+
 

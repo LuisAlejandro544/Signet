@@ -1,6 +1,6 @@
 package com.example.crypto.x509
 
-import android.util.Base64
+import com.example.crypto.Base64Compat
 import java.security.MessageDigest
 
 /**
@@ -21,7 +21,7 @@ object X509CertificateUtils {
      * Formats X.509 certificate binary bytes into standard RFC 7468 PEM format.
      */
     fun buildPemCertificate(certBytes: ByteArray): String {
-        val base64 = Base64.encodeToString(certBytes, Base64.NO_WRAP)
+        val base64 = Base64Compat.encodeToString(certBytes, noWrap = true)
         val chunks = base64.chunked(64).joinToString("\n")
         return "-----BEGIN CERTIFICATE-----\n$chunks\n-----END CERTIFICATE-----"
     }

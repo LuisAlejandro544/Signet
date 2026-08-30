@@ -55,7 +55,7 @@ fun SignApkScreen(
         )
 
         Text(
-            text = "Firma cualquier APK usando tus Keystores guardados o un archivo externo (.jks, .p12, .keystore) con soporte dual Esquema v1 + v2 y optimización Zipalign.",
+            text = "Firma cualquier APK usando tus Keystores guardados o un archivo externo (.jks, .p12, .keystore) con soporte multi-esquema v1 + v2 + v3 y optimización Zipalign.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

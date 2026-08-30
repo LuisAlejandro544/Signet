@@ -93,6 +93,7 @@ data class ApkMatchResult(
 data class ApkSigningOptions(
     val signV1: Boolean = true,
     val signV2: Boolean = true,
+    val signV3: Boolean = true,
     val zipalign: Boolean = true,
     val outputFileName: String = "app-signed.apk"
 )

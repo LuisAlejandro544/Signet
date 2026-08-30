@@ -94,10 +94,24 @@ Este documento proporciona contexto técnico, decisiones de arquitectura y direc
     - Registro de versiones documentado en `Changelog-release.md`.
 
 16. **Firmador Profesional de APKs & Motor Zipalign (`com.example.crypto.signer`)**:
-    - `ApkSigner`: Orquestador central que extrae el par de claves/certificado del Keystore (interno de la bóveda o archivo externo), ejecuta `ApkZipalignEngine`, aplica `ApkV1Signer` y/o `ApkV2Signer`, y genera el APK firmado con guardado/caché y opción de instalación nativa.
+    - `ApkSigner`: Orquestador central que extrae el par de claves/certificado del Keystore (interno de la bóveda o archivo externo), ejecuta `ApkZipalignEngine`, aplica `ApkV1Signer`, `ApkV2Signer` y/o `ApkV3Signer`, y genera el APK firmado con guardado/caché y opción de instalación nativa.
     - `ApkV1Signer`: Firma basada en JAR (`META-INF/MANIFEST.MF`, `CERT.SF`, `CERT.RSA`/`CERT.EC`) usando BouncyCastle CMS `CMSSignedDataGenerator`.
     - `ApkV2Signer`: Inyección del **APK Signing Block** con ID `0x7109871a` y magic `APK Sig Block 42` antes del Central Directory con cálculo de digesiones de 1 MB de las 3 secciones del APK (ZIP entries, Central Directory, EOCD ajustado).
+    - `ApkV3Signer`: Inyección del **APK Signature Scheme v3** con ID `0xf05368c0` dentro del APK Signing Block, con rango de SDKs (`minSdkVersion = 28`, `maxSdkVersion = Integer.MAX_VALUE`), soporte de rotación de claves criptográficas e interoperabilidad nativa con v2.
+    - Inyección coordinada en `ApkV3Signer.injectSignatureBlock`: Empaqueta bloques v2 y/o v3 en un único bloque APK Signing Block sin alterar el alineamiento ni la estructura de Central Directory.
     - `ApkZipalignEngine`: Alineación de entradas sin comprimir (`STORED`) en múltiplos exactos de 4 bytes para compatibilidad de mapeo en memoria `mmap`.
-    - `SignApkScreen`: Interfaz en Compose con selector de APK, selector de Keystore, opciones configurables y tarjeta de resultados interactiva (con botón de instalación mediante `Intent.ACTION_INSTALL_PACKAGE` y navegación hacia `InspectScreen`).
+    - `SignApkScreen`: Interfaz en Compose con selector de APK, selector de Keystore, opciones configurables (switches independientes para v1, v2, v3 y zipalign) y tarjeta de resultados interactiva (con botón de instalación mediante `Intent.ACTION_INSTALL_PACKAGE` y navegación hacia `InspectScreen`).
+
+17. **Arquitectura Multiplataforma & Desacoplamiento Desktop / Windows**:
+    - **Sustitución de las 4 librerías exclusivas de Android**:
+      1. `android.util.Base64` -> `com.example.crypto.Base64Compat`: Wrapper universal respaldado por `java.util.Base64` en tiempo de ejecución estándar JVM/Android.
+      2. `AndroidKeyStore` (`KeyGenParameterSpec`) -> `KeystoreEncryptionManager`: Arquitectura híbrida que utiliza AndroidKeyStore en Android y en Desktop/Windows deriva a clave maestra AES-256 de 256 bits (`signet_master.key`) persistida en el directorio de la aplicación (`%APPDATA%/Signet/` en Windows).
+      3. `android.content.SharedPreferences` -> `PreferencesDataSource`: Interfaz desacoplada con implementaciones `AndroidPreferencesDataSource` y `DesktopPreferencesDataSource` (persistencia en `signet_preferences.properties`).
+      4. `androidx.room` -> `KeystoreDataSource`: Abstracción de repositorio con `RoomKeystoreDataSource` y `DesktopKeystoreDataSource` (almacenamiento en `vault_index.json` con `StateFlow` reactivo).
+    - **Desacoplamiento de `android.content.Context` en el núcleo**: `SignetBackupManager`, `KeystoreGenerator` y `KeystoreRepository` aceptan directamente `outputDir: File`.
+    - **Rutas del Sistema Operativo (`DesktopStorageUtils`)**: Resolución automática de `%APPDATA%/Signet` en Windows, `~/Library/Application Support/Signet` en macOS y `~/.config/signet` en Linux.
+    - **Compatibilidad con Winlator / JVM Windows**: La arquitectura permite la ejecución sin dependencias del Android Framework para emuladores Winlator y ejecutables Desktop nativos.
+    - **Pruebas de Compatibilidad Desktop**: Verificadas mediante `DesktopMultiplatformTest.kt` (32 tests unitarios pasando en total).
+
 
 

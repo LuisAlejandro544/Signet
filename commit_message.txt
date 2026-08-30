@@ -1,48 +1,46 @@
-feat(crypto): implementar modo efímero sin rastro (zero-footprint) en memoria RAM
+feat(signer): incorporar soporte de firma APK Signature Scheme v3 (Android 9.0+)
 
-- Modo de Generación Efímero (Zero-Footprint):
-  * Añadir bandera `isEphemeral: Boolean` en `FormState.kt` para permitir al usuario alternar entre persistencia estándar y generación estrictamente volátil en memoria.
-  * Modificar `KeystoreGenerator.kt` con parámetro opcional `saveToFile: Boolean = true`. Cuando es falso, el almacén de claves (.jks / .keystore / .p12) y sus certificados X.509 se generan en memoria RAM mediante BouncyCastle y se codifican en Base64 sin escribir archivos en el almacenamiento interno de la app (`context.filesDir`).
-  * Actualizar `KeystoreRepository.kt` agregando `generateKeystore(context, config, saveToDatabase: Boolean = true)` para omitir la inserción en la base de datos Room (`AppDatabase`) cuando el modo efímero esté activo, retornando un identificador efímero (`id = 0L`).
-  * Actualizar `KeystoreViewModel.kt` para coordinar la generación efímera en base al estado del formulario.
+- Motor Criptográfico de Firma APK v3 (`com.example.crypto.signer`):
+  * Crear `ApkV3Signer.kt`: Implementación del estándar APK Signature Scheme v3 (ID de bloque `0xf05368c0`) con soporte para rotación de claves criptográficas y rango de SDKs (`minSdkVersion = 28`, `maxSdkVersion = Integer.MAX_VALUE`).
+  * Inyección Unificada en APK Signing Block: Implementación de `injectSignatureBlock` capaz de inyectar pares ID-valor tanto de Esquema v2 como de Esquema v3 de forma simultánea o independiente en un único bloque binario `APK Sig Block 42`.
+  * Integrar `ApkV3Signer` en `ApkSigner.kt`: Orquestación multi-esquema v1 (JAR), v2 (Full APK) y v3 (Full APK + Rotación de Claves).
 
-- Interfaz de Usuario y Experiencia en Compose:
-  * Crear componente `EphemeralModeSection.kt` en `com.example.ui.screens.generate`: tarjeta Material 3 con switch interactivo, indicador visual y descripción clara sobre la ausencia de persistencia en disco.
-  * Integrar `EphemeralModeSection` en `GenerateScreen.kt` permitiendo activar o desactivar el modo antes de la generación.
-  * Actualizar `KeystoreDetailsSheet.kt`:
-    - Incorporar banner informativo destacado cuando una clave es efímera, advirtiendo al usuario de exportar sus datos antes de cerrar la vista.
-    - Adaptar `exportFileLauncher` para exportar el archivo binario `.jks` mediante SAF directamente desde el payload en Base64 en memoria cuando no exista archivo local en disco.
-    - Adaptar `DetailsActionUtils.shareKeystoreFile` para permitir compartir claves efímeras mediante un archivo temporal protegido en la caché de la aplicación (`cache-path`).
-  * Actualizar `file_paths.xml` agregando la ruta `<cache-path name="shared_keystores" path="shared/" />` para el `FileProvider`.
+- Corrección y Detección en Parsers (`com.example.crypto.apk` & `com.example.crypto`):
+  * Corregir cálculo de desplazamiento en `ApkSigningBlockParser.kt` (`centralDirOffset - 24` para el tamaño del bloque del footer y `centralDirOffset - 16` para la marca mágica), permitiendo el parseo binario exacto de certificados v2 y v3.
+  * Ajustar `ApkMatcher.kt` para registrar todos los esquemas de firma detectados (`schemesFound`) independientemente de la deduplicación de huellas digitales de certificados compartidos entre esquemas.
 
-- Pruebas y Validación:
-  * Añadir caso de prueba `generate ephemeral keystore in memory without creating file` en `KeystoreGeneratorTest.kt` verificando que no se creen archivos en disco y que el Base64 generado sea íntegro e inspeccionable.
-  * Añadir prueba en `KeystoreViewModelTest.kt` para verificar el cambio de estado del modo efímero en el formulario.
+- Capa de Estado, Modelos e Interfaz de Usuario (Compose):
+  * Actualizar `ApkSigningOptions` en `KeystoreModels.kt` con la propiedad `signV3: Boolean = true`.
+  * Extender `SignApkFormState` en `KeystoreUiStates.kt` con la bandera `signV3`.
+  * Modificar `SigningOptionsCard.kt` incorporando un switch dedicado para habilitar/deshabilitar el Esquema v3 con `testTag("switch_sign_v3")`.
+  * Actualizar validaciones y lógica de invocación en `KeystoreViewModel.kt` admitiendo combinaciones de v1, v2 y v3.
+  * Actualizar descripciones en `SignApkScreen.kt`.
 
-- Documentación:
-  * Actualizar `README.md`, `ROADMAP.md`, `AI_CONTEXT.md`, `STRUCTURE.md` y `Changelog-release.md` documentando la arquitectura y funcionamiento del modo efímero.
+- Pruebas Unitarias Automatizadas:
+  * Extender `ApkSignerTest.kt` con pruebas completas en Robolectric:
+    - `testApkSigningWorkflow_tripleScheme_v1_v2_v3_and_zipalign`: Verifica la aplicación conjunta de los esquemas v1, v2 y v3 con Zipalign a 4 bytes.
+    - `testApkSigningWorkflow_v3Only`: Verifica la firma aislada con únicamente el Esquema v3.
+  * 28 tests ejecutados y aprobados con éxito (100% passing).
 
-feat(signer): implementar motor nativo de firma de APKs (v1, v2) y Zipalign en el dispositivo
+- Documentación Técnica:
+  * Actualizar `README.md`, `ROADMAP.md`, `AI_CONTEXT.md`, `STRUCTURE.md` y `Changelog-release.md` reflejando la compatibilidad con APK Signature Scheme v3.
 
-- Motor Criptográfico de Firma de APKs (`com.example.crypto.signer`):
-  * Crear `ApkV1Signer.kt`: Genera manifiesto JAR `META-INF/MANIFEST.MF`, archivo de firmas `META-INF/CERT.SF` con hashes SHA-256 de todas las entradas del paquete y bloque de firma PKCS#7 (`CERT.RSA` / `CERT.EC`) firmado mediante BouncyCastle `CMSSignedDataGenerator`.
-  * Crear `ApkV2Signer.kt`: Inyecta el bloque **APK Signing Block** con ID `0x7109871a` y magic `APK Sig Block 42` antes del Central Directory con cálculo de resúmenes por chunks de 1 MB de las secciones del APK.
-  * Crear `ApkZipalignEngine.kt`: Motor de alineación a 4 bytes para entradas sin comprimir (`STORED`), asegurando compatibilidad con el cargador de Android (`mmap`) y optimización de memoria.
-  * Crear `ApkSigner.kt`: Fachada central que orquesta el flujo completo de firma, admitiendo Keystores internos de la bóveda (con descifrado AES-256-GCM) o archivos externos `.jks`/`.keystore`/`.p12`.
+feat(desktop): desacoplar dependencias exclusivas de Android e implementar soporte multiplataforma para Windows / Desktop
 
-- Interfaz de Usuario y Navegación en Jetpack Compose:
-  * Crear componentes desacoplados en `ui/screens/sign`:
-    - `SelectApkCard.kt`: Selector de archivo APK mediante Android SAF con lectura de tamaño y nombre.
-    - `SelectKeystoreForSigningCard.kt`: Selector interactivo entre Keystores de la bóveda interna (con auto-rellenado de alias y descifrado seguro de contraseñas) y archivos externos con campos de contraseña.
-    - `SigningOptionsCard.kt`: Configuración de esquemas de firma v1, v2, Zipalign y personalización del nombre de salida.
-    - `SigningResultCard.kt`: Visualizador de resultados con huella digital SHA-256, botones de instalación directa vía `Intent.ACTION_INSTALL_PACKAGE`, compartir y análisis cruzado en `InspectScreen`.
-  * Crear `SignApkScreen.kt` e integrarlo en la barra de navegación de 5 pestañas de `MainScreen.kt`.
+- Sustitución de las 4 Librerías Exclusivas de Android por Equivalentes Multiplataforma (Java / Windows):
+  * `android.util.Base64` -> `com.example.crypto.Base64Compat`: Reemplazo integral en todo el proyecto por wrapper universal respaldado en `java.util.Base64`.
+  * `AndroidKeyStore` -> Arquitectura Híbrida en `KeystoreEncryptionManager`: Detección en caliente de AndroidKeyStore en dispositivos móviles y derivación a clave maestra AES-256 (`signet_master.key`) persistida en `%APPDATA%/Signet/` en Windows / Desktop.
+  * `android.content.SharedPreferences` -> `PreferencesDataSource`: Nueva interfaz desacoplada con implementaciones `AndroidPreferencesDataSource` y `DesktopPreferencesDataSource` (archivo `.properties` en `%APPDATA%/Signet/signet_preferences.properties`).
+  * `androidx.room` -> `KeystoreDataSource`: Abstracción de repositorio con `RoomKeystoreDataSource` para Android y `DesktopKeystoreDataSource` respaldado en JSON (`%APPDATA%/Signet/vault_index.json`) con flujo reactivo `StateFlow` y persistencia atómica.
 
-- Modelos de Datos, ViewModel y FileProvider:
-  * Extender `KeystoreModels.kt` y `KeystoreUiStates.kt` con `ApkSigningOptions`, `ApkSigningResult`, `ApkSigningUiState` y `SignApkFormState`.
-  * Actualizar `KeystoreViewModel.kt` con métodos para selección de archivos, configuración de opciones, ejecución asíncrona en `Dispatchers.IO` y acciones de instalación/compartir.
-  * Actualizar `file_paths.xml` con `<cache-path name="signed_apks" path="signed_apks/" />` para permitir compartir e instalar APKs firmados mediante `FileProvider`.
+- Desacoplamiento de `android.content.Context` en el Núcleo Criptográfico:
+  * `SignetBackupManager`, `KeystoreGenerator` y `KeystoreRepository` ahora operan directamente sobre `outputDir: File`, manteniendo sobrecargas con `Context` para retrocompatibilidad con Android.
+  * Creación de `DesktopStorageUtils.kt` para resolución automática de rutas del sistema operativo (%APPDATA%/Signet en Windows, ~/.config/signet en Linux y Application Support en macOS).
 
-- Pruebas Automatizadas:
-  * Crear `ApkSignerTest.kt` con Robolectric (API 36) verificando la firma dual (v1 y v2), Zipalign, presencia de la marca mágica APK Sig Block 42, integración con `ApkMatcher` y manejo de errores con contraseñas inválidas.
+- Suite de Pruebas Unitarias Automatizadas:
+  * Creación de `DesktopMultiplatformTest.kt` evaluando `Base64Compat`, `DesktopPreferencesDataSource`, CRUD completo en `DesktopKeystoreDataSource` y resolución de rutas de `DesktopStorageUtils`.
+  * 32 tests unitarios ejecutados y aprobados con éxito (100% passing).
+
+- Preparación Arquitectónica para Compose Multiplatform Desktop:
+  * Desacoplamiento de componentes de UI y gestión de estado para permitir la ejecución en entornos de escritorio Windows y emulación Winlator sin Android Framework.
 

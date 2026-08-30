@@ -50,7 +50,7 @@ object DetailsActionUtils {
                     shareDir.mkdirs()
                 }
                 val tempFile = File(shareDir, details.fileName)
-                val bytes = android.util.Base64.decode(details.base64Content, android.util.Base64.DEFAULT)
+                val bytes = com.example.crypto.Base64Compat.decode(details.base64Content)
                 tempFile.writeBytes(bytes)
                 tempFile
             } else {

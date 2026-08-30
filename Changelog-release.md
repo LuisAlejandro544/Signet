@@ -20,7 +20,7 @@ Primer pre-lanzamiento público oficial del **Canal Beta (`.beta`)** de Signet (
   * Compatibilidad estricta con los esquemas de firma de Android **APK Signature Scheme v1, v2 y v3** (`apksigner`).
 
 - ✍️ **Firmador de APKs en el Dispositivo (APK Signer & Zipalign)**:
-  * **Firma Dual Scheme v1 + Scheme v2**: Generación nativa de firmas JAR (`META-INF/MANIFEST.MF`, `CERT.SF`, `CERT.RSA/EC`) e inyección de bloques de firma `APK Sig Block 42` antes del Central Directory.
+  * **Firma Multi-Esquema Nativa v1 + v2 + v3**: Generación nativa de firmas JAR (`META-INF/MANIFEST.MF`, `CERT.SF`, `CERT.RSA/EC`) e inyección de bloques de firma `APK Sig Block 42` antes del Central Directory soportando simultáneamente **Esquema v2** (`0x7109871a`) y **Esquema v3** (`0xf05368c0`) con soporte de rotación de claves criptográficas y compatibilidad completa para Android 9.0+.
   * **Motor Zipalign 4-Bytes**: Alineación automática de entradas sin comprimir (`STORED`) en múltiplos de 4 bytes para optimización `mmap` y soporte nativo de instalación.
   * **Firma con Keystores de la Bóveda o Externos**: Selección transparente de claves guardadas en SQLite (con descifrado AES-256-GCM) o carga directa de archivos `.jks`/`.keystore`/`.p12` externos.
   * **Instalación y Verificación Directa**: Botón para instalar el APK firmado directamente en el teléfono e integración con APK Matcher para validación de certificados.
@@ -51,5 +51,12 @@ Primer pre-lanzamiento público oficial del **Canal Beta (`.beta`)** de Signet (
 
 ### 🛠️ Mejoras Técnicas y de Rendimiento
 - **Compilación Optimizada con R8 / ProGuard**: Ofuscación y reducción de recursos para un tamaño de APK ultraligero y rendimiento nativo fluido en Jetpack Compose con Material Design 3.
-- **Arquitectura MVVM Desacoplada**: Gestión de estado reactivo mediante Kotlin StateFlow, Room Database 2.6+ con KSP y aislamiento criptográfico en BouncyCastle.
+- **Arquitectura MVVM Desacoplada & Multiplataforma**: Gestión de estado reactivo mediante Kotlin StateFlow, Room Database 2.6+ con KSP y aislamiento criptográfico en BouncyCastle.
+- **Desacoplamiento de Librerías Exclusivas de Android (Java / Windows / Desktop)**:
+  * Sustitución de `android.util.Base64` por `Base64Compat` (respaldado por `java.util.Base64`).
+  * Desacoplamiento de `AndroidKeyStore` con arquitectura híbrida en `KeystoreEncryptionManager` (AES-256-GCM y clave maestra en archivo para entornos de escritorio).
+  * Abstracción de `SharedPreferences` con `PreferencesDataSource` y persistencia en `.properties` para Desktop (`signet_preferences.properties`).
+  * Abstracción de Room con `KeystoreDataSource` y persistencia en índice JSON para Desktop (`vault_index.json`).
+  * Desacoplamiento de `android.content.Context` en el generador criptográfico, respaldos ZIP y repositorio.
+  * Compatibilidad verificada con Windows (%APPDATA%/Signet), Linux y emulación en Winlator.
 - **Pipeline Automatizado de CI/CD**: Workflow de GitHub Actions con firma desatendida mediante variables `KEYSTORE_BETA_BASE64` y publicación automática de assets.
