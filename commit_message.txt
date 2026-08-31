@@ -1,10 +1,17 @@
-perf(build): optimizar pasadas de R8, dexing incremental y exclusión de metadatos
+refactor(core): desarrollo modular y desacoplamiento de componentes centrales
 
-- Aumento de pasadas de optimización de R8 (`app/proguard-rules.pro`):
-  * Configuración de `-optimizationpasses 5` para permitir eliminación profunda y en cascada de código muerto.
+- Modularización de generación criptográfica (`com.example.crypto`):
+  * Desacoplamiento de `KeystoreGenerator.kt` en fachada orquestadora delegando en `KeyPairFactory.kt` (generación de claves asimétricas RSA/EC/DSA), `X509CertificateBuilder.kt` (construcción de certificados X.509 v3 con extensiones ASN.1 Code Signing) y `Pkcs12KeystoreSerializer.kt` (serialización y persistencia PKCS#12).
 
-- Optimización de empaquetado y exclusión de metadatos (`app/build.gradle.kts`):
-  * Exclusión de descriptores redundantes en el APK: `META-INF/proguard/**`, `META-INF/io.netty.versions.properties` y `kotlin-tooling-metadata.json`.
+- Desacoplamiento de restauración de respaldos (`com.example.crypto.backup`):
+  * Extracción de `VaultRestorationCoordinator.kt` desde `SignetBackupManager.kt` para coordinar el desbloqueo criptográfico, resolución de colisiones y ensamblado de `KeystoreDetails`.
 
-- Configuración de compilación y dexing D8/R8 (`gradle.properties`):
-  * Habilitación de desugaring en D8 (`android.enableD8.desugaring=true`) y compilación incremental en Kotlin (`kotlin.incremental=true`) junto a R8 Full Mode.
+- Arquitectura modular del ViewModel (`com.example.ui.delegates`):
+  * Refactorización de `KeystoreViewModel.kt` en delegados especializados: `KeystoreFormDelegate.kt` (formularios, validación y presets), `SignApkDelegate.kt` (firmado v1/v2/v3 y zipalign), `ApkMatcherDelegate.kt` (análisis forense y cruce de huellas SHA-256) y `AppUpdateDelegate.kt` (actualizaciones GitHub Releases).
+  * Corrección de ciclo de vida e integración en Android (`AndroidViewModel`): aislamiento total del almacenamiento de dispositivo (`context.filesDir` / `SharedPreferences`) respecto a rutas de escritorio.
+
+- Modularización de la pantalla principal (`com.example.ui`):
+  * Desacoplamiento de `MainScreen.kt` extrayendo `MainAdaptiveNavigation.kt` (NavigationRail, NavigationBar y TopAppBar adaptativos), `MainTabContent.kt` (conmutador de pestañas) y `MainGlobalSheets.kt` (host modal de hojas de detalles y diálogos de actualización).
+
+- Actualización de documentación arquitectónica (`STRUCTURE.md`):
+  * Registro del nuevo árbol de archivos y detalle del flujo de datos modularizado.

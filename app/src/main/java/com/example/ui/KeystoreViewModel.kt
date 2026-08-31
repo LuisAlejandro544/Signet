@@ -4,32 +4,27 @@ import android.app.Application
 import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.crypto.ApkMatcher
-import com.example.crypto.KeystoreEncryptionManager
-import com.example.crypto.PasswordGenerator
-import com.example.crypto.signer.ApkSigner
+import com.example.crypto.DesktopStorageUtils
 import com.example.data.KeystoreRepository
 import com.example.data.createAndroidKeystoreRepository
 import com.example.data.local.AppDatabase
-import com.example.data.model.ApkSigningOptions
-import com.example.data.model.DistinguishedName
-import com.example.data.model.KeyAlgorithm
-import com.example.data.model.KeystoreConfig
 import com.example.data.model.KeystoreDetails
+import com.example.ui.delegates.ApkMatcherDelegate
+import com.example.ui.delegates.AppUpdateDelegate
+import com.example.ui.delegates.KeystoreFormDelegate
+import com.example.ui.delegates.SignApkDelegate
 import com.example.ui.preferences.AppPreferencesManager
+import com.example.ui.res.SignetStrings
 import com.example.ui.state.ApkMatcherUiState
 import com.example.ui.state.ApkSigningUiState
 import com.example.ui.state.FormState
 import com.example.ui.state.GenerationUiState
 import com.example.ui.state.InspectorUiState
-import com.example.ui.state.KeystoreSourceMode
 import com.example.ui.state.RestoreUiState
 import com.example.ui.state.SignApkFormState
 import com.example.ui.theme.ColorPalette
 import com.example.ui.theme.ThemeMode
 import com.example.ui.theme.ThemeState
-import com.example.update.AppReleaseInfo
-import com.example.update.AppUpdateManager
 import com.example.update.UpdateUiState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -49,18 +44,34 @@ typealias ApkMatcherUiState = com.example.ui.state.ApkMatcherUiState
 typealias ApkSigningUiState = com.example.ui.state.ApkSigningUiState
 typealias SignApkFormState = com.example.ui.state.SignApkFormState
 
+/**
+ * Main ViewModel orchestrating Signet's state.
+ * Deconstructs responsibilities into modular delegates:
+ * - [KeystoreFormDelegate]: Form editing, presets, and keystore generation.
+ * - [SignApkDelegate]: APK selection, signature inspection, and APK signing.
+ * - [ApkMatcherDelegate]: Forensic signature inspection and APK vs Keystore matching.
+ * - [AppUpdateDelegate]: Release version checking and binary update downloading.
+ */
 open class KeystoreViewModel(
+    application: Application,
     private val preferencesManager: AppPreferencesManager,
-    private val repository: KeystoreRepository
-) : androidx.lifecycle.ViewModel() {
+    private val repository: KeystoreRepository,
+    private val baseDataDir: File,
+    private val formDelegate: KeystoreFormDelegate = KeystoreFormDelegate(),
+    private val signApkDelegate: SignApkDelegate = SignApkDelegate(),
+    private val apkMatcherDelegate: ApkMatcherDelegate = ApkMatcherDelegate(),
+    private val updateDelegate: AppUpdateDelegate = AppUpdateDelegate()
+) : androidx.lifecycle.AndroidViewModel(application) {
 
     constructor(application: Application) : this(
-        AppPreferencesManager(application),
-        createAndroidKeystoreRepository(AppDatabase.getDatabase(application))
+        application = application,
+        preferencesManager = AppPreferencesManager(application),
+        repository = createAndroidKeystoreRepository(AppDatabase.getDatabase(application)),
+        baseDataDir = application.filesDir
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                repository.syncAndRecoverOrphanKeystores(application.filesDir)
+                repository.syncAndRecoverOrphanKeystores(baseDataDir)
             } catch (_: Exception) {}
             try {
                 checkForUpdates(isManual = false, isDesktop = false)
@@ -69,18 +80,22 @@ open class KeystoreViewModel(
     }
 
     constructor() : this(
-        AppPreferencesManager(),
-        KeystoreRepository(com.example.crypto.DesktopStorageUtils.getDesktopDataDir())
+        application = Application(),
+        preferencesManager = AppPreferencesManager(),
+        repository = KeystoreRepository(DesktopStorageUtils.getDesktopDataDir()),
+        baseDataDir = DesktopStorageUtils.getDesktopDataDir()
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                repository.syncAndRecoverOrphanKeystores(com.example.crypto.DesktopStorageUtils.getDesktopDataDir())
+                repository.syncAndRecoverOrphanKeystores(baseDataDir)
             } catch (_: Exception) {}
             try {
                 checkForUpdates(isManual = false, isDesktop = true)
             } catch (_: Exception) {}
         }
     }
+
+    fun getVaultDirectory(): File = baseDataDir
 
     fun syncKeystores(context: Context) {
         viewModelScope.launch(Dispatchers.IO) {
@@ -90,7 +105,7 @@ open class KeystoreViewModel(
         }
     }
 
-    fun syncKeystores(dir: File = com.example.crypto.DesktopStorageUtils.getDesktopDataDir()) {
+    fun syncKeystores(dir: File = baseDataDir) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 repository.syncAndRecoverOrphanKeystores(dir)
@@ -101,36 +116,31 @@ open class KeystoreViewModel(
     val savedKeystores: StateFlow<List<KeystoreDetails>> = repository.allKeystores
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // 0: Generar, 1: Mis Keystores, 2: Inspeccionar, 3: Configuración
+    // 0: Generar, 1: Mis Keystores, 2: Firmar APK, 3: Inspeccionar, 4: Configuración
     private val _selectedTab = MutableStateFlow(0)
     val selectedTab: StateFlow<Int> = _selectedTab.asStateFlow()
 
-    private val _formState = MutableStateFlow(FormState())
-    val formState: StateFlow<FormState> = _formState.asStateFlow()
+    // Form & Generation States (delegated)
+    val formState: StateFlow<FormState> = formDelegate.formState
+    val generationState: StateFlow<GenerationUiState> = formDelegate.generationState
+    val selectedKeystoreForDetail: StateFlow<KeystoreDetails?> = formDelegate.selectedKeystoreForDetail
 
-    private val _generationState = MutableStateFlow<GenerationUiState>(GenerationUiState.Idle)
-    val generationState: StateFlow<GenerationUiState> = _generationState.asStateFlow()
-
+    // Restore & Inspector States
     private val _restoreState = MutableStateFlow<RestoreUiState>(RestoreUiState.Idle)
     val restoreState: StateFlow<RestoreUiState> = _restoreState.asStateFlow()
 
     private val _inspectorState = MutableStateFlow<InspectorUiState>(InspectorUiState.Idle)
     val inspectorState: StateFlow<InspectorUiState> = _inspectorState.asStateFlow()
 
-    private val _apkMatcherState = MutableStateFlow<ApkMatcherUiState>(ApkMatcherUiState.Idle)
-    val apkMatcherState: StateFlow<ApkMatcherUiState> = _apkMatcherState.asStateFlow()
+    // APK Matcher State (delegated)
+    val apkMatcherState: StateFlow<ApkMatcherUiState> = apkMatcherDelegate.apkMatcherState
 
-    private val _signApkFormState = MutableStateFlow(SignApkFormState())
-    val signApkFormState: StateFlow<SignApkFormState> = _signApkFormState.asStateFlow()
+    // APK Signing States (delegated)
+    val signApkFormState: StateFlow<SignApkFormState> = signApkDelegate.signApkFormState
+    val apkSigningState: StateFlow<ApkSigningUiState> = signApkDelegate.apkSigningState
 
-    private val _apkSigningState = MutableStateFlow<ApkSigningUiState>(ApkSigningUiState.Idle)
-    val apkSigningState: StateFlow<ApkSigningUiState> = _apkSigningState.asStateFlow()
-
-    private val _selectedKeystoreForDetail = MutableStateFlow<KeystoreDetails?>(null)
-    val selectedKeystoreForDetail: StateFlow<KeystoreDetails?> = _selectedKeystoreForDetail.asStateFlow()
-
-    private val _updateState = MutableStateFlow<UpdateUiState>(UpdateUiState.Idle)
-    val updateState: StateFlow<UpdateUiState> = _updateState.asStateFlow()
+    // App Update State (delegated)
+    val updateState: StateFlow<UpdateUiState> = updateDelegate.updateState
 
     // Theme state backed by AppPreferencesManager
     private val _themeState = MutableStateFlow(preferencesManager.loadThemeState())
@@ -179,170 +189,59 @@ open class KeystoreViewModel(
         _selectedTab.value = index
     }
 
+    // --- Form & Keystore Generation Delegation ---
+
     fun updateForm(transform: (FormState) -> FormState) {
-        _formState.value = transform(_formState.value)
+        formDelegate.updateForm(transform)
     }
 
     fun setValidityYears(years: Int) {
-        val clamped = years.coerceIn(1, 100)
-        _formState.value = _formState.value.copy(validityYears = clamped)
+        formDelegate.setValidityYears(years)
     }
 
     fun generateRandomPassword(length: Int = 20) {
-        val pwd = PasswordGenerator.generate(length = length)
-        _formState.value = _formState.value.copy(
-            storePassword = pwd,
-            confirmPassword = pwd,
-            isStorePasswordVisible = true
-        )
+        formDelegate.generateRandomPassword(length)
     }
 
     fun applyPreset(presetName: String) {
-        when (presetName) {
-            "release" -> {
-                _formState.value = _formState.value.copy(
-                    fileName = "release-key",
-                    fileExtension = "jks",
-                    alias = "key0",
-                    validityYears = 25,
-                    algorithm = KeyAlgorithm.RSA_2048
-                )
-            }
-            "windows", "pfx" -> {
-                _formState.value = _formState.value.copy(
-                    fileName = "authenticode-codesign",
-                    fileExtension = "pfx",
-                    alias = "codesign",
-                    validityYears = 10,
-                    algorithm = KeyAlgorithm.RSA_4096
-                )
-            }
-            "p12" -> {
-                _formState.value = _formState.value.copy(
-                    fileName = "multiplatform-key",
-                    fileExtension = "p12",
-                    alias = "app-signer",
-                    validityYears = 25,
-                    algorithm = KeyAlgorithm.RSA_2048
-                )
-            }
-            "upload" -> {
-                _formState.value = _formState.value.copy(
-                    fileName = "upload-key",
-                    fileExtension = "jks",
-                    alias = "upload",
-                    validityYears = 30,
-                    algorithm = KeyAlgorithm.RSA_2048
-                )
-            }
-            "rsa4096" -> {
-                _formState.value = _formState.value.copy(
-                    fileName = "app-high-security",
-                    fileExtension = "keystore",
-                    alias = "release",
-                    validityYears = 25,
-                    algorithm = KeyAlgorithm.RSA_4096
-                )
-            }
-        }
+        formDelegate.applyPreset(presetName)
     }
 
     fun setFileExtension(ext: String) {
-        _formState.value = _formState.value.copy(fileExtension = ext)
+        formDelegate.setFileExtension(ext)
     }
 
     fun generateKeystore(context: Context) = generateKeystore(context.filesDir)
 
-    fun generateKeystore(outputDir: File = com.example.crypto.DesktopStorageUtils.getDesktopDataDir()) {
-        val form = _formState.value
-
-        // Validate inputs
-        if (form.fileName.isBlank()) {
-            _generationState.value = GenerationUiState.Error("Por favor ingresa un nombre para el archivo keystore.")
-            return
-        }
-        if (form.storePassword.length < 6) {
-            _generationState.value = GenerationUiState.Error("La contraseña del keystore debe tener al menos 6 caracteres.")
-            return
-        }
-        if (form.storePassword != form.confirmPassword) {
-            _generationState.value = GenerationUiState.Error("Las contraseñas no coinciden.")
-            return
-        }
-        if (form.alias.isBlank()) {
-            _generationState.value = GenerationUiState.Error("El alias de la clave no puede estar vacío.")
-            return
-        }
-        if (!form.useSamePassword && form.keyPassword.length < 6) {
-            _generationState.value = GenerationUiState.Error("La contraseña de la clave debe tener al menos 6 caracteres.")
-            return
-        }
-        if (form.countryCode.isNotBlank() && form.countryCode.length != 2) {
-            _generationState.value = GenerationUiState.Error("El código de país debe ser de 2 letras (ej: ES, MX, US).")
-            return
-        }
-
-        _generationState.value = GenerationUiState.Generating
-
-        val config = KeystoreConfig(
-            fileName = form.fullFileName,
-            storePassword = form.storePassword,
-            alias = form.alias,
-            keyPassword = form.keyPassword,
-            useSamePassword = form.useSamePassword,
-            validityYears = form.validityYears,
-            algorithm = form.algorithm,
-            distinguishedName = DistinguishedName(
-                commonName = form.commonName,
-                organizationalUnit = form.organizationalUnit,
-                organization = form.organization,
-                locality = form.locality,
-                state = form.state,
-                countryCode = form.countryCode
-            )
-        )
-
-        viewModelScope.launch {
-            val result = if (form.isEphemeral) {
-                repository.generateKeystore(outputDir, config, saveToDatabase = false)
-            } else {
-                repository.generateKeystore(outputDir, config, saveToDatabase = true)
-            }
-            result.onSuccess { details ->
-                _generationState.value = GenerationUiState.Success(details)
-            }.onFailure { error ->
-                _generationState.value = GenerationUiState.Error(
-                    error.localizedMessage ?: "Error desconocido al generar el archivo keystore."
-                )
-            }
-        }
+    fun generateKeystore(outputDir: File = baseDataDir) {
+        formDelegate.generateKeystore(outputDir, repository, viewModelScope)
     }
 
     fun dismissGenerationState() {
-        _generationState.value = GenerationUiState.Idle
+        formDelegate.dismissGenerationState()
     }
 
     fun showKeystoreDetails(details: KeystoreDetails) {
-        _selectedKeystoreForDetail.value = details
+        formDelegate.showKeystoreDetails(details)
     }
 
     fun dismissKeystoreDetails() {
-        _selectedKeystoreForDetail.value = null
+        formDelegate.dismissKeystoreDetails()
     }
 
     fun deleteKeystore(details: KeystoreDetails) {
         viewModelScope.launch {
             repository.deleteKeystore(details.id, details.filePath)
-            if (_selectedKeystoreForDetail.value?.id == details.id) {
-                _selectedKeystoreForDetail.value = null
-            }
+            formDelegate.clearDetailsIfMatching(details.id)
         }
     }
+
+    // --- Backup & Restore ---
 
     fun restoreFromZip(context: Context, zipBytes: ByteArray) = restoreFromZip(context.filesDir, zipBytes)
 
     fun restoreFromZip(
-        outputDir: File = com.example.crypto.DesktopStorageUtils.getDesktopDataDir(),
+        outputDir: File = baseDataDir,
         zipBytes: ByteArray
     ) {
         _restoreState.value = RestoreUiState.Restoring
@@ -386,6 +285,8 @@ open class KeystoreViewModel(
         return repository.createVaultBackupZip(currentKeystores)
     }
 
+    // --- Keystore Inspector ---
+
     fun inspectKeystoreFile(bytes: ByteArray, password: String) {
         _inspectorState.value = InspectorUiState.Loading
         viewModelScope.launch {
@@ -408,273 +309,71 @@ open class KeystoreViewModel(
         _inspectorState.value = InspectorUiState.Idle
     }
 
+    // --- APK Matcher Delegation ---
+
     fun matchApkWithKeystore(
         context: Context?,
         apkBytes: ByteArray,
         apkFileName: String,
         targetKeystore: KeystoreDetails
     ) {
-        _apkMatcherState.value = ApkMatcherUiState.Loading
-        viewModelScope.launch(Dispatchers.Default) {
-            try {
-                val apkInfo = ApkMatcher.analyzeApk(context, apkBytes, apkFileName)
-                val matchResult = ApkMatcher.matchApkWithKeystoreDetails(apkInfo, targetKeystore)
-                _apkMatcherState.value = ApkMatcherUiState.Success(
-                    apkInfo = apkInfo,
-                    matchResult = matchResult
-                )
-            } catch (e: Exception) {
-                _apkMatcherState.value = ApkMatcherUiState.Error(
-                    e.localizedMessage ?: "Error al analizar y verificar el archivo APK."
-                )
-            }
-        }
+        apkMatcherDelegate.matchApkWithKeystore(context, apkBytes, apkFileName, targetKeystore, viewModelScope)
     }
 
     fun analyzeApk(context: Context?, apkBytes: ByteArray, apkFileName: String) {
-        _apkMatcherState.value = ApkMatcherUiState.Loading
-        viewModelScope.launch(Dispatchers.Default) {
-            try {
-                val apkInfo = ApkMatcher.analyzeApk(context, apkBytes, apkFileName)
-                _apkMatcherState.value = ApkMatcherUiState.Success(
-                    apkInfo = apkInfo,
-                    matchResult = null
-                )
-            } catch (e: Exception) {
-                _apkMatcherState.value = ApkMatcherUiState.Error(
-                    e.localizedMessage ?: "Error al extraer las firmas del APK."
-                )
-            }
-        }
+        apkMatcherDelegate.analyzeApk(context, apkBytes, apkFileName, viewModelScope)
     }
 
     fun resetApkMatcher() {
-        _apkMatcherState.value = ApkMatcherUiState.Idle
+        apkMatcherDelegate.resetApkMatcher()
     }
 
+    // --- APK Signing Delegation ---
+
     fun updateSignApkForm(transform: (SignApkFormState) -> SignApkFormState) {
-        _signApkFormState.value = transform(_signApkFormState.value)
+        signApkDelegate.updateSignApkForm(transform)
     }
 
     fun selectApkForSigning(name: String, size: Long, bytes: ByteArray, context: Context?) {
-        val baseName = name.removeSuffix(".apk").removeSuffix(".APK")
-        val defaultOutput = if (baseName.isNotBlank()) "$baseName-signed.apk" else "app-signed.apk"
-
-        _signApkFormState.value = _signApkFormState.value.copy(
-            apkFileName = name,
-            apkFileSizeBytes = size,
-            apkBytes = bytes,
-            outputFileName = defaultOutput
-        )
-
-        // Asynchronously analyze APK to detect package and existing signatures
-        viewModelScope.launch(Dispatchers.Default) {
-            try {
-                val info = ApkMatcher.analyzeApk(context, bytes, name)
-                _signApkFormState.value = _signApkFormState.value.copy(
-                    detectedPackageName = info.packageName,
-                    detectedVersionName = info.versionName,
-                    hasExistingSignatures = info.certificates.isNotEmpty(),
-                    existingSchemes = info.signatureSchemesFound
-                )
-            } catch (_: Exception) {}
-        }
+        signApkDelegate.selectApkForSigning(name, size, bytes, context, viewModelScope)
     }
 
     fun clearSelectedApkForSigning() {
-        _signApkFormState.value = _signApkFormState.value.copy(
-            apkFileName = "",
-            apkFileSizeBytes = 0L,
-            apkBytes = null,
-            detectedPackageName = null,
-            detectedVersionName = null,
-            hasExistingSignatures = false,
-            existingSchemes = emptyList()
-        )
+        signApkDelegate.clearSelectedApkForSigning()
     }
 
     fun selectSavedKeystoreForSigning(keystore: KeystoreDetails) {
-        val decryptedStorePassword = KeystoreEncryptionManager.decrypt(keystore.storePassword)
-        val decryptedKeyPassword = KeystoreEncryptionManager.decrypt(keystore.keyPassword).ifBlank { decryptedStorePassword }
-
-        _signApkFormState.value = _signApkFormState.value.copy(
-            keystoreSourceMode = KeystoreSourceMode.SAVED_KEYSTORE,
-            selectedSavedKeystore = keystore,
-            alias = keystore.alias,
-            keystorePassword = decryptedStorePassword,
-            keyPassword = decryptedKeyPassword,
-            useSamePassword = true
-        )
+        signApkDelegate.selectSavedKeystoreForSigning(keystore)
     }
 
     fun setExternalKeystoreForSigning(name: String, bytes: ByteArray) {
-        _signApkFormState.value = _signApkFormState.value.copy(
-            keystoreSourceMode = KeystoreSourceMode.EXTERNAL_FILE,
-            externalKeystoreFileName = name,
-            externalKeystoreBytes = bytes,
-            selectedSavedKeystore = null
-        )
+        signApkDelegate.setExternalKeystoreForSigning(name, bytes)
     }
 
     fun resetSigningState() {
-        _apkSigningState.value = ApkSigningUiState.Idle
+        signApkDelegate.resetSigningState()
     }
 
     fun signApk(context: Context) {
-        signApk(outputDir = File(context.cacheDir, "signed_apks"))
+        signApk(outputDir = File(context.cacheDir, "signed_apks").apply { mkdirs() })
     }
 
-    fun signApk(outputDir: File = com.example.crypto.DesktopStorageUtils.getAppDirectory()) {
-        val form = _signApkFormState.value
-        val apkBytes = form.apkBytes
-
-        if (apkBytes == null || apkBytes.isEmpty()) {
-            _apkSigningState.value = ApkSigningUiState.Error("Por favor selecciona un archivo APK válido.")
-            return
-        }
-
-        if (!form.signV1 && !form.signV2 && !form.signV3) {
-            _apkSigningState.value = ApkSigningUiState.Error("Debes habilitar al menos un esquema de firma (Esquema v1, Esquema v2 o Esquema v3).")
-            return
-        }
-
-        // Resolve Keystore bytes and credentials
-        val keystoreBytes: ByteArray
-        val alias: String
-        val storePassword: String
-        val keyPassword: String
-
-        if (form.keystoreSourceMode == KeystoreSourceMode.SAVED_KEYSTORE) {
-            val ks = form.selectedSavedKeystore
-            if (ks == null) {
-                _apkSigningState.value = ApkSigningUiState.Error("Por favor selecciona un Keystore de tu bóveda.")
-                return
-            }
-
-            alias = ks.alias
-            storePassword = if (form.keystorePassword.isNotBlank()) {
-                form.keystorePassword
-            } else {
-                KeystoreEncryptionManager.decrypt(ks.storePassword)
-            }
-            keyPassword = if (form.useSamePassword) {
-                storePassword
-            } else if (form.keyPassword.isNotBlank()) {
-                form.keyPassword
-            } else {
-                KeystoreEncryptionManager.decrypt(ks.keyPassword).ifBlank { storePassword }
-            }
-
-            // Read keystore bytes from disk or base64
-            val localFile = File(ks.filePath)
-            keystoreBytes = if (localFile.exists()) {
-                localFile.readBytes()
-            } else if (ks.base64Content.isNotBlank()) {
-                com.example.crypto.Base64Compat.decode(ks.base64Content)
-            } else {
-                _apkSigningState.value = ApkSigningUiState.Error("No se pudo localizar el archivo binario del Keystore.")
-                return
-            }
-        } else {
-            // External Keystore
-            val externalBytes = form.externalKeystoreBytes
-            if (externalBytes == null || externalBytes.isEmpty()) {
-                _apkSigningState.value = ApkSigningUiState.Error("Por favor carga un archivo Keystore externo (.jks, .keystore, .p12).")
-                return
-            }
-            if (form.alias.isBlank()) {
-                _apkSigningState.value = ApkSigningUiState.Error("Por favor ingresa el alias de la clave a firmar.")
-                return
-            }
-            if (form.keystorePassword.isBlank()) {
-                _apkSigningState.value = ApkSigningUiState.Error("Por favor ingresa la contraseña del Keystore.")
-                return
-            }
-
-            keystoreBytes = externalBytes
-            alias = form.alias
-            storePassword = form.keystorePassword
-            keyPassword = if (form.useSamePassword) form.keystorePassword else form.keyPassword
-        }
-
-        val options = ApkSigningOptions(
-            signV1 = form.signV1,
-            signV2 = form.signV2,
-            signV3 = form.signV3,
-            zipalign = form.zipalign,
-            outputFileName = if (form.outputFileName.isBlank()) "app-signed.apk" else form.outputFileName
-        )
-
-        _apkSigningState.value = ApkSigningUiState.Signing(
-            stepMessage = "Iniciando proceso de firma...",
-            progress = 0.05f
-        )
-
-        viewModelScope.launch(Dispatchers.Default) {
-            val result = ApkSigner.signApk(
-                apkBytes = apkBytes,
-                keystoreBytes = keystoreBytes,
-                storePassword = storePassword,
-                alias = alias,
-                keyPassword = keyPassword,
-                options = options,
-                outputDirectory = outputDir,
-                onProgress = { step, progress ->
-                    _apkSigningState.value = ApkSigningUiState.Signing(step, progress)
-                }
-            )
-
-            if (result.isSuccess) {
-                _apkSigningState.value = ApkSigningUiState.Success(result)
-            } else {
-                _apkSigningState.value = ApkSigningUiState.Error(
-                    result.errorMessage ?: "Ocurrió un error inesperado al firmar el archivo APK."
-                )
-            }
-        }
+    fun signApk(outputDir: File = File(baseDataDir, "signed_apks").apply { mkdirs() }) {
+        signApkDelegate.signApk(outputDir, viewModelScope)
     }
 
     fun installSignedApk(context: Context, apkFile: File) {
-        try {
-            val uri = androidx.core.content.FileProvider.getUriForFile(
-                context,
-                "${context.packageName}.fileprovider",
-                apkFile
-            )
-            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
-                setDataAndType(uri, "application/vnd.android.package-archive")
-                flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
-            }
-            context.startActivity(intent)
-        } catch (e: Exception) {
-            _apkSigningState.value = ApkSigningUiState.Error(
-                "No se pudo iniciar el instalador de Android: ${e.localizedMessage}"
-            )
-        }
+        signApkDelegate.installSignedApk(context, apkFile)
     }
+
+    // --- App Update Delegation ---
 
     fun checkForUpdates(
         isManual: Boolean = false,
         isDesktop: Boolean = false,
-        currentVersion: String = com.example.ui.res.SignetStrings.APP_VERSION
+        currentVersion: String = SignetStrings.APP_VERSION
     ) {
-        viewModelScope.launch(Dispatchers.IO) {
-            if (isManual) {
-                _updateState.value = UpdateUiState.Checking
-            }
-            try {
-                val releaseInfo = AppUpdateManager.checkLatestRelease(currentVersion, isDesktop)
-                if (releaseInfo != null) {
-                    _updateState.value = UpdateUiState.Available(release = releaseInfo)
-                } else if (isManual) {
-                    _updateState.value = UpdateUiState.UpToDate(currentVersion)
-                }
-            } catch (e: Exception) {
-                if (isManual) {
-                    _updateState.value = UpdateUiState.Error("No se pudo comprobar actualizaciones: ${e.localizedMessage}")
-                }
-            }
-        }
+        updateDelegate.checkForUpdates(isManual, isDesktop, currentVersion, viewModelScope)
     }
 
     fun startUpdateDownload(
@@ -682,66 +381,10 @@ open class KeystoreViewModel(
         isDesktop: Boolean = false,
         onDownloaded: ((File) -> Unit)? = null
     ) {
-        val currentState = _updateState.value
-        if (currentState !is UpdateUiState.Available) return
-        val matchedAsset = currentState.release.matchedAsset
-        if (matchedAsset == null) {
-            _updateState.value = currentState.copy(
-                errorMessage = "No se encontró un archivo instalador compatible con esta plataforma en la versión ${currentState.release.tagName}."
-            )
-            return
-        }
-
-        _updateState.value = currentState.copy(
-            isDownloading = true,
-            progressPercent = 0,
-            errorMessage = null
-        )
-
-        viewModelScope.launch(Dispatchers.IO) {
-            val targetFile = File(targetDirectory, matchedAsset.name)
-            val result = AppUpdateManager.downloadUpdate(
-                downloadUrl = matchedAsset.downloadUrl,
-                targetFile = targetFile,
-                onProgress = { downloaded, total, percent ->
-                    val s = _updateState.value
-                    if (s is UpdateUiState.Available) {
-                        _updateState.value = s.copy(
-                            isDownloading = true,
-                            progressPercent = percent,
-                            downloadedBytes = downloaded,
-                            totalBytes = total
-                        )
-                    }
-                }
-            )
-
-            result.fold(
-                onSuccess = { file ->
-                    val s = _updateState.value
-                    if (s is UpdateUiState.Available) {
-                        _updateState.value = s.copy(
-                            isDownloading = false,
-                            progressPercent = 100,
-                            downloadedFile = file
-                        )
-                    }
-                    onDownloaded?.invoke(file)
-                },
-                onFailure = { err ->
-                    val s = _updateState.value
-                    if (s is UpdateUiState.Available) {
-                        _updateState.value = s.copy(
-                            isDownloading = false,
-                            errorMessage = "Error en la descarga: ${err.localizedMessage}"
-                        )
-                    }
-                }
-            )
-        }
+        updateDelegate.startUpdateDownload(targetDirectory, isDesktop, onDownloaded, viewModelScope)
     }
 
     fun dismissUpdate() {
-        _updateState.value = UpdateUiState.Idle
+        updateDelegate.dismissUpdate()
     }
 }

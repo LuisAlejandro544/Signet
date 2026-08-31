@@ -1,18 +1,16 @@
 package com.example.crypto
 
 import com.example.crypto.backup.BackupIntegrityVerifier
+import com.example.crypto.backup.VaultRestorationCoordinator
 import com.example.crypto.backup.ZipPackageBuilder
 import com.example.crypto.backup.ZipPackageExtractor
 import com.example.data.model.KeystoreDetails
-import java.io.ByteArrayInputStream
 import java.io.File
-import java.io.FileOutputStream
-import java.io.InputStream
 
 /**
  * High-level manager orchestrating backup ZIP creation and intelligent restoration for Signet.
  * Delegates low-level ZIP packaging and extraction to [ZipPackageBuilder] and [ZipPackageExtractor],
- * and cryptographic validation to [BackupIntegrityVerifier].
+ * cryptographic validation to [BackupIntegrityVerifier], and file restoration to [VaultRestorationCoordinator].
  */
 object SignetBackupManager {
 
@@ -53,71 +51,11 @@ object SignetBackupManager {
             keystoresMap = extracted.binaryFilesMap
         )
 
-        val keystoresDir = File(outputDir, "keystores")
-        if (!keystoresDir.exists()) {
-            keystoresDir.mkdirs()
-        }
-
-        val restoredKeystores = mutableListOf<KeystoreDetails>()
-
-        for (manifestData in verifiedManifests) {
-            val matchingBinaryKey = extracted.binaryFilesMap.keys.firstOrNull {
-                it.endsWith("/" + manifestData.keystoreFileName, ignoreCase = true) ||
-                it.equals(manifestData.keystoreFileName, ignoreCase = true)
-            } ?: throw SecurityException("No se encontró el binario para '${manifestData.keystoreFileName}'.")
-
-            val keystoreBytes = extracted.binaryFilesMap[matchingBinaryKey]!!
-
-            // Verify certificate unlocking
-            val inspectedList = try {
-                KeystoreGenerator.inspectKeystore(ByteArrayInputStream(keystoreBytes), manifestData.storePassword)
-            } catch (e: Exception) {
-                throw SecurityException("No se pudo desbloquear el keystore '${manifestData.keystoreFileName}': ${e.localizedMessage}")
-            }
-
-            val matchingEntry = inspectedList.firstOrNull { it.alias.equals(manifestData.alias, ignoreCase = true) }
-                ?: inspectedList.firstOrNull()
-                ?: throw IllegalArgumentException("El keystore '${manifestData.keystoreFileName}' no contiene certificados válidos.")
-
-            val targetFileName = manifestData.keystoreFileName.ifBlank { "restored-key.jks" }
-            var destinationFile = File(keystoresDir, targetFileName)
-            if (destinationFile.exists()) {
-                val baseName = targetFileName.substringBeforeLast(".")
-                val ext = targetFileName.substringAfterLast(".", "jks")
-                destinationFile = File(keystoresDir, "${baseName}_restored_${System.currentTimeMillis()}_${(100..999).random()}.$ext")
-            }
-
-            FileOutputStream(destinationFile).use { fos ->
-                fos.write(keystoreBytes)
-            }
-
-            val base64String = Base64Compat.encodeToString(keystoreBytes, noWrap = true)
-
-            val details = KeystoreDetails(
-                id = 0,
-                fileName = destinationFile.name,
-                alias = manifestData.alias.ifBlank { matchingEntry.alias },
-                filePath = destinationFile.absolutePath,
-                fileSizeBytes = destinationFile.length(),
-                storePassword = manifestData.storePassword,
-                keyPassword = manifestData.keyPassword.ifBlank { manifestData.storePassword },
-                base64Content = base64String,
-                sha256Fingerprint = manifestData.sha256Fingerprint.ifBlank { matchingEntry.sha256Fingerprint },
-                sha1Fingerprint = manifestData.sha1Fingerprint.ifBlank { matchingEntry.sha1Fingerprint },
-                md5Fingerprint = manifestData.md5Fingerprint.ifBlank { matchingEntry.md5Fingerprint },
-                validFrom = if (manifestData.validFrom > 0) manifestData.validFrom else matchingEntry.validFrom,
-                validUntil = if (manifestData.validUntil > 0) manifestData.validUntil else matchingEntry.validUntil,
-                algorithm = manifestData.algorithm.ifBlank { matchingEntry.algorithm },
-                subjectDn = manifestData.subjectDn.ifBlank { matchingEntry.subjectDn },
-                issuerDn = manifestData.issuerDn.ifBlank { matchingEntry.issuerDn },
-                serialNumber = manifestData.serialNumber.ifBlank { matchingEntry.serialNumber },
-                certificatePem = manifestData.certificatePem.ifBlank { matchingEntry.certificatePem },
-                createdAt = manifestData.createdAt
-            )
-            restoredKeystores.add(details)
-        }
-
-        return restoredKeystores
+        return VaultRestorationCoordinator.processAndPersistVaultEntries(
+            outputDir = outputDir,
+            verifiedManifests = verifiedManifests,
+            binaryFilesMap = extracted.binaryFilesMap
+        )
     }
 
     /**
@@ -164,66 +102,14 @@ object SignetBackupManager {
             keystoreBytes = keystoreBytes
         )
 
-        // Verify that the keystore can actually be unlocked with the verified credentials
-        val inspectedList = try {
-            KeystoreGenerator.inspectKeystore(ByteArrayInputStream(keystoreBytes), manifestData.storePassword)
-        } catch (e: Exception) {
-            throw SecurityException(
-                "No se pudo desbloquear el keystore con las credenciales verificadas: ${e.localizedMessage}"
-            )
-        }
-
-        val matchingCert = inspectedList.firstOrNull { it.alias.equals(manifestData.alias, ignoreCase = true) }
-            ?: inspectedList.firstOrNull()
-            ?: throw IllegalArgumentException("El keystore no contiene ningún certificado válido.")
-
-        // Save keystore safely to storage
-        val keystoresDir = File(outputDir, "keystores")
-        if (!keystoresDir.exists()) {
-            keystoresDir.mkdirs()
-        }
-
-        val targetFileName = if (manifestData.keystoreFileName.isNotBlank()) {
-            manifestData.keystoreFileName
-        } else {
-            detectedKeystoreFileName.ifBlank { "restored-key.jks" }
-        }
-
-        var destinationFile = File(keystoresDir, targetFileName)
-        if (destinationFile.exists()) {
-            val baseName = targetFileName.substringBeforeLast(".")
-            val ext = targetFileName.substringAfterLast(".", "jks")
-            destinationFile = File(keystoresDir, "${baseName}_restored_${System.currentTimeMillis()}.$ext")
-        }
-
-        FileOutputStream(destinationFile).use { fos ->
-            fos.write(keystoreBytes)
-        }
-
-        val base64String = Base64Compat.encodeToString(keystoreBytes, noWrap = true)
-
-        return KeystoreDetails(
-            id = 0,
-            fileName = destinationFile.name,
-            alias = manifestData.alias.ifBlank { matchingCert.alias },
-            filePath = destinationFile.absolutePath,
-            fileSizeBytes = destinationFile.length(),
-            storePassword = manifestData.storePassword,
-            keyPassword = manifestData.keyPassword.ifBlank { manifestData.storePassword },
-            base64Content = base64String,
-            sha256Fingerprint = manifestData.sha256Fingerprint.ifBlank { matchingCert.sha256Fingerprint },
-            sha1Fingerprint = manifestData.sha1Fingerprint.ifBlank { matchingCert.sha1Fingerprint },
-            md5Fingerprint = manifestData.md5Fingerprint.ifBlank { matchingCert.md5Fingerprint },
-            validFrom = if (manifestData.validFrom > 0) manifestData.validFrom else matchingCert.validFrom,
-            validUntil = if (manifestData.validUntil > 0) manifestData.validUntil else matchingCert.validUntil,
-            algorithm = manifestData.algorithm.ifBlank { matchingCert.algorithm },
-            subjectDn = manifestData.subjectDn.ifBlank { matchingCert.subjectDn },
-            issuerDn = manifestData.issuerDn.ifBlank { matchingCert.issuerDn },
-            serialNumber = manifestData.serialNumber.ifBlank { matchingCert.serialNumber },
-            certificatePem = manifestData.certificatePem.ifBlank { matchingCert.certificatePem },
-            createdAt = manifestData.createdAt
+        return VaultRestorationCoordinator.processAndPersistRestoredKeystore(
+            outputDir = outputDir,
+            keystoreBytes = keystoreBytes,
+            manifestData = manifestData,
+            fallbackFileName = detectedKeystoreFileName
         )
     }
 }
+
 
 

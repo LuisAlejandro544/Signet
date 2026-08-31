@@ -36,18 +36,24 @@ app/
 │   │   │   │   │   ├── ApkSigningBlockParser.kt # Parser binario de bajo nivel para esquemas v2 y v3 (APK Signing Block)
 │   │   │   │   │   ├── ApkV1SignatureParser.kt  # Extractor de firmas PKCS#7 en META-INF mediante BouncyCastle CMS (v1 JAR)
 │   │   │   │   │   └── AxmlManifestParser.kt    # Extractor de packageName desde el string pool binario de AndroidManifest.xml
-│   │   │   │   ├── KeystoreGenerator.kt         # Motor criptográfico de generación de claves PKCS#12 (.jks, .keystore, .p12, .pfx) con extensiones X.509 Code Signing
+│   │   │   │   ├── KeystoreGenerator.kt         # Fachada orquestadora de generación y exportación de almacenes de claves
+│   │   │   │   ├── keys/
+│   │   │   │   │   └── KeyPairFactory.kt        # Fábrica especializada en generación de pares de claves asimétricas (RSA, EC, DSA)
+│   │   │   │   ├── keystore/
+│   │   │   │   │   └── Pkcs12KeystoreSerializer.kt # Serializador de almacenes PKCS#12, JKS, PFX y persistencia en disco
 │   │   │   │   ├── PasswordGenerator.kt         # Generador criptográfico CSPRNG de contraseñas ultra seguras y cálculo de entropía
-│   │   │   │   ├── SignetBackupManager.kt       # Fachada orquestadora de exportación/restauración de respaldos individuales y bóvedas completas
+│   │   │   │   ├── SignetBackupManager.kt       # Fachada orquestadora de exportación/restauración de respaldos individuales y bóvedas
 │   │   │   │   ├── backup/
 │   │   │   │   │   ├── BackupTemplates.kt       # Generador de plantillas de texto (credentials.txt, key.properties, README-BACKUP.txt, VAULT-SUMMARY.txt)
 │   │   │   │   │   ├── BackupIntegrityVerifier.kt # Fachada de verificación de integridad y enlace a submódulos especializados
 │   │   │   │   │   ├── HmacSignatureEngine.kt   # Motor criptográfico centralizado para hashes SHA-256 y firmas HMAC-SHA256 con tiempo constante
 │   │   │   │   │   ├── SignetManifestParser.kt  # Parser, generador y validador de manifiestos individuales (signet-backup.json)
 │   │   │   │   │   ├── SignetVaultManifestParser.kt # Parser, generador y validador de manifiestos maestros de bóveda (signet-vault-backup.json)
+│   │   │   │   │   ├── VaultRestorationCoordinator.kt # Coordinador modular de restauración, desbloqueo y resolución de nombres de archivo
 │   │   │   │   │   ├── ZipPackageBuilder.kt     # Empaquetador de flujos binarios ZIP para respaldos individuales y bóvedas maestras
 │   │   │   │   │   └── ZipPackageExtractor.kt   # Extractor y analizador de flujos ZIP en memoria
 │   │   │   │   ├── x509/
+│   │   │   │   │   ├── X509CertificateBuilder.kt # Constructor modular de certificados X.509 v3 con extensiones ASN.1 Code Signing
 │   │   │   │   │   ├── X509CertificateInspector.kt # Inspección y lectura de certificados en almacenes PKCS12, JKS, PFX, P12 y BKS
 │   │   │   │   │   └── X509CertificateUtils.kt    # Utilidades de cálculo de huellas digitales y formateo PEM estándar
 │   │   │   │   └── SnippetGenerator.kt          # Generador modular de snippets: Gradle KTS, Groovy, GitHub Actions, Microsoft SignTool (.pfx), PowerShell y OpenSSL
@@ -61,10 +67,20 @@ app/
 │   │   │   │   └── model/
 │   │   │   │       └── KeystoreModels.kt        # Modelos de dominio (KeystoreConfig, KeystoreDetails, ApkInfo, ApkSigningOptions, ApkSigningResult, etc.)
 │   │   │   └── ui/
-│   │   │       ├── KeystoreViewModel.kt         # ViewModel central desacoplado: StateFlows, validaciones y orquestación
-│   │   │       ├── MainScreen.kt                # Barra de navegación adaptativa (NavigationRail en escritorio y NavigationBar en móvil)
+│   │   │       ├── KeystoreViewModel.kt         # ViewModel orquestador central que delega en gestores especializados
+│   │   │       ├── delegates/
+│   │   │       │   ├── KeystoreFormDelegate.kt  # Delegado de formularios de creación, presets, validación y estados de generación
+│   │   │       │   ├── SignApkDelegate.kt       # Delegado de selección de APK, análisis preliminar y ejecución de firmado v1/v2/v3
+│   │   │       │   ├── ApkMatcherDelegate.kt    # Delegado de análisis forense y verificación de firmas APK vs Keystore
+│   │   │       │   └── AppUpdateDelegate.kt     # Delegado de comprobación de versiones en GitHub Releases y descarga de binarios
+│   │   │       ├── MainScreen.kt                # Contenedor principal adaptativo (Desktop/Tablet/Mobile) con scaffolding limpio
+│   │   │       ├── navigation/
+│   │   │       │   ├── MainAdaptiveNavigation.kt # Componentes NavigationRail, NavigationBar y TopAppBar adaptativos
+│   │   │       │   └── MainTabContent.kt        # Conmutador modular de pantallas según la pestaña activa
 │   │   │       ├── components/
 │   │   │       │   ├── KeystoreDetailsSheet.kt  # BottomSheet orquestador de exportación SAF, compartir y detalles
+│   │   │       │   ├── main/
+│   │   │       │   │   └── MainGlobalSheets.kt  # Host modal global para hojas de detalles y diálogos de actualización
 │   │   │       │   └── details/
 │   │   │       │       ├── DetailsActionUtils.kt         # Utilidades de portapapeles y compartir mediante FileProvider
 │   │   │       │       ├── KeystoreHeaderSection.kt      # Encabezado, alias, botones de exportar y compartir
@@ -178,69 +194,57 @@ app/
 
 ## 🔄 Flujo de Datos y Operaciones Clave
 
-### 1. Validación Forense de APK vs Keystore (APK Matcher Modular)
-1. **Selección del APK**: El usuario proporciona un archivo `.apk` mediante Android SAF gestionado visualmente en `ApkFileSelectorCard`.
-2. **Extracción y Parsing Multi-Esquema**:
-   - `ApkMatcher` coordina el análisis delegando en parsers especializados:
-     * `ApkSigningBlockParser`: examina el bloque **APK Signing Block** (v2 y v3) buscando el ID `0x7109871a` y extrayendo los certificados X.509 de los signers.
-     * `ApkV1SignatureParser`: examina los archivos PKCS#7 en `META-INF/*.RSA`, `META-INF/*.DSA` o `META-INF/*.EC` (v1 JAR Signature).
-     * `AxmlManifestParser`: extrae metadatos del paquete (`packageName`, `versionName`, `versionCode`) desde el string pool binario.
-3. **Cruce de Huellas Digitales & UI Desacoplada**:
-   - `ApkMatcherSection` orquesta las sub-vistas desacopladas:
-     * `ApkFileSelectorCard`: Gestión de selección de archivo binario APK.
-     * `ApkDetailsInfoCard`: Despliegue de metadatos, paquetes y certificados extraídos del APK.
-     * `ApkKeystoreSelectorSection`: Selector interactivo de almacén guardado o externo.
-     * `ApkMatchResultCard`: Banner de diagnóstico comparativo de huellas SHA-256 y dictamen.
-     * `ApkErrorCard`: Presentación clara de alertas y fallos de análisis.
+### 1. Generación Modular de Keystores (`KeystoreGenerator`)
+1. **Delegación Arquitectónica**: `KeystoreGenerator` actúa como fachada delegando responsabilidades a:
+   - `KeyPairFactory`: Generación de pares de claves asimétricas (RSA de 2048/4096 bits, Curvas Elípticas ECDSA P-256/P-384/P-521, DSA).
+   - `X509CertificateBuilder`: Construcción de certificados X.509 v3 auto-firmados con extensiones ASN.1 de propósito general y firma de código (`KeyUsage`, `ExtendedKeyUsage`).
+   - `Pkcs12KeystoreSerializer`: Empaquetado PKCS#12 (.jks, .keystore, .p12, .pfx) y persistencia segura en disco.
+2. **Cálculo de Huellas y Metadatos**: `X509CertificateUtils` computa las huellas SHA-256, SHA-1, MD5 y exporta la clave pública a formato PEM estándar.
 
-### 2. Generación de Keystore
-1. `GenerateScreen` recopila la configuración validada mediante sus submódulos (`GeneratePresetsSection`, `KeystoreCredentialsForm`, `KeystoreValiditySection`, `KeystoreDnFields`).
-2. `KeystoreGenerator` genera el par de claves mediante BouncyCastle y construye el certificado X.509.
-3. `X509CertificateUtils` calcula los hashes SHA-256, SHA-1, MD5 y formatea el certificado en PEM estándar.
-4. `KeystoreRepository` persiste la entidad en la base de datos Room.
+### 2. Respaldos y Restauración Modular (`SignetBackupManager` & `VaultRestorationCoordinator`)
+1. **Creación de Respaldos**:
+   - `ZipPackageBuilder` genera los paquetes ZIP individuales y de bóveda maestra.
+   - `HmacSignatureEngine` calcula el hash SHA-256 y la firma HMAC-SHA256 anti-manipulación.
+   - `SignetManifestParser` y `SignetVaultManifestParser` generan y firman los manifiestos JSON.
+2. **Restauración Inteligente**:
+   - `ZipPackageExtractor` analiza el archivo ZIP en memoria.
+   - `BackupIntegrityVerifier` valida la firma HMAC y el hash SHA-256 de cada binario.
+   - `VaultRestorationCoordinator` resuelve colisiones de nombres de archivo, desbloquea las claves y ensambla los registros `KeystoreDetails` para su persistencia en el repositorio.
 
-### 3. Inspección y Extracción de Certificados X.509
-1. `X509CertificateInspector` procesa flujos de bytes de almacenes de claves soportando PKCS12, JKS y BKS.
-2. Extrae cadenas de certificados X.509, fechas de validez, identificadores de emisor/sujeto y números de serie.
-3. Utiliza `X509CertificateUtils` para el cálculo normalizado de huellas digitales.
+### 3. Orquestación del ViewModel (`KeystoreViewModel` & Delegados)
+1. **Desacoplamiento de Responsabilidades**:
+   - `KeystoreFormDelegate`: Gestiona el estado de formulario, presets rápidos (Release, Upload, Codesign), validación de contraseñas y ciclo de vida de generación.
+   - `SignApkDelegate`: Gestiona la selección de APK, análisis de firmas existentes, configuración de esquemas (v1, v2, v3), alineación Zipalign y ejecución del firmado.
+   - `ApkMatcherDelegate`: Realiza el análisis forense de paquetes APK y el cruce de huellas digitales contra almacenes guardados o externos.
+   - `AppUpdateDelegate`: Consulta GitHub Releases y gestiona la descarga progresiva de binarios de actualización.
+2. **Compatibilidad Total**: `KeystoreViewModel` mantiene su API pública y `StateFlows` intactos hacia la capa de UI y tests unitarios.
 
-### 4. Respaldos ZIP, Bóveda Completa & Anti-Tampering Modular
-1. `SignetBackupManager.createBackupZip` & `createVaultBackupZip`:
-   - En respaldos individuales y bóvedas completas, delega la compresión y empaquetado binario en `ZipPackageBuilder`.
-   - Genera firmas HMAC-SHA256 seguras de tiempo constante y hashes mediante `HmacSignatureEngine`.
-   - Valida y construye manifiestos individuales y maestros mediante `SignetManifestParser` y `SignetVaultManifestParser`.
-2. `SignetBackupManager.restoreAnyFromZip` & `restoreVaultFromZip`:
-   - Delega la inspección de entradas y descompresión en memoria a `ZipPackageExtractor`.
-   - Verifica la integridad binaria y las firmas criptográficas mediante `BackupIntegrityVerifier`, `SignetManifestParser` y `SignetVaultManifestParser`.
-   - Desbloquea de forma segura los certificados antes de persistirlos en el repositorio con cifrado AES-256-GCM.
+### 4. Modularización de la Interfaz Principal (`MainScreen`)
+1. **Navegación Adaptativa (`MainAdaptiveNavigation.kt`)**:
+   - `SignetNavigationRail`: Panel lateral para pantallas anchas (Desktop / Tablet) con botón de acceso a la carpeta de bóveda.
+   - `SignetNavigationBar`: Barra inferior compacta para dispositivos móviles.
+   - `SignetTopAppBar`: Barra superior con títulos dinámicos adaptados a la plataforma y contexto.
+2. **Conmutación de Contenido (`MainTabContent.kt`)**:
+   - Enrutador que monta `GenerateScreen`, `SavedKeystoresScreen`, `SignApkScreen`, `InspectScreen` o `SettingsScreen`.
+3. **Modales Globales (`MainGlobalSheets.kt`)**:
+   - Host desacoplado para la hoja modal `KeystoreDetailsSheet` y el diálogo `UpdateDialog`.
 
-### 5. Arquitectura Multiplataforma, Módulo Compartido (KMP / Shared UI) y Escritorio (:desktop)
-1. **Vinculación Multimodular (`settings.gradle.kts`)**:
-   - `include(":desktop")` y `include(":app")` configurados para orquestar la compilación cruzada Android/Desktop.
-2. **Estructura del Módulo Compartido (KMP / Shared UI)**:
-   - **Capa de Abstracción de Plataforma (`PlatformServices` & `LocalPlatformServices`)**:
-     * Interfaz neutral que define contratos de operaciones dependientes del SO: selección de archivos (`pickFile`), guardado nativo (`saveFile`), portapapeles (`copyToClipboard`), notificaciones (`showToast`), apertura de enlaces (`openUrl`), explorador de archivos (`openFolder`), instalación de APKs (`installApk`) y compartición (`shareFile`).
-     * `AndroidPlatformServices`: Implementa SAF (Storage Access Framework), FileProvider y menús nativos de compartir de Android.
-     * `DesktopPlatformServices`: Implementa AWT `FileDialog`, portapapeles del sistema operativo (`Toolkit.systemClipboard`), ejecución de explorador de archivos (Windows Explorer `explorer.exe /select,`, macOS `open`, Linux `xdg-open`).
-   - **UI y Estado Reactivo Compartido**:
-     * Pantallas y componentes construidos en Jetpack Compose / Compose Multiplatform desacoplados de APIs de Android.
-     * Catálogo centralizado de recursos y cadenas de texto en `SignetStrings` (`com.example.ui.res.SignetStrings`) garantizando independencia total de `android.R` y `stringResource`.
-     * Consumo desacoplado de servicios del SO mediante `LocalPlatformServices` en lugar de `LocalContext`.
-     * `KeystoreViewModel` maneja estados y flujos reactivos mediante Kotlin Coroutines `StateFlow`, operando de manera idéntica en Android y Desktop.
-     * Sistema de diseño `MyApplicationTheme` (M3) con esquemas de color dinámicos, paletas y tipografía compartida.
-   - **Núcleo Criptográfico Común**:
-     * BouncyCastle (`bcprov`, `bcpkix`) encapsulado en `com.example.crypto`, completamente independiente de la plataforma y compatible con JVM pura.
-3. **Módulo de Escritorio (`desktop/build.gradle.kts`)**:
-   - Aplica el plugin `kotlin("jvm")` y `alias(libs.plugins.kotlin.compose)`.
-   - Vincula las dependencias criptográficas (`bcprov`, `bcpkix`, `kotlinx-coroutines`) y de runtime gráfico Compose Desktop JVM (UI, Material 3, Material Icons Extended).
-   - Registra la tarea `fatJar` para empaquetado autónomo y la tarea de ejecución nativa `runDesktop`.
-4. **Punto de Entrada y Bucle de Ventana (`DesktopLauncher` en `Main.kt`)**:
-   - Inicializa el entorno del sistema operativo, resuelve rutas en `%APPDATA%/Signet` y gestiona la suite completa de comandos CLI / Headless para Windows Terminal y PowerShell (`sign`, `generate`, `inspect`, `match`, `base64`, `backup-create`, `vault`, `--open-vault`, `--version`, `--help`).
-   - Ejecuta el bucle de eventos gráfico en el hilo de interfaz de usuario (AWT/Swing y Compose Desktop) configurando dimensiones optimizadas (1150x780), propiedades HiDPI y Look and Feel nativo.
+### 5. Validación Forense de APK vs Keystore (APK Matcher)
+1. **Extracción Multi-Esquema**:
+   - `ApkSigningBlockParser`: Examina el bloque binario **APK Signing Block** (esquemas v2 y v3).
+   - `ApkV1SignatureParser`: Extrae certificados PKCS#7 en `META-INF/*.RSA`, `META-INF/*.DSA` o `META-INF/*.EC`.
+   - `AxmlManifestParser`: Extrae `packageName` y versiones desde el manifest binario.
+2. **Diagnóstico**: `ApkMatcher` compara las huellas SHA-256 de los certificados del APK contra el keystore seleccionado y genera el dictamen forense.
 
-### 6. Estrategia Multi-Canal y Versionado Semántico
+### 6. Arquitectura Multiplataforma y Módulo de Escritorio (:desktop)
+1. **Capa de Abstracción (`PlatformServices`)**:
+   - `AndroidPlatformServices`: Manejo de SAF, FileProvider e Intents del sistema.
+   - `DesktopPlatformServices`: AWT `FileDialog`, portapapeles del SO y explorador de archivos nativo.
+2. **Módulo de Escritorio (`:desktop`)**:
+   - Soporte nativo para CLI / Headless y modo gráfico mediante Compose Desktop.
+
+### 7. Estrategia Multi-Canal y Versionado Semántico
 - **`.debug` (`com.signet.app.debug` / `1.0.0-D`)**: Compilación interna y automática vía GitHub Actions (`build-debug-apk.yml`) firmada con `debug.keystore`.
 - **`.dev` (`com.signet.app.dev` / `1.0.0.dev`)**: Pre-alpha para pruebas de funciones en desarrollo temprano firmadas por el desarrollador.
 - **`.beta` (`com.signet.app.beta` / `1.0.0-B`)**: Versión beta con herramientas pulidas candidatas a definitivas.
 - **`.estable` (`com.signet.app` / `1.0.0-E`)**: Versión definitiva de producción para tiendas de terceros (Uptodown, GitHub Releases).
-
