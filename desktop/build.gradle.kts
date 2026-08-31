@@ -1,7 +1,6 @@
 // Module build file for Signet Desktop (Windows / macOS / Linux)
 plugins {
     kotlin("jvm")
-    alias(libs.plugins.kotlin.compose)
 }
 
 java {
@@ -13,11 +12,6 @@ dependencies {
     implementation(libs.bouncycastle.bcprov)
     implementation(libs.bouncycastle.bcpkix)
     implementation(libs.kotlinx.coroutines.core)
-
-    // Compose Desktop JVM runtime & UI
-    implementation(libs.androidx.compose.ui)
-    implementation(libs.androidx.compose.material3)
-    implementation(libs.androidx.compose.material.icons.extended)
 }
 
 sourceSets {
@@ -28,8 +22,7 @@ sourceSets {
             "../app/src/main/java/com/example/desktop",
             "../app/src/main/java/com/example/platform",
             "../app/src/main/java/com/example/data/model",
-            "../app/src/main/java/com/example/data",
-            "../app/src/main/java/com/example/ui"
+            "../app/src/main/java/com/example/data"
         )
     }
 }
