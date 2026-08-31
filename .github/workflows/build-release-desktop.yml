@@ -61,23 +61,11 @@ jobs:
           gradle-version: "9.3.1"
           cache-read-only: false
 
-      - name: 🐘 Ensure Gradle Wrapper on Windows
-        shell: pwsh
-        run: |
-          if (-not (Test-Path "./gradlew.bat")) {
-            Write-Host "ℹ️ ./gradlew.bat no encontrado. Generando Gradle Wrapper 9.3.1..."
-            gradle wrapper --gradle-version 9.3.1
-          }
-
       - name: 🔨 Build Desktop Fat JAR
         shell: pwsh
         run: |
           Write-Host "Compilando Fat JAR del módulo :desktop para arquitectura ${{ matrix.arch }}..."
-          if (Test-Path "./gradlew.bat") {
-            .\gradlew.bat :desktop:fatJar --stacktrace --no-daemon
-          } else {
-            gradle :desktop:fatJar --stacktrace --no-daemon
-          }
+          gradle :desktop:fatJar --stacktrace --no-daemon
 
       - name: 📦 Package Windows Native Binaries (${{ matrix.arch }})
         id: package_windows
