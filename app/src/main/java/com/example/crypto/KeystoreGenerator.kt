@@ -1,6 +1,5 @@
 package com.example.crypto
 
-import android.content.Context
 import com.example.crypto.x509.X509CertificateInspector
 import com.example.crypto.x509.X509CertificateUtils
 import com.example.data.model.KeyAlgorithm
@@ -245,17 +244,6 @@ object KeystoreGenerator {
             certificatePem = pem,
             createdAt = System.currentTimeMillis()
         )
-    }
-
-    /**
-     * Delegado para invocación con Android Context.
-     */
-    fun generateKeystore(
-        context: Context,
-        config: KeystoreConfig,
-        saveToFile: Boolean = true
-    ): KeystoreDetails {
-        return generateKeystore(context.filesDir, config, saveToFile)
     }
 
     /**

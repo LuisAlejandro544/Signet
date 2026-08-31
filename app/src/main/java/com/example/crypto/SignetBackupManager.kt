@@ -1,6 +1,5 @@
 package com.example.crypto
 
-import android.content.Context
 import com.example.crypto.backup.BackupIntegrityVerifier
 import com.example.crypto.backup.ZipPackageBuilder
 import com.example.crypto.backup.ZipPackageExtractor
@@ -121,10 +120,6 @@ object SignetBackupManager {
         return restoredKeystores
     }
 
-    fun restoreVaultFromZip(context: Context, zipBytes: ByteArray): List<KeystoreDetails> {
-        return restoreVaultFromZip(context.filesDir, zipBytes)
-    }
-
     /**
      * Intelligently restores any Signet ZIP backup (Single Keystore or Multi-Keystore Vault).
      */
@@ -138,22 +133,6 @@ object SignetBackupManager {
                 "El archivo ZIP no contiene un manifiesto de respaldo válido de Signet (${BackupIntegrityVerifier.MANIFEST_FILE_NAME} o ${BackupIntegrityVerifier.VAULT_MANIFEST_FILE_NAME})."
             )
         }
-    }
-
-    fun restoreAnyFromZip(context: Context, zipBytes: ByteArray): List<KeystoreDetails> {
-        return restoreAnyFromZip(context.filesDir, zipBytes)
-    }
-
-    /**
-     * Reads a ZIP backup, verifies the anti-tamper signature and identity of Signet,
-     * unlocks the keystore, writes it to app storage, and returns the restored KeystoreDetails.
-     */
-    fun restoreFromZip(context: Context, inputStream: InputStream): KeystoreDetails {
-        return restoreFromZip(context, inputStream.readBytes())
-    }
-
-    fun restoreFromZip(context: Context, zipBytes: ByteArray): KeystoreDetails {
-        return restoreFromZip(context.filesDir, zipBytes)
     }
 
     /**

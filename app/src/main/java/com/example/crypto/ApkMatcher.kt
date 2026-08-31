@@ -1,8 +1,5 @@
 package com.example.crypto
 
-import android.content.Context
-import android.content.pm.PackageManager
-import android.os.Build
 import com.example.crypto.apk.ApkSigningBlockParser
 import com.example.crypto.apk.ApkV1SignatureParser
 import com.example.crypto.apk.AxmlManifestParser
@@ -37,78 +34,16 @@ object ApkMatcher {
 
     /**
      * Extracts all signing certificates and package metadata from an APK file byte array.
+     * Pure JVM implementation compatible with both Android and Desktop (Windows / Linux / macOS).
      */
-    fun analyzeApk(context: Context?, apkBytes: ByteArray, fileName: String = "app.apk"): ApkInfo {
+    fun analyzeApk(apkBytes: ByteArray, fileName: String = "app.apk"): ApkInfo {
         val certificates = mutableListOf<ApkCertificateInfo>()
         val schemesFound = mutableListOf<String>()
         var packageName: String? = null
         var versionName: String? = null
         var versionCode: Long? = null
 
-        // 1. Try Android PackageManager getPackageArchiveInfo if Context and file are available
-        if (context != null) {
-            try {
-                val tempApk = File(context.cacheDir, "temp_analyze_${System.currentTimeMillis()}.apk")
-                FileOutputStream(tempApk).use { it.write(apkBytes) }
-
-                val pm = context.packageManager
-                val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    PackageManager.GET_SIGNING_CERTIFICATES or PackageManager.GET_META_DATA
-                } else {
-                    @Suppress("DEPRECATION")
-                    PackageManager.GET_SIGNATURES or PackageManager.GET_META_DATA
-                }
-
-                val pkgInfo = pm.getPackageArchiveInfo(tempApk.absolutePath, flags)
-                if (pkgInfo != null) {
-                    packageName = pkgInfo.packageName
-                    versionName = pkgInfo.versionName
-                    versionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                        pkgInfo.longVersionCode
-                    } else {
-                        @Suppress("DEPRECATION")
-                        pkgInfo.versionCode.toLong()
-                    }
-
-                    val cf = CertificateFactory.getInstance("X.509")
-                    val signingInfo = pkgInfo.signingInfo
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && signingInfo != null) {
-                        val signatures = if (signingInfo.hasMultipleSigners()) {
-                            signingInfo.apkContentsSigners
-                        } else {
-                            signingInfo.signingCertificateHistory
-                        }
-                        signatures?.forEach { sig ->
-                            val cert = cf.generateCertificate(ByteArrayInputStream(sig.toByteArray())) as? X509Certificate
-                            if (cert != null) {
-                                val certInfo = buildCertInfo(cert, "v2/v3 (APK Signing Block)")
-                                if (certificates.none { it.sha256Fingerprint == certInfo.sha256Fingerprint }) {
-                                    certificates.add(certInfo)
-                                    if (!schemesFound.contains("v2/v3")) schemesFound.add("v2/v3")
-                                }
-                            }
-                        }
-                    } else {
-                        @Suppress("DEPRECATION")
-                        pkgInfo.signatures?.forEach { sig ->
-                            val cert = cf.generateCertificate(ByteArrayInputStream(sig.toByteArray())) as? X509Certificate
-                            if (cert != null) {
-                                val certInfo = buildCertInfo(cert, "v1 (JAR Signing)")
-                                if (certificates.none { it.sha256Fingerprint == certInfo.sha256Fingerprint }) {
-                                    certificates.add(certInfo)
-                                    if (!schemesFound.contains("v1 (JAR)")) schemesFound.add("v1 (JAR)")
-                                }
-                            }
-                        }
-                    }
-                }
-                tempApk.delete()
-            } catch (_: Exception) {
-                // Fallback to direct byte-level analysis
-            }
-        }
-
-        // 2. Direct ZIP Extraction for v1 (META-INF/*.RSA, *.DSA, *.EC)
+        // 1. Direct ZIP Extraction for v1 (META-INF/*.RSA, *.DSA, *.EC)
         try {
             val v1Certs = ApkV1SignatureParser.extractV1Certificates(apkBytes, bcProvider)
             v1Certs.forEach { cert ->
@@ -122,7 +57,7 @@ object ApkMatcher {
             }
         } catch (_: Exception) {}
 
-        // 3. Direct APK Signing Block Parser for v2/v3
+        // 2. Direct APK Signing Block Parser for v2/v3
         try {
             val v2v3Certs = ApkSigningBlockParser.extractV2V3Certificates(apkBytes)
             v2v3Certs.forEach { (cert, schemeName) ->
@@ -136,7 +71,7 @@ object ApkMatcher {
             }
         } catch (_: Exception) {}
 
-        // 4. Try parsing AndroidManifest.xml from ZIP if packageName not yet resolved
+        // 3. Try parsing AndroidManifest.xml from ZIP if packageName not yet resolved
         if (packageName.isNullOrBlank()) {
             packageName = AxmlManifestParser.extractPackageNameFromZip(apkBytes)
         }
@@ -150,6 +85,13 @@ object ApkMatcher {
             certificates = certificates,
             signatureSchemesFound = schemesFound
         )
+    }
+
+    /**
+     * Backward-compatible overload accepting context as optional parameter for Android.
+     */
+    fun analyzeApk(context: Any?, apkBytes: ByteArray, fileName: String = "app.apk"): ApkInfo {
+        return analyzeApk(apkBytes, fileName)
     }
 
     /**

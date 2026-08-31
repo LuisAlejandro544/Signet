@@ -1,11 +1,9 @@
 package com.example.data
 
-import android.content.Context
 import com.example.crypto.Base64Compat
 import com.example.crypto.DesktopStorageUtils
 import com.example.crypto.KeystoreGenerator
 import com.example.crypto.SignetBackupManager
-import com.example.data.local.AppDatabase
 import com.example.data.model.KeystoreConfig
 import com.example.data.model.KeystoreDetails
 import kotlinx.coroutines.Dispatchers
@@ -16,8 +14,6 @@ import java.io.InputStream
 
 class KeystoreRepository(private val dataSource: KeystoreDataSource) {
 
-    constructor(database: AppDatabase) : this(RoomKeystoreDataSource(database.keystoreDao()))
-
     constructor(dataDir: File = DesktopStorageUtils.getDesktopDataDir()) : this(DesktopKeystoreDataSource(dataDir))
 
     val allKeystores: Flow<List<KeystoreDetails>> = dataSource.getAllKeystores()
@@ -26,17 +22,6 @@ class KeystoreRepository(private val dataSource: KeystoreDataSource) {
         outputDir: File,
         config: KeystoreConfig
     ): Result<KeystoreDetails> = generateKeystore(outputDir, config, saveToDatabase = true)
-
-    suspend fun generateAndSaveKeystore(
-        context: Context,
-        config: KeystoreConfig
-    ): Result<KeystoreDetails> = generateKeystore(context.filesDir, config, saveToDatabase = true)
-
-    suspend fun generateKeystore(
-        context: Context,
-        config: KeystoreConfig,
-        saveToDatabase: Boolean = true
-    ): Result<KeystoreDetails> = generateKeystore(context.filesDir, config, saveToDatabase)
 
     suspend fun generateKeystore(
         outputDir: File,
@@ -70,16 +55,6 @@ class KeystoreRepository(private val dataSource: KeystoreDataSource) {
         }
     }
 
-    suspend fun restoreAndSaveKeystoreFromZip(
-        context: Context,
-        inputStream: InputStream
-    ): Result<KeystoreDetails> = restoreAndSaveKeystoreFromZip(context.filesDir, inputStream.readBytes())
-
-    suspend fun restoreAndSaveKeystoreFromZip(
-        context: Context,
-        zipBytes: ByteArray
-    ): Result<KeystoreDetails> = restoreAndSaveKeystoreFromZip(context.filesDir, zipBytes)
-
     suspend fun restoreAndSaveAnyFromZip(
         outputDir: File,
         zipBytes: ByteArray
@@ -95,11 +70,6 @@ class KeystoreRepository(private val dataSource: KeystoreDataSource) {
             Result.failure(e)
         }
     }
-
-    suspend fun restoreAndSaveAnyFromZip(
-        context: Context,
-        zipBytes: ByteArray
-    ): Result<List<KeystoreDetails>> = restoreAndSaveAnyFromZip(context.filesDir, zipBytes)
 
     suspend fun createVaultBackupZip(keystores: List<KeystoreDetails>): Result<ByteArray> = withContext(Dispatchers.IO) {
         try {
@@ -163,4 +133,5 @@ class KeystoreRepository(private val dataSource: KeystoreDataSource) {
             }
         }
 }
+
 

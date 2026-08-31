@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.example.crypto.KeystoreGenerator
 import com.example.crypto.PasswordGenerator
+import com.example.crypto.generateKeystore
 import com.example.data.model.DistinguishedName
 import com.example.data.model.KeyAlgorithm
 import com.example.data.model.KeystoreConfig

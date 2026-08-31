@@ -9,6 +9,7 @@ import com.example.crypto.KeystoreEncryptionManager
 import com.example.crypto.PasswordGenerator
 import com.example.crypto.signer.ApkSigner
 import com.example.data.KeystoreRepository
+import com.example.data.createAndroidKeystoreRepository
 import com.example.data.local.AppDatabase
 import com.example.data.model.ApkSigningOptions
 import com.example.data.model.DistinguishedName
@@ -52,7 +53,7 @@ open class KeystoreViewModel(
 
     constructor(application: Application) : this(
         AppPreferencesManager(application),
-        KeystoreRepository(AppDatabase.getDatabase(application))
+        createAndroidKeystoreRepository(AppDatabase.getDatabase(application))
     )
 
     constructor() : this(

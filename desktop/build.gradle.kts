@@ -3,9 +3,8 @@ plugins {
     kotlin("jvm")
 }
 
-java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+kotlin {
+    jvmToolchain(17)
 }
 
 dependencies {
@@ -21,15 +20,9 @@ sourceSets {
             srcDirs(
                 "src/main/java",
                 "../app/src/main/java/com/example/crypto",
-                "../app/src/main/java/com/example/desktop",
-                "../app/src/main/java/com/example/platform",
-                "../app/src/main/java/com/example/data/model",
-                "../app/src/main/java/com/example/data"
+                "../app/src/main/java/com/example/data/model"
             )
-            exclude("com/example/platform/AndroidPlatformServices.kt")
-            exclude("com/example/platform/PlatformFileAdapters.kt")
-            exclude("com/example/desktop/SignetDesktopApp.kt")
-            exclude("com/example/data/local/**")
+            exclude("com/example/crypto/AndroidCryptoExtensions.kt")
         }
     }
 }

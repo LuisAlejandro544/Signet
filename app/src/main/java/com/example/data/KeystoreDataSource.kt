@@ -1,15 +1,12 @@
 package com.example.data
 
 import com.example.crypto.DesktopStorageUtils
-import com.example.data.local.KeystoreDao
-import com.example.data.local.KeystoreEntity
 import com.example.data.model.KeystoreDetails
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -27,28 +24,6 @@ interface KeystoreDataSource {
     suspend fun getKeystoreById(id: Long): KeystoreDetails?
     suspend fun insertKeystore(details: KeystoreDetails): Long
     suspend fun deleteKeystoreById(id: Long)
-}
-
-/**
- * Implementación de Room para Android.
- */
-class RoomKeystoreDataSource(private val dao: KeystoreDao) : KeystoreDataSource {
-    override fun getAllKeystores(): Flow<List<KeystoreDetails>> {
-        return dao.getAllKeystores().map { list -> list.map { it.toDetails() } }
-    }
-
-    override suspend fun getKeystoreById(id: Long): KeystoreDetails? {
-        return dao.getKeystoreById(id)?.toDetails()
-    }
-
-    override suspend fun insertKeystore(details: KeystoreDetails): Long {
-        val entity = KeystoreEntity.fromDetails(details)
-        return dao.insertKeystore(entity)
-    }
-
-    override suspend fun deleteKeystoreById(id: Long) {
-        dao.deleteKeystoreById(id)
-    }
 }
 
 /**
