@@ -1,29 +1,9 @@
-feat(updater,ci,opt): implementar auto-actualizador in-app, optimización de binarios Windows con jlink y reducción de peso de APK con R8/Proguard
+fix(desktop): corregir exclusión de fuentes Android en el compilador Kotlin para el módulo Desktop
 
-- Flujos de CI/CD en GitHub Actions (`.github/workflows/build-release-apk.yml`, `.github/workflows/build-release-desktop.yml`):
-  * Modificación de la condición de publicación para omitir la subida de binarios o paquetes a los assets de GitHub Releases cuando los workflows se ejecutan manualmente (`workflow_dispatch`), tanto para el APK de Android como para los instaladores de Windows (.exe, .msi, .zip).
-  * Optimización de binarios de escritorio Windows (`build-release-desktop.yml`): Generación de un Custom Java Runtime mínimo y optimizado mediante `jlink` (`--strip-debug`, `--compress=2`, `--no-man-pages`, `--no-header-files`) y vinculación a `jpackage` vía `--runtime-image`, reduciendo el peso de los instaladores e imágenes portables de ~50MB a ~18-22MB.
+- Diagnóstico y Causa Raíz del Error en CI (`:desktop:compileKotlin`):
+  * Al compilar el módulo JVM de escritorio (`:desktop:compileKotlin`), Gradle incluía inadvertidamente `SignetDesktopApp.kt` (archivo de UI con dependencias AndroidX / Jetpack Compose) debido a que la regla de exclusión no coincidía con el árbol de directorios anidados al vincular `../app/src/main/java/com/example/desktop`.
 
-- Optimización y Reducción de Tamaño de APK (`proguard-rules.pro`, `gradle.properties`, `app/build.gradle.kts`):
-  * Ajuste quirúrgico de reglas Proguard para BouncyCastle limitándolo a los paquetes criptográficos necesarios (`jce.provider`, `asn1`, `cert`, `operator`, `pkcs`, `crypto`), permitiendo a R8 podar clases no utilizadas.
-  * Habilitación del modo de optimización agresiva `android.enableR8.fullMode=true` en `gradle.properties`.
-  * Exclusión de metadatos, versiones duplicadas, licencias redundantes y archivos de depuración en `packaging.resources`.
-  * Habilitación de `isCrunchPngs = true` en la variante Release para compresión óptima de recursos gráficos.
-
-- Motor de Detección y Descarga de Actualizaciones (`AppUpdateManager.kt`):
-  * Integración con la API de GitHub Releases (`https://api.github.com/repos/LuisAlejandro544/Signet/releases`) con soporte completo para versiones estables y pre-releases/betas.
-  * Comparador semántico de etiquetas de versión (`isNewerVersion`) capaz de detectar versiones superiores y canales (-B, .dev, -E).
-  * Selección inteligente de artefactos según la plataforma de ejecución: APKs firmados en Android e instaladores ejecutables (.exe, .msi, .zip) en Windows / PC.
-  * Descarga directa en segundo plano con seguimiento de progreso en tiempo real (bytes, porcentaje y velocidad).
-
-- Interfaz de Usuario y Experiencia de Actualización (`UpdateDialog.kt`, `SoftwareUpdateSection.kt`, `MainScreen.kt`):
-  * Detección automática al iniciar la app mostrando el diálogo modal interactivo con notas de versión (changelog), progreso de descarga y botón de instalación inmediata.
-  * Nueva sección de Actualizaciones de Software en la pantalla de Ajustes para comprobación manual y acceso directo a GitHub Releases.
-  * Lanzamiento automático del instalador de paquetes en Android vía `FileProvider` y ejecución nativa en Windows Desktop.
-
-- Permisos y Configuración de Sistema (`AndroidManifest.xml`, `file_paths.xml`):
-  * Inclusión de permisos `INTERNET`, `ACCESS_NETWORK_STATE` y `REQUEST_INSTALL_PACKAGES`.
-  * Configuración del directorio de caché `updates/` para el proveedor de archivos seguro (`FileProvider`).
-
-- Pruebas Unitarias Automatizadas (`AppUpdateManagerTest.kt`):
-  * Validación de comparación de versiones, limpieza de etiquetas y selección de artefactos por plataforma.
+- Solución y Ajustes Técnicos (`desktop/build.gradle.kts`):
+  * Configuración explícita del bloque `kotlin` en `sourceSets.main` además del bloque `java`.
+  * Aplicación de patrones de exclusión comodín globales (`**/SignetDesktopApp.kt` y `**/AndroidCryptoExtensions.kt`), impidiendo que el compilador Kotlin de escritorio intente procesar componentes dependientes del SDK de Android.
+  * Verificación y compilación exitosa de las tareas `:desktop:compileKotlin` y `:desktop:fatJar` en entorno puro JVM (Java 17).

@@ -16,6 +16,18 @@ dependencies {
 
 sourceSets {
     main {
+        kotlin {
+            srcDirs(
+                "src/main/java",
+                "../app/src/main/java/com/example/crypto",
+                "../app/src/main/java/com/example/data/model",
+                "../app/src/main/java/com/example/desktop",
+                "../app/src/main/java/com/example/update",
+                "../app/src/main/java/com/example/ui/res"
+            )
+            exclude("**/AndroidCryptoExtensions.kt")
+            exclude("**/SignetDesktopApp.kt")
+        }
         java {
             srcDirs(
                 "src/main/java",
@@ -25,8 +37,8 @@ sourceSets {
                 "../app/src/main/java/com/example/update",
                 "../app/src/main/java/com/example/ui/res"
             )
-            exclude("com/example/crypto/AndroidCryptoExtensions.kt")
-            exclude("com/example/desktop/SignetDesktopApp.kt")
+            exclude("**/AndroidCryptoExtensions.kt")
+            exclude("**/SignetDesktopApp.kt")
         }
     }
 }
