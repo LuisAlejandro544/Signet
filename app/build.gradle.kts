@@ -45,7 +45,7 @@ android {
 
   buildTypes {
     release {
-      isCrunchPngs = false
+      isCrunchPngs = true
       isMinifyEnabled = true
       isShrinkResources = true
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
@@ -68,7 +68,16 @@ android {
   testOptions { unitTests { isIncludeAndroidResources = true } }
   packaging {
     resources {
-      excludes += listOf("/META-INF/{AL2.0,LGPL2.1}")
+      excludes += listOf(
+        "/META-INF/{AL2.0,LGPL2.1}",
+        "META-INF/*.version",
+        "META-INF/INDEX.LIST",
+        "META-INF/DEPENDENCIES",
+        "META-INF/LICENSE*",
+        "META-INF/NOTICE*",
+        "**/*.proto",
+        "DebugProbesKt.bin"
+      )
     }
     jniLibs {
       excludes += listOf("lib/x86/*", "lib/x86_64/*")

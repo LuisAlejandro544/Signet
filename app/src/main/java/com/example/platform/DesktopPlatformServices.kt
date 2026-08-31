@@ -181,7 +181,22 @@ object DesktopPlatformServices : PlatformServices {
     }
 
     override fun installApk(apkFile: File) {
-        showToast("APK listo en: ${apkFile.absolutePath}")
+        val os = (System.getProperty("os.name") ?: "").lowercase()
+        try {
+            if (os.contains("win") && (apkFile.name.endsWith(".exe", ignoreCase = true) || apkFile.name.endsWith(".msi", ignoreCase = true))) {
+                ProcessBuilder(apkFile.absolutePath).start()
+                showToast("Iniciando instalador: ${apkFile.name}")
+                return
+            }
+            if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.OPEN)) {
+                Desktop.getDesktop().open(apkFile)
+                showToast("Abriendo actualización: ${apkFile.name}")
+                return
+            }
+        } catch (e: Exception) {
+            println("[DesktopPlatformServices] Error al iniciar instalador: ${e.message}")
+        }
+        showToast("Archivo listo en: ${apkFile.absolutePath}")
         openFolder(apkFile)
     }
 

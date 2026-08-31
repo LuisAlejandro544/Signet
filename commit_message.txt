@@ -1,22 +1,29 @@
-fix(persistence): implementar migraciones no destructivas en Room y motor de auto-recuperación de almacenes de claves locales
+feat(updater,ci,opt): implementar auto-actualizador in-app, optimización de binarios Windows con jlink y reducción de peso de APK con R8/Proguard
 
-- Migraciones Seguras y No Destructivas en Room (`AppDatabase.kt`):
-  * Definición explícita del objeto de migración `MIGRATION_1_2` para preservar tablas SQLite y columnas entre versiones.
-  * Eliminación de `fallbackToDestructiveMigration()` para evitar que futuras actualizaciones de la aplicación eliminen los almacenes de claves, firmas y credenciales guardadas en la base de datos.
-  * Configuración de la base de datos mediante `.addMigrations(MIGRATION_1_2)`.
+- Flujos de CI/CD en GitHub Actions (`.github/workflows/build-release-apk.yml`, `.github/workflows/build-release-desktop.yml`):
+  * Modificación de la condición de publicación para omitir la subida de binarios o paquetes a los assets de GitHub Releases cuando los workflows se ejecutan manualmente (`workflow_dispatch`), tanto para el APK de Android como para los instaladores de Windows (.exe, .msi, .zip).
+  * Optimización de binarios de escritorio Windows (`build-release-desktop.yml`): Generación de un Custom Java Runtime mínimo y optimizado mediante `jlink` (`--strip-debug`, `--compress=2`, `--no-man-pages`, `--no-header-files`) y vinculación a `jpackage` vía `--runtime-image`, reduciendo el peso de los instaladores e imágenes portables de ~50MB a ~18-22MB.
 
-- Motor de Auto-Recuperación y Sincronización de Archivos Físicos (`KeystoreRepository.kt`):
-  * Implementación de la rutina `syncAndRecoverOrphanKeystores(storageDir: File)` para escanear el almacenamiento local buscando archivos `.jks`, `.keystore`, `.p12`, `.bks` y `.pfx`.
-  * Detección e indexación automática de archivos huérfanos o presentes en el almacenamiento interno que no figuren en la base de datos tras una actualización.
-  * Extracción de certificados X.509 públicos, cálculo de huellas digitales SHA-256, SHA-1, MD5 y codificación Base64 en segundo plano (`Dispatchers.IO`).
+- Optimización y Reducción de Tamaño de APK (`proguard-rules.pro`, `gradle.properties`, `app/build.gradle.kts`):
+  * Ajuste quirúrgico de reglas Proguard para BouncyCastle limitándolo a los paquetes criptográficos necesarios (`jce.provider`, `asn1`, `cert`, `operator`, `pkcs`, `crypto`), permitiendo a R8 podar clases no utilizadas.
+  * Habilitación del modo de optimización agresiva `android.enableR8.fullMode=true` en `gradle.properties`.
+  * Exclusión de metadatos, versiones duplicadas, licencias redundantes y archivos de depuración en `packaging.resources`.
+  * Habilitación de `isCrunchPngs = true` en la variante Release para compresión óptima de recursos gráficos.
 
-- Consultas y Soporte en Repositorio (`KeystoreDao.kt`, `KeystoreDataSource.kt`, `AndroidKeystoreRepository.kt`):
-  * Adición de la consulta `getKeystoreByPathOrName(filePath, fileName)` para verificación instantánea y prevención de duplicados.
-  * Soporte unificado tanto en `RoomKeystoreDataSource` (Android) como en `DesktopKeystoreDataSource` (Desktop).
+- Motor de Detección y Descarga de Actualizaciones (`AppUpdateManager.kt`):
+  * Integración con la API de GitHub Releases (`https://api.github.com/repos/LuisAlejandro544/Signet/releases`) con soporte completo para versiones estables y pre-releases/betas.
+  * Comparador semántico de etiquetas de versión (`isNewerVersion`) capaz de detectar versiones superiores y canales (-B, .dev, -E).
+  * Selección inteligente de artefactos según la plataforma de ejecución: APKs firmados en Android e instaladores ejecutables (.exe, .msi, .zip) en Windows / PC.
+  * Descarga directa en segundo plano con seguimiento de progreso en tiempo real (bytes, porcentaje y velocidad).
 
-- Sincronización Reactiva en ViewModel (`KeystoreViewModel.kt`):
-  * Ejecución automática de la rutina de auto-recuperación al iniciar el ViewModel tanto en Android como en Desktop.
-  * Métodos auxiliares `syncKeystores()` para permitir sincronizaciones manuales y bajo demanda.
+- Interfaz de Usuario y Experiencia de Actualización (`UpdateDialog.kt`, `SoftwareUpdateSection.kt`, `MainScreen.kt`):
+  * Detección automática al iniciar la app mostrando el diálogo modal interactivo con notas de versión (changelog), progreso de descarga y botón de instalación inmediata.
+  * Nueva sección de Actualizaciones de Software en la pantalla de Ajustes para comprobación manual y acceso directo a GitHub Releases.
+  * Lanzamiento automático del instalador de paquetes en Android vía `FileProvider` y ejecución nativa en Windows Desktop.
 
-- Pruebas Unitarias Automatizadas (`KeystoreViewModelTest.kt`):
-  * Incorporación de test unitario para validar el escaneo, detección y recuperación de archivos de keystore huérfanos.
+- Permisos y Configuración de Sistema (`AndroidManifest.xml`, `file_paths.xml`):
+  * Inclusión de permisos `INTERNET`, `ACCESS_NETWORK_STATE` y `REQUEST_INSTALL_PACKAGES`.
+  * Configuración del directorio de caché `updates/` para el proveedor de archivos seguro (`FileProvider`).
+
+- Pruebas Unitarias Automatizadas (`AppUpdateManagerTest.kt`):
+  * Validación de comparación de versiones, limpieza de etiquetas y selección de artefactos por plataforma.

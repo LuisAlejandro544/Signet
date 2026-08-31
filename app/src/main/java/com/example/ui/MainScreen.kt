@@ -48,12 +48,14 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.crypto.DesktopStorageUtils
 import com.example.platform.LocalPlatformServices
 import com.example.ui.components.KeystoreDetailsSheet
+import com.example.ui.components.UpdateDialog
 import com.example.ui.screens.GenerateScreen
 import com.example.ui.screens.InspectScreen
 import com.example.ui.screens.SavedKeystoresScreen
 import com.example.ui.screens.SettingsScreen
 import com.example.ui.screens.sign.SignApkScreen
 import com.example.ui.state.GenerationUiState
+import com.example.update.UpdateUiState
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -66,6 +68,7 @@ fun MainScreen(
     val savedKeystores by viewModel.savedKeystores.collectAsState()
     val generationState by viewModel.generationState.collectAsState()
     val selectedKeystoreForDetail by viewModel.selectedKeystoreForDetail.collectAsState()
+    val updateState by viewModel.updateState.collectAsState()
     val platformServices = LocalPlatformServices.current
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -403,6 +406,17 @@ fun MainScreen(
                 scope.launch { sheetState.hide() }.invokeOnCompletion {
                     viewModel.dismissKeystoreDetails()
                 }
+            }
+        )
+    }
+
+    // Modal Update notification and download dialog
+    (updateState as? UpdateUiState.Available)?.let { availableState ->
+        UpdateDialog(
+            viewModel = viewModel,
+            updateState = availableState,
+            onDismiss = {
+                viewModel.dismissUpdate()
             }
         )
     }

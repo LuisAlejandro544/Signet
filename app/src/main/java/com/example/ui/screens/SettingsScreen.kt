@@ -20,6 +20,7 @@ import com.example.ui.screens.settings.ColorPaletteSection
 import com.example.ui.screens.settings.DistributionInfoSection
 import com.example.ui.screens.settings.LegalLinksSection
 import com.example.ui.screens.settings.SettingsHeaderCard
+import com.example.ui.screens.settings.SoftwareUpdateSection
 import com.example.ui.screens.settings.ThemeModeSection
 
 @Composable
@@ -41,25 +42,28 @@ fun SettingsScreen(
         // Encabezado visual
         SettingsHeaderCard()
 
-        // Sección 1: Modo de Pantalla (Claro / Oscuro / Negro 100% AMOLED / Sistema)
+        // Sección 1: Actualizaciones de Software y Versión (GitHub Releases Auto-Updater)
+        SoftwareUpdateSection(viewModel = viewModel)
+
+        // Sección 2: Modo de Pantalla (Claro / Oscuro / Negro 100% AMOLED / Sistema)
         ThemeModeSection(
             themeState = themeState,
             onSelectMode = { mode -> viewModel.setThemeMode(mode) }
         )
 
-        // Sección 2: Paleta de Color y Material You
+        // Sección 3: Paleta de Color y Material You
         ColorPaletteSection(
             themeState = themeState,
             isAndroid12OrAbove = isAndroid12OrAbove,
             onSelectPalette = { palette -> viewModel.setColorPalette(palette) }
         )
 
-        // Sección 3: Marco Legal y Políticas de Uso (Portal Web Oficial)
+        // Sección 4: Marco Legal y Políticas de Uso (Portal Web Oficial)
         LegalLinksSection(
             viewModel = viewModel
         )
 
-        // Sección 4: Seguridad y Distribución (Uptodown / GitHub Releases / GPL v3)
+        // Sección 5: Seguridad y Distribución (Uptodown / GitHub Releases / GPL v3)
         DistributionInfoSection()
 
         Spacer(Modifier.height(16.dp))

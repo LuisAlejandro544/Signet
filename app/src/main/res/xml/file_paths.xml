@@ -3,4 +3,5 @@
     <files-path name="keystores" path="keystores/" />
     <cache-path name="shared_keystores" path="shared/" />
     <cache-path name="signed_apks" path="signed_apks/" />
+    <cache-path name="updates" path="updates/" />
 </paths>

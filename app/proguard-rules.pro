@@ -4,8 +4,13 @@
 -keepattributes SourceFile,LineNumberTable
 -renamesourcefileattribute SourceFile
 
-# BouncyCastle Cryptography
--keep class org.bouncycastle.** { *; }
+# BouncyCastle Cryptography (Fine-tuned for Signet keystores and APK signing)
+-keep class org.bouncycastle.jce.provider.** { *; }
+-keep class org.bouncycastle.asn1.** { *; }
+-keep class org.bouncycastle.cert.** { *; }
+-keep class org.bouncycastle.operator.** { *; }
+-keep class org.bouncycastle.pkcs.** { *; }
+-keep class org.bouncycastle.crypto.** { *; }
 -dontwarn org.bouncycastle.**
 -dontnote org.bouncycastle.**
 

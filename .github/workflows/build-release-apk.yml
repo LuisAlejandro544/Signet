@@ -140,7 +140,7 @@ jobs:
           retention-days: 14
 
       - name: 🏷️ Attach Signed APK to GitHub Release / Pre-Release
-        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'release' || github.event_name == 'workflow_dispatch'
+        if: (startsWith(github.ref, 'refs/tags/') || github.event_name == 'release') && github.event_name != 'workflow_dispatch'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.prepare_artifacts.outputs.tag_name }}

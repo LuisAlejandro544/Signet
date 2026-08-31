@@ -28,6 +28,9 @@ import com.example.ui.state.SignApkFormState
 import com.example.ui.theme.ColorPalette
 import com.example.ui.theme.ThemeMode
 import com.example.ui.theme.ThemeState
+import com.example.update.AppReleaseInfo
+import com.example.update.AppUpdateManager
+import com.example.update.UpdateUiState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -59,6 +62,9 @@ open class KeystoreViewModel(
             try {
                 repository.syncAndRecoverOrphanKeystores(application.filesDir)
             } catch (_: Exception) {}
+            try {
+                checkForUpdates(isManual = false, isDesktop = false)
+            } catch (_: Exception) {}
         }
     }
 
@@ -69,6 +75,9 @@ open class KeystoreViewModel(
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 repository.syncAndRecoverOrphanKeystores(com.example.crypto.DesktopStorageUtils.getDesktopDataDir())
+            } catch (_: Exception) {}
+            try {
+                checkForUpdates(isManual = false, isDesktop = true)
             } catch (_: Exception) {}
         }
     }
@@ -119,6 +128,9 @@ open class KeystoreViewModel(
 
     private val _selectedKeystoreForDetail = MutableStateFlow<KeystoreDetails?>(null)
     val selectedKeystoreForDetail: StateFlow<KeystoreDetails?> = _selectedKeystoreForDetail.asStateFlow()
+
+    private val _updateState = MutableStateFlow<UpdateUiState>(UpdateUiState.Idle)
+    val updateState: StateFlow<UpdateUiState> = _updateState.asStateFlow()
 
     // Theme state backed by AppPreferencesManager
     private val _themeState = MutableStateFlow(preferencesManager.loadThemeState())
@@ -639,5 +651,97 @@ open class KeystoreViewModel(
                 "No se pudo iniciar el instalador de Android: ${e.localizedMessage}"
             )
         }
+    }
+
+    fun checkForUpdates(
+        isManual: Boolean = false,
+        isDesktop: Boolean = false,
+        currentVersion: String = com.example.ui.res.SignetStrings.APP_VERSION
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            if (isManual) {
+                _updateState.value = UpdateUiState.Checking
+            }
+            try {
+                val releaseInfo = AppUpdateManager.checkLatestRelease(currentVersion, isDesktop)
+                if (releaseInfo != null) {
+                    _updateState.value = UpdateUiState.Available(release = releaseInfo)
+                } else if (isManual) {
+                    _updateState.value = UpdateUiState.UpToDate(currentVersion)
+                }
+            } catch (e: Exception) {
+                if (isManual) {
+                    _updateState.value = UpdateUiState.Error("No se pudo comprobar actualizaciones: ${e.localizedMessage}")
+                }
+            }
+        }
+    }
+
+    fun startUpdateDownload(
+        targetDirectory: File,
+        isDesktop: Boolean = false,
+        onDownloaded: ((File) -> Unit)? = null
+    ) {
+        val currentState = _updateState.value
+        if (currentState !is UpdateUiState.Available) return
+        val matchedAsset = currentState.release.matchedAsset
+        if (matchedAsset == null) {
+            _updateState.value = currentState.copy(
+                errorMessage = "No se encontró un archivo instalador compatible con esta plataforma en la versión ${currentState.release.tagName}."
+            )
+            return
+        }
+
+        _updateState.value = currentState.copy(
+            isDownloading = true,
+            progressPercent = 0,
+            errorMessage = null
+        )
+
+        viewModelScope.launch(Dispatchers.IO) {
+            val targetFile = File(targetDirectory, matchedAsset.name)
+            val result = AppUpdateManager.downloadUpdate(
+                downloadUrl = matchedAsset.downloadUrl,
+                targetFile = targetFile,
+                onProgress = { downloaded, total, percent ->
+                    val s = _updateState.value
+                    if (s is UpdateUiState.Available) {
+                        _updateState.value = s.copy(
+                            isDownloading = true,
+                            progressPercent = percent,
+                            downloadedBytes = downloaded,
+                            totalBytes = total
+                        )
+                    }
+                }
+            )
+
+            result.fold(
+                onSuccess = { file ->
+                    val s = _updateState.value
+                    if (s is UpdateUiState.Available) {
+                        _updateState.value = s.copy(
+                            isDownloading = false,
+                            progressPercent = 100,
+                            downloadedFile = file
+                        )
+                    }
+                    onDownloaded?.invoke(file)
+                },
+                onFailure = { err ->
+                    val s = _updateState.value
+                    if (s is UpdateUiState.Available) {
+                        _updateState.value = s.copy(
+                            isDownloading = false,
+                            errorMessage = "Error en la descarga: ${err.localizedMessage}"
+                        )
+                    }
+                }
+            )
+        }
+    }
+
+    fun dismissUpdate() {
+        _updateState.value = UpdateUiState.Idle
     }
 }
