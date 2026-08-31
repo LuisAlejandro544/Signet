@@ -12,18 +12,25 @@ dependencies {
     implementation(libs.bouncycastle.bcprov)
     implementation(libs.bouncycastle.bcpkix)
     implementation(libs.kotlinx.coroutines.core)
+    implementation("org.json:json:20240303")
 }
 
 sourceSets {
     main {
-        java.srcDirs(
-            "src/main/java",
-            "../app/src/main/java/com/example/crypto",
-            "../app/src/main/java/com/example/desktop",
-            "../app/src/main/java/com/example/platform",
-            "../app/src/main/java/com/example/data/model",
-            "../app/src/main/java/com/example/data"
-        )
+        java {
+            srcDirs(
+                "src/main/java",
+                "../app/src/main/java/com/example/crypto",
+                "../app/src/main/java/com/example/desktop",
+                "../app/src/main/java/com/example/platform",
+                "../app/src/main/java/com/example/data/model",
+                "../app/src/main/java/com/example/data"
+            )
+            exclude("com/example/platform/AndroidPlatformServices.kt")
+            exclude("com/example/platform/PlatformFileAdapters.kt")
+            exclude("com/example/desktop/SignetDesktopApp.kt")
+            exclude("com/example/data/local/**")
+        }
     }
 }
 
