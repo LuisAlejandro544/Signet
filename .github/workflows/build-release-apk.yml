@@ -102,7 +102,20 @@ jobs:
             exit 1
           fi
           
-          TAG="${{ github.event.release.tag_name || github.ref_name || inputs.tag_name || 'v1.0.0-B' }}"
+          INPUT_TAG="${{ inputs.tag_name }}"
+          RELEASE_TAG="${{ github.event.release.tag_name }}"
+          REF_NAME="${{ github.ref_name }}"
+          REF_TYPE="${{ github.ref_type }}"
+
+          if [ -n "$INPUT_TAG" ]; then
+            TAG="$INPUT_TAG"
+          elif [ -n "$RELEASE_TAG" ]; then
+            TAG="$RELEASE_TAG"
+          elif [ "$REF_TYPE" = "tag" ] && [ -n "$REF_NAME" ]; then
+            TAG="$REF_NAME"
+          else
+            TAG="v1.0.0-B"
+          fi
           DEST_NAME="Signet-${TAG}-release-signed.apk"
           cp "$APK_FILE" "./$DEST_NAME"
           
@@ -127,7 +140,7 @@ jobs:
           retention-days: 14
 
       - name: 🏷️ Attach Signed APK to GitHub Release / Pre-Release
-        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'release'
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'release' || github.event_name == 'workflow_dispatch'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.prepare_artifacts.outputs.tag_name }}
