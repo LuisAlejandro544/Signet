@@ -1,0 +1,90 @@
+name: 🧹 Clean Workflow Runs History
+
+on:
+  workflow_dispatch:
+    inputs:
+      delete_all:
+        description: '¿Eliminar todas las ejecuciones anteriores? (true/false)'
+        required: true
+        default: true
+        type: boolean
+      days_to_keep:
+        description: 'Días de historial a conservar (0 = eliminar todo sin importar la fecha)'
+        required: false
+        default: '0'
+        type: string
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  clean-runs:
+    name: 🗑️ Delete Old Workflow Runs
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🔍 List & Delete Workflow Runs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CURRENT_RUN_ID: ${{ github.run_id }}
+          DELETE_ALL: ${{ inputs.delete_all }}
+          DAYS_TO_KEEP: ${{ inputs.days_to_keep || '0' }}
+        run: |
+          echo "=================================================="
+          echo "🧹 Iniciando purga de historial de GitHub Actions"
+          echo "📌 Repositorio: $GITHUB_REPOSITORY"
+          echo "📌 Ejecución actual (se preservará): $CURRENT_RUN_ID"
+          echo "=================================================="
+
+          # Obtener lista de ejecuciones existentes (hasta 1000 ejecuciones)
+          RUNS_JSON=$(gh api --paginate "/repos/$GITHUB_REPOSITORY/actions/runs?per_page=100" --jq '.workflow_runs[] | {id: .id, name: .name, status: .status, created_at: .created_at}')
+
+          if [ -z "$RUNS_JSON" ]; then
+            echo "✅ No hay ejecuciones de workflows registradas en el historial."
+            exit 0
+          fi
+
+          # Calcular timestamp límite si se especificó días
+          NOW_EPOCH=$(date +%s)
+          DAYS_SEC=$(( DAYS_TO_KEEP * 86400 ))
+          CUTOFF_EPOCH=$(( NOW_EPOCH - DAYS_SEC ))
+
+          TOTAL_FOUND=0
+          DELETED_COUNT=0
+          SKIPPED_COUNT=0
+
+          echo "$RUNS_JSON" | jq -c '.' | while read -r run; do
+            RUN_ID=$(echo "$run" | jq -r '.id')
+            RUN_NAME=$(echo "$run" | jq -r '.name')
+            CREATED_AT=$(echo "$run" | jq -r '.created_at')
+
+            # Omitir la ejecución actual que está corriendo este workflow
+            if [ "$RUN_ID" = "$CURRENT_RUN_ID" ]; then
+              echo "⏩ Saltando ejecución activa actual (#$RUN_ID - $RUN_NAME)"
+              continue
+            fi
+
+            TOTAL_FOUND=$((TOTAL_FOUND + 1))
+            RUN_EPOCH=$(date -d "$CREATED_AT" +%s 2>/dev/null || date -jf "%Y-%m-%dT%H:%M:%SZ" "$CREATED_AT" +%s 2>/dev/null || echo 0)
+
+            # Verificar criterio de días
+            if [ "$DELETE_ALL" != "true" ] && [ "$DAYS_TO_KEEP" != "0" ] && [ "$RUN_EPOCH" -gt "$CUTOFF_EPOCH" ]; then
+              echo "⏳ Conservando ejecución reciente (#$RUN_ID - $RUN_NAME - $CREATED_AT)"
+              SKIPPED_COUNT=$((SKIPPED_COUNT + 1))
+              continue
+            fi
+
+            echo "🗑️ Eliminando ejecución #$RUN_ID ($RUN_NAME | $CREATED_AT)..."
+            if gh api -X DELETE "/repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID" --silent; then
+              DELETED_COUNT=$((DELETED_COUNT + 1))
+            else
+              echo "⚠️ No se pudo eliminar la ejecución #$RUN_ID (puede requerir permisos adicionales o ya no existir)."
+            fi
+
+            # Pequeña pausa para evitar rate-limits de la API de GitHub
+            sleep 0.2
+          done
+
+          echo "=================================================="
+          echo "🎉 Limpieza completada con éxito."
+          echo "=================================================="

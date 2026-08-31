@@ -179,7 +179,7 @@ app/
 ├── .github/
 │   └── workflows/
 │       ├── build-debug-apk.yml                  # Compilación y despacho confidencial de APK Debug (Canal .debug)
-│       ├── build-release-apk.yml                # Compilación, R8 ProGuard, firma y publicación de APK Pre-Release (Canal .beta)
+│       ├── build-release-apk.yml                # Compilación, R8 ProGuard, empaquetado nativo eficiente (useLegacyPackaging=false), firma y publicación de APKs para Móviles (ARM) y Emuladores (x86) (Canal .beta)
 │       ├── build-release-desktop.yml            # Compilación, empaquetado jpackage nativo Windows (.exe, .msi, .zip) y publicación
 │       ├── security-scan.yml                    # Auditoría de seguridad estática en modo Stealth
 │       ├── emulator-e2e-test.yml                # Pruebas E2E en emulador nativo Android KVM
@@ -258,10 +258,15 @@ app/
 - **`.beta` (`com.signet.app.beta` / `1.0.0-B`)**: Versión beta con herramientas pulidas candidatas a definitivas.
 - **`.estable` (`com.signet.app` / `1.0.0-E`)**: Versión definitiva de producción para tiendas de terceros (Uptodown, GitHub Releases).
 
-### 8. Pipeline de Optimización, R8 Full Mode y Reducción de Peso
-1. **R8 Full Mode (`gradle.properties`)**: `android.enableR8.fullMode=true` para inlining agresivo de lambdas de Compose, desvirtualización de clases y eliminación de bridges de Kotlin.
-2. **Afinamiento ProGuard (`app/proguard-rules.pro`)**: Tree-shaking selectivo sobre BouncyCastle (`org.bouncycastle.*`) preservando instanciación de providers y suprimiendo clases no utilizadas.
-3. **Descarte de Metadatos de Empaquetado (`app/build.gradle.kts`)**: Exclusión en `packaging.resources` de `.kotlin_module`, `DebugProbesKt.bin`, esquemas `.proto` y metadatos de versionado de Compose/AndroidX.
+### 8. Pipeline de Optimización, R8 Full Mode y Reducción de Huella en Disco
+1. **Empaquetado Nativo sin Extracción (`useLegacyPackaging = false` / `extractNativeLibs = false`)**: Mapea directamente las librerías nativas `.so` (Room/SQLite y NDK) desde el archivo APK a memoria RAM mediante `mmap` en Android 6.0+ (API 23+), previniendo la duplicación física de archivos en `/data/app/` y reduciendo sustancialmente el espacio de almacenamiento consumido en el dispositivo tras la instalación.
+2. **Filtrado de Recursos de Idioma (`resourceConfigurations`)**: Conservación exclusiva de localizaciones en español e inglés (`es`, `en`), eliminando recursos de traducción redundantes de dependencias AndroidX y Material 3.
+3. **Distribución Separada para Móviles y Emuladores PC**:
+   - `Signet-v*-release-signed.apk`: Artefacto principal para teléfonos con procesadores ARM de 64 bits (`arm64-v8a`) y 32 bits (`armeabi-v7a`).
+   - `Signet-v*-emulator-x86-release-signed.apk`: Artefacto optimizado para emuladores de PC con arquitecturas `x86_64` y `x86`.
+4. **R8 Full Mode (`gradle.properties`)**: `android.enableR8.fullMode=true` para inlining agresivo de lambdas de Compose, desvirtualización de clases y eliminación de bridges de Kotlin.
+5. **Afinamiento ProGuard (`app/proguard-rules.pro`)**: Tree-shaking selectivo sobre BouncyCastle (`org.bouncycastle.*`) preservando instanciación de providers y suprimiendo clases no utilizadas.
+6. **Descarte de Metadatos de Empaquetado (`app/build.gradle.kts`)**: Exclusión en `packaging.resources` de `.kotlin_module`, `DebugProbesKt.bin`, esquemas `.proto` y metadatos de versionado de Compose/AndroidX.
 
 ### 9. Hardening de Bytecode y Verificación de Firma en Runtime
 1. **Aplanamiento de Paquetes (`-repackageclasses ''` / `-allowaccessmodification`)**: Elimina la jerarquía de paquetes en el DEX agrupando todas las clases en el paquete raíz para entorpecer el análisis estático.

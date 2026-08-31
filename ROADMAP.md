@@ -44,9 +44,9 @@ Plan estratégico de evolución técnica y funcionalidades para el proyecto **Si
   - [x] Canal **.beta** (`com.signet.app.beta` / `1.0.0-B`): Beta con herramientas pulidas candidatas a definitivas.
   - [x] Canal **.estable** (`com.signet.app` / `1.0.0-E`): Versión final sólida y libre de errores críticos para tiendas de terceros (Uptodown, GitHub Releases).
   - [x] Inspector y visualizador en tiempo de ejecución (`SignetVersionInfo` / `SignetChannel`) en `SettingsScreen` y `DistributionInfoSection` mostrando la versión activa con letra de tag, badge de canal, package ID y matriz de canales.
-  - [x] Optimización avanzada de empaquetado y reducción de peso del APK: R8 Full Mode (`android.enableR8.fullMode=true`), tree-shaking selectivo en BouncyCastle y descarte de metadatos redundantes (`.kotlin_module`, `DebugProbesKt`, prototipos).
+  - [x] Optimización avanzada de empaquetado y reducción de peso del APK: R8 Full Mode (`android.enableR8.fullMode=true`), empaquetado nativo sin extracción en disco (`extractNativeLibs = false` / `useLegacyPackaging = false` para mapeo directo vía `mmap`), filtrado de traducciones no utilizadas (`resourceConfigurations = listOf("es", "en")`), tree-shaking selectivo en BouncyCastle y descarte de metadatos redundantes (`.kotlin_module`, `DebugProbesKt`, prototipos).
   - [x] Hardening de DEX y protección anti-ingeniería inversa: Aplanamiento de paquetes (`-repackageclasses ''`), supresión de nombres de variables (`Intrinsics`), ocultación de fuentes y verificador de integridad de firma en runtime (`SignatureVerifier`).
-  - [x] Workflow automatizado de CI/CD para compilación, ofuscación R8/ProGuard, firma y publicación de APKs en GitHub Pre-Releases (`build-release-apk.yml`).
+  - [x] Workflow automatizado de CI/CD para compilación, ofuscación R8/ProGuard, firma y publicación de APKs en GitHub Pre-Releases (`build-release-apk.yml`), generando artefactos independientes y optimizados para móviles (`arm64-v8a` / `armeabi-v7a`) y emuladores de PC (`x86_64` / `x86`) con hashes SHA-256 independientes.
   - [x] Esquema preparado para gestión soberana de firmas criptográficas mediante GitHub Secrets.
 
 ---

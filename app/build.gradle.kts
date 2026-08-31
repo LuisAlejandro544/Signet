@@ -21,9 +21,15 @@ android {
     versionName = "1.0.0-dev"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    resourceConfigurations += listOf("es", "en")
 
     ndk {
-      abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+      val targetArch = (project.findProperty("signetTargetArch") as? String) ?: System.getenv("SIGNET_TARGET_ARCH") ?: "mobile"
+      when (targetArch.lowercase()) {
+        "emulator", "x86", "pc" -> abiFilters += listOf("x86_64", "x86")
+        "all", "universal" -> abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
+        else -> abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+      }
     }
   }
 
@@ -88,7 +94,11 @@ android {
       )
     }
     jniLibs {
-      excludes += listOf("lib/x86/*", "lib/x86_64/*")
+      useLegacyPackaging = false
+      val targetArch = (project.findProperty("signetTargetArch") as? String) ?: System.getenv("SIGNET_TARGET_ARCH") ?: "mobile"
+      if (targetArch.lowercase() != "emulator" && targetArch.lowercase() != "x86" && targetArch.lowercase() != "all" && targetArch.lowercase() != "universal") {
+        excludes += listOf("lib/x86/*", "lib/x86_64/*")
+      }
     }
   }
   dependenciesInfo {

@@ -194,8 +194,13 @@ El repositorio cuenta con pipelines automatizados en GitHub Actions orientados a
 - **Reporte JSON & Despacho a Telegram**: Genera `cli-interop-report.json` con desglose paso a paso y lo despacha de forma confidencial a Telegram.
 - **Secretos en GitHub**: Soporta secretos dedicados `TELEGRAM_BOT_TOKEN_CLI_INTEROP` / `TELEGRAM_CHAT_ID_CLI_INTEROP` o fallback automático a los secretos principales.
 
-### 5. Compilación, Hardening y Firma de APK Release / Pre-Release (`.github/workflows/build-release-apk.yml`)
+### 5. Compilación, Empaquetado Nativo Eficiente y Firma de APK Release / Pre-Release (`.github/workflows/build-release-apk.yml`)
 - **Pipeline Automatizado de Lanzamiento Beta**: Se activa automáticamente al publicar o crear un Pre-Release en GitHub, al empujar tags semánticos (ej. `v1.0.0-B`, `v*`), o de forma manual con `workflow_dispatch`.
+- **Distribución Separada y Binarios Dedicados por Arquitectura**:
+  * **Paquete para Móviles (`Signet-v*-release-signed.apk`)**: Compilado y optimizado específicamente para procesadores ARM de 64 bits (`arm64-v8a`) y 32 bits (`armeabi-v7a`), garantizando máxima compatibilidad y rendimiento tanto en teléfonos modernos como en dispositivos económicos/anteriores.
+  * **Paquete para Emuladores PC (`Signet-v*-emulator-x86-release-signed.apk`)**: Compilado exclusivamente con binarios `x86_64` y `x86` para Android Studio Emulator, BlueStacks, LDPlayer y entornos CI/CD sin penalizaciones de traducción binaria ni incompatibilidades nativas.
+- **Empaquetado Nativo sin Extracción (`extractNativeLibs = false` / `useLegacyPackaging = false`)**: Mapea directamente las librerías nativas `.so` (Room/SQLite y NDK) desde el archivo APK a memoria RAM mediante `mmap` en Android 6.0+ (API 23+), previniendo la duplicación física de archivos en `/data/app/` y reduciendo sustancialmente el peso de la app instalada en el almacenamiento interno del dispositivo.
+- **Filtrado de Recursos de Idioma (`resourceConfigurations`)**: Descarte de recursos y traducciones no utilizadas de librerías AndroidX y Material 3 conservando exclusivamente español e inglés (`es`, `en`).
 - **Optimización R8 Full Mode & ProGuard Avanzado**: Ofusca, aplica desvirtualización, inlining de lambdas de Compose y realiza un tree-shaking selectivo sobre BouncyCastle (`android.enableR8.fullMode=true`), eliminando metadatos redundantes (`.kotlin_module`, `DebugProbesKt`, prototipos) y reduciendo el peso del APK empaquetado manteniendo la funcionalidad criptográfica al 100%.
 - **Hardening de Bytecode y Anti-Ingeniería Inversa**:
   * **Aplanamiento de Paquetes (`-repackageclasses ''` / `-allowaccessmodification`)**: Mueve todas las clases ofuscadas al paquete raíz eliminando la jerarquía de directorios en el DEX para impedir la deducción de arquitectura por descompiladores.
@@ -204,7 +209,7 @@ El repositorio cuenta con pipelines automatizados en GitHub Actions orientados a
 - **Verificación de Integridad de Firma en Runtime (Anti-Tampering / Anti-Clon)**:
   * `SignatureVerifier.kt` inspecciona el certificado criptográfico de instalación (`signingInfo`) y valida la autenticidad frente a clonaciones o modificaciones no autorizadas por terceros.
 - **Firma Criptográfica Segura**: Decodifica el almacén JKS/PKCS12 a partir de secretos en Base64 e inyecta las credenciales de firma en tiempo de compilación.
-- **Publicación Automática**: Adjunta el binario `Signet-v*-release-signed.apk` junto a su checksum `SHA-256` en los assets del Pre-Release de GitHub y como artefacto del workflow.
+- **Publicación Automática**: Adjunta los binarios para móviles y emuladores junto a sus respectivos checksums `SHA-256` en los assets del Release de GitHub y como artefactos del workflow.
 - **Secretos en GitHub Requeridos para el Canal Beta**:
   - `KEYSTORE_BETA_BASE64` (o `KEYSTORE_BASE64`): Contenido en Base64 del archivo Keystore de firma Beta (generado por la propia app Signet).
   - `KEYSTORE_BETA_PASSWORD` (o `KEYSTORE_PASSWORD`): Contraseña maestra del archivo Keystore Beta.

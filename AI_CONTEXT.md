@@ -130,9 +130,9 @@ Este documento proporciona contexto técnico, decisiones de arquitectura y direc
       * Pantallas anchas / Escritorio (`maxWidth >= 700.dp`): Barra lateral vertical `NavigationRail` con botón de acceso rápido para abrir la carpeta de la bóveda en el explorador de archivos nativo, títulos ampliados y distribución de contenido optimizada.
       * Pantallas móviles compactas (`maxWidth < 700.dp`): Barra inferior `NavigationBar` optimizada para uso táctil con una sola mano.
 
-19. **Filtrado de Arquitecturas Móviles (ABI Filters) en APKs**:
-    - **Exclusividad Móvil**: Las versiones compiladas de Android (canales `.beta`, `.dev`, `.estable`, etc.) incorporan exclusivamente arquitecturas de telefonía celular móvil: **ARM de 64 bits (`arm64-v8a`)** y **ARM de 32 bits (`armeabi-v7a`)** configuradas mediante `ndk.abiFilters`.
-    - **Exclusión de PC/Emulador**: Se excluyen explícitamente las librerías nativas de arquitecturas de PC y emuladores (`x86`, `x86_64`) mediante `packaging.jniLibs.excludes`, optimizando el peso de los paquetes de distribución y garantizando que los APKs estén enfocados 100% a dispositivos móviles reales.
+19. **Estrategia de Arquitecturas Móviles vs. Emuladores de PC (ABI Filters)**:
+    - **Paquete para Teléfonos Móviles**: Las versiones principales para Android (canales `.beta`, `.dev`, `.estable`, etc.) incorporan procesadores de telefonía celular móvil: **ARM de 64 bits (`arm64-v8a`)** y **ARM de 32 bits (`armeabi-v7a`)** configuradas dinámicamente mediante `ndk.abiFilters` y `signetTargetArch=mobile`. Esto garantiza compatibilidad plena tanto con dispositivos modernos como con teléfonos económicos de 32 bits.
+    - **Paquete Dedicado para Emuladores de PC**: Se compila y empaqueta de forma independiente un binario exclusivo `Signet-v*-emulator-x86-release-signed.apk` con arquitecturas **`x86_64`** y **`x86`** (`signetTargetArch=emulator`), optimizado para emuladores de Android Studio, BlueStacks, LDPlayer y runners CI/CD en PC sin penalización de traducción binaria.
 
 20. **Workflow de GitHub Actions para Distribución en Windows (`build-release-desktop.yml`)**:
     - **Disparadores Homólogos**: Se activa ante creación de releases, tags (`v*`, `v*-B`, `v*-desktop*`) y ejecución manual `workflow_dispatch`.
@@ -159,10 +159,12 @@ Este documento proporciona contexto técnico, decisiones de arquitectura y direc
       * `STABLE` (`-E` / `com.signet.app` / `1.0.0-E`): Canal de producción final para Uptodown y GitHub Releases.
     - **Integración en UI (`DistributionInfoSection` & `SoftwareUpdateSection`)**: Visualización de la versión activa formateada, badges de canal con colores semánticos, Package ID del canal y tabla de referencia de los 4 canales con sus tags y sufijos correspondientes.
 
-23. **Optimización de Empaquetado, R8 Full Mode y Tree-Shaking Criptográfico**:
+23. **Optimización de Empaquetado, R8 Full Mode y Reducción de Huella en Disco**:
+    - **Empaquetado Nativo sin Extracción (`useLegacyPackaging = false` / `extractNativeLibs = false`)**: En Android 6.0+ (API 23+) permite la lectura y mapeo directo en memoria (`mmap`) de librerías nativas `.so` (Room/SQLite y NDK) desde el propio archivo APK sin descomprimirlas ni duplicarlas en el almacenamiento interno `/data/app/`, disminuyendo sustancialmente el peso en disco del dispositivo una vez instalada la aplicación.
+    - **Filtrado de Recursos de Idioma (`resourceConfigurations`)**: Conservación exclusiva de `es` y `en` en `defaultConfig`, reduciendo el tamaño de `resources.arsc` al descartar traducciones no utilizadas de librerías de soporte.
     - **R8 Full Mode Activado (`gradle.properties`)**: `android.enableR8.fullMode=true` habilitando optimizaciones agresivas de inlining, devirtualización de llamadas Kotlin y eliminación de métodos bridge.
     - **Afinamiento de Reglas ProGuard (`app/proguard-rules.pro`)**: Conservación precisa de constructores de proveedores JCE en BouncyCastle (`org.bouncycastle.jce.provider.BouncyCastleProvider`) y clases ASN.1/X.509/PKCS sin usar comodines globales `{ *; }` innecesarios, permitiendo que R8 elimine algoritmos no invocados.
-    - **Descarte de Metadatos y Recursos Redundantes (`app/build.gradle.kts`)**: Exclusión en `packaging.resources` de metadatos `.kotlin_module`, `DebugProbesKt.bin`, esquemas `.proto` y versionado de librerías Compose/AndroidX, optimizando el tamaño final del binario APK para su distribución en tiendas de terceros y GitHub.
+    - **Descarte de Metadatos y Recursos Redundantes (`app/build.gradle.kts`)**: Exclusión en `packaging.resources` de metadatos `.kotlin_module`, `DebugProbesKt.bin`, esquemas `.proto` y versionado de librerías Compose/AndroidX.
 
 24. **Hardening de DEX, Anti-Ingeniería Inversa y Verificación de Integridad (`SignatureVerifier`)**:
     - **Aplanamiento y Fusión de Paquetes**: Directivas `-repackageclasses ''` y `-allowaccessmodification` en ProGuard para reubicar todas las clases en el paquete raíz, destruyendo la estructura de directorios en el DEX e impidiendo la identificación de módulos por herramientas de decompilación.

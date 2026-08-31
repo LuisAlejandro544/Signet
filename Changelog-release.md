@@ -43,10 +43,18 @@ Primer pre-lanzamiento público oficial del **Canal Beta (`.beta`)** de Signet (
     - **Depuración Interna (`.debug`)**: Sufijo `-D` / Tag `v*-D` (`com.signet.app.debug`).
   * **Visualización Dinámica en Ajustes**: Integración en `SettingsScreen` (`DistributionInfoSection` y `SoftwareUpdateSection`) con badges de color semántico, visualización del Package ID y guía interactiva de la matriz de canales de distribución.
 
-- 🗜️ **Optimización de Compilación, R8 Full Mode y Reducción de Peso de APK**:
+- 🗜️ **Optimización de Compilación, R8 Full Mode y Reducción de Huella en Disco**:
+  * **Empaquetado Nativo sin Extracción (`extractNativeLibs = false` / `useLegacyPackaging = false`)**: Mapeo directo de librerías nativas `.so` (Room/SQLite y NDK) desde el propio archivo APK mediante `mmap` en Android 6.0+ (API 23+), previniendo la duplicación y extracción física en el almacenamiento interno `/data/app/` y reduciendo sustancialmente el peso de la app instalada en el dispositivo.
+  * **Filtrado de Recursos de Idioma (`resourceConfigurations`)**: Conservación exclusiva de localizaciones en español e inglés (`listOf("es", "en")`), eliminando recursos de traducción redundantes de dependencias AndroidX y Material 3.
   * **R8 Full Mode Habilitado**: Activación de `android.enableR8.fullMode=true` para inlining agresivo de lambdas de Compose, desvirtualización de clases y eliminación de métodos puente en runtime.
   * **Afinamiento de Reglas ProGuard sobre BouncyCastle**: Reemplazo de comodines masivos `{ *; }` por reglas selectivas para providers y serializadores ASN.1/X.509, permitiendo que R8 elimine algoritmos no invocados.
   * **Descarte de Metadatos Redundantes en Empaquetado**: Exclusión de archivos `.kotlin_module`, `DebugProbesKt.bin`, esquemas `.proto` y versionado de librerías en `packaging.resources`.
+
+- 🖥️ **Distribución Separada y Paquetes Dedicados para Emuladores de PC (x86 / x86_64)**:
+  * **Compilación y Empaquetado Independiente**: Workflow de CI/CD actualizado para generar dos artefactos de lanzamiento claramente diferenciados:
+    - **`Signet-${TAG}-release-signed.apk` (Móviles)**: Optimizado para procesadores ARM de 64 bits (`arm64-v8a`) y 32 bits (`armeabi-v7a`), asegurando compatibilidad completa con teléfonos modernos y dispositivos de gama de entrada.
+    - **`Signet-${TAG}-emulator-x86-release-signed.apk` (Emuladores PC)**: Compilado exclusivamente con binarios `x86_64` y `x86` para Android Studio Emulator, BlueStacks, LDPlayer y pipelines CI/CD en PC sin crashes ni penalizaciones de traducción binaria.
+  * **Hashes Criptográficos SHA-256 Independientes**: Generación y publicación de archivos `.sha256` individuales para cada variante de paquete en los lanzamientos de GitHub Releases y envíos automatizados a Telegram.
 
 - 🛡️ **Hardening de DEX, Anti-Ingeniería Inversa y Verificación de Integridad**:
   * **Aplanamiento de Paquetes (`-repackageclasses ''`)**: Mueve todas las clases ofuscadas al paquete raíz eliminando la jerarquía de directorios en el DEX para dificultar el análisis estático con descompiladores.
