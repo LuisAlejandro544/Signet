@@ -9,7 +9,7 @@ object SignetStrings {
     // Aplicación y metadatos
     const val APP_NAME = "Signet"
     const val APP_TAGLINE = "Android Keystore Generator & APK Signer"
-    const val APP_VERSION = "1.0.0"
+    const val APP_VERSION = "1.0.0-dev"
 
     // Navegación principal
     const val TAB_GENERATE = "Generar"

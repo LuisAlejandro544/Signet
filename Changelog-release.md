@@ -26,6 +26,34 @@ Primer pre-lanzamiento público oficial del **Canal Beta (`.beta`)** de Signet (
   * **Firma con Keystores de la Bóveda o Externos**: Selección transparente de claves guardadas en SQLite (con descifrado AES-256-GCM) o carga directa de archivos `.jks`/`.keystore`/`.p12` externos.
   * **Instalación y Verificación Directa**: Botón para instalar el APK firmado directamente en el teléfono e integración con APK Matcher para validación de certificados.
 
+- 🔍 **Búsqueda Instantánea y Filtros Inteligentes en la Bóveda de Claves**:
+  * **Barra de Búsqueda con Lupa y Filtrado en Tiempo Real**: Campo de búsqueda reactivo en `SavedKeystoresScreen` que evalúa instantáneamente coincidencias sobre nombres de archivo, alias, campos X.500 Distinguished Name (CN, OU, O), algoritmo criptográfico (RSA, EC) y huellas digitales SHA-256, SHA-1 y MD5.
+  * **Filtros por Chips de Material 3**:
+    - **Más nuevos**: Ordena los almacenes de claves por fecha de creación descendente.
+    - **Más viejos**: Prioriza las claves iniciales o históricas creadas en orden cronológico ascendente.
+    - **Intermedio**: Agrupa y prioriza aquellos keystores con fechas medias de creación.
+    - **Recién vistos**: Registra en tiempo de ejecución las claves visualizadas o inspeccionadas por el usuario para acceso prioritario inmediato.
+  * **Vista Vacía Dinámica para Búsquedas**: Componente visual amigable con icono de advertencia, indicación de término de búsqueda no encontrado y botón de 1 toque para restablecer los filtros.
+
+- 🏷️ **Nomenclatura de Tags de Versión y Visualización de Canal en Runtime**:
+  * **Resolución Automática de Canales (`SignetVersionInfo` / `SignetChannel`)**: Detección dinámica en tiempo de ejecución de la versión instalada y el canal activo:
+    - **Pre-Alpha (`.dev`)**: Sufijo `-dev` / Tag `v*-dev` (`com.signet.app.dev`).
+    - **Beta Comunitaria (`.beta`)**: Sufijo `-B` / Tag `v*-B` (`com.signet.app.beta`).
+    - **Estable (`.estable`)**: Sufijo `-E` / Tag `v*-E` (`com.signet.app`).
+    - **Depuración Interna (`.debug`)**: Sufijo `-D` / Tag `v*-D` (`com.signet.app.debug`).
+  * **Visualización Dinámica en Ajustes**: Integración en `SettingsScreen` (`DistributionInfoSection` y `SoftwareUpdateSection`) con badges de color semántico, visualización del Package ID y guía interactiva de la matriz de canales de distribución.
+
+- 🗜️ **Optimización de Compilación, R8 Full Mode y Reducción de Peso de APK**:
+  * **R8 Full Mode Habilitado**: Activación de `android.enableR8.fullMode=true` para inlining agresivo de lambdas de Compose, desvirtualización de clases y eliminación de métodos puente en runtime.
+  * **Afinamiento de Reglas ProGuard sobre BouncyCastle**: Reemplazo de comodines masivos `{ *; }` por reglas selectivas para providers y serializadores ASN.1/X.509, permitiendo que R8 elimine algoritmos no invocados.
+  * **Descarte de Metadatos Redundantes en Empaquetado**: Exclusión de archivos `.kotlin_module`, `DebugProbesKt.bin`, esquemas `.proto` y versionado de librerías en `packaging.resources`.
+
+- 🛡️ **Hardening de DEX, Anti-Ingeniería Inversa y Verificación de Integridad**:
+  * **Aplanamiento de Paquetes (`-repackageclasses ''`)**: Mueve todas las clases ofuscadas al paquete raíz eliminando la jerarquía de directorios en el DEX para dificultar el análisis estático con descompiladores.
+  * **Supresión de Cadenas de Parámetros (`Intrinsics`)**: Purgado de llamadas internas de comprobación en Release que filtraban nombres de variables en texto plano.
+  * **Ocultación de Archivos Fuente y Ofuscación de Estados de UI**: Eliminación de nombres de archivo `.kt` originales y ofuscación de modelos de pantalla para proteger la lógica de validación y formularios.
+  * **Verificación de Integridad de Firma en Runtime**: Integración de `SignatureVerifier.kt` en tiempo de ejecución para inspeccionar certificados criptográficos del APK instalado y alertar ante binarios alterados o refirmados por terceros no autorizados.
+
 - ⚡ **Integración Inmediata con Pipelines de CI/CD**:
   * Conversión y exportación automática a **Base64** con un solo toque desde la interfaz, listo para copiar y pegar en **GitHub Secrets**, Bitrise, GitLab CI o Fastlane sin intermediarios.
   * Selector nativo Storage Access Framework (SAF) para exportar directamente archivos `.jks` o `.p12` al almacenamiento local.

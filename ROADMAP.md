@@ -38,11 +38,14 @@ Plan estratégico de evolución técnica y funcionalidades para el proyecto **Si
   - [x] Pantallas de bienvenida (`WelcomeScreen`) de 4 pasos explicando las capacidades del sistema y la privacidad 100% offline.
   - [x] Consentimiento informado y aceptación de Términos y Privacidad en el primer arranque.
   - [x] Acceso directo en `SettingsScreen` a las URLs de Términos y Privacidad del portal web y botón para repasar la bienvenida.
-- [x] **Estrategia Multi-Canal de Distribución y Versionado Semántico**:
+- [x] **Estrategia Multi-Canal de Distribución, Nomenclatura de Tags y Versionado en Runtime**:
   - [x] Canal **.debug** (`com.signet.app.debug` / `1.0.0-D`): Compilación y pruebas internas del desarrollador vía workflow `build-debug-apk.yml`.
-  - [x] Canal **.dev** (`com.signet.app.dev` / `1.0.0.dev`): Pre-alpha para pruebas tempranas de nuevas funciones experimentales.
+  - [x] Canal **.dev** (`com.signet.app.dev` / `1.0.0-dev`): Pre-alpha para pruebas tempranas de nuevas funciones experimentales.
   - [x] Canal **.beta** (`com.signet.app.beta` / `1.0.0-B`): Beta con herramientas pulidas candidatas a definitivas.
   - [x] Canal **.estable** (`com.signet.app` / `1.0.0-E`): Versión final sólida y libre de errores críticos para tiendas de terceros (Uptodown, GitHub Releases).
+  - [x] Inspector y visualizador en tiempo de ejecución (`SignetVersionInfo` / `SignetChannel`) en `SettingsScreen` y `DistributionInfoSection` mostrando la versión activa con letra de tag, badge de canal, package ID y matriz de canales.
+  - [x] Optimización avanzada de empaquetado y reducción de peso del APK: R8 Full Mode (`android.enableR8.fullMode=true`), tree-shaking selectivo en BouncyCastle y descarte de metadatos redundantes (`.kotlin_module`, `DebugProbesKt`, prototipos).
+  - [x] Hardening de DEX y protección anti-ingeniería inversa: Aplanamiento de paquetes (`-repackageclasses ''`), supresión de nombres de variables (`Intrinsics`), ocultación de fuentes y verificador de integridad de firma en runtime (`SignatureVerifier`).
   - [x] Workflow automatizado de CI/CD para compilación, ofuscación R8/ProGuard, firma y publicación de APKs en GitHub Pre-Releases (`build-release-apk.yml`).
   - [x] Esquema preparado para gestión soberana de firmas criptográficas mediante GitHub Secrets.
 
@@ -57,6 +60,10 @@ Plan estratégico de evolución técnica y funcionalidades para el proyecto **Si
   - [x] Motor nativo de **Zipalign a 4 bytes** para optimización de entradas `STORED` (sin comprimir) garantizando soporte `mmap` e instalación inmediata.
   - [x] Soporte para firma con Keystores de la bóveda interna (con descifrado automático AES-256-GCM) o archivos externos `.jks`/`.keystore`/`.p12`.
   - [x] Interfaz de usuario interactiva en Jetpack Compose (`SignApkScreen`) con selección de APK, Keystore, opciones personalizadas (v1, v2, v3 y zipalign), progreso, instalación directa e integración con APK Matcher.
+- [x] **Gestión Avanzada de la Bóveda de Claves**:
+  - [x] Búsqueda instantánea con lupa para filtrar en tiempo real por nombre de archivo, alias, DN (CN, OU, O), algoritmo criptográfico o huellas digitales SHA-256/SHA-1/MD5.
+  - [x] Filtros y ordenamiento inteligente mediante chips Material 3: *Más nuevos*, *Más viejos*, *Intermedio* y *Recién vistos* (con tracking dinámico de visualizaciones).
+  - [x] Vista vacía interactiva para búsquedas sin resultados con acción de restablecimiento en 1 clic.
 - [ ] **Conversión de Formatos**:
   - Conversión bidireccional entre JKS/PKCS12 y PEM/CRT/KEY.
 - [x] **Arquitectura Multiplataforma & Signet Desktop**:

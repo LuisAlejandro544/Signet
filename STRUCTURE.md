@@ -57,6 +57,14 @@ app/
 │   │   │   │   │   ├── X509CertificateInspector.kt # Inspección y lectura de certificados en almacenes PKCS12, JKS, PFX, P12 y BKS
 │   │   │   │   │   └── X509CertificateUtils.kt    # Utilidades de cálculo de huellas digitales y formateo PEM estándar
 │   │   │   │   └── SnippetGenerator.kt          # Generador modular de snippets: Gradle KTS, Groovy, GitHub Actions, Microsoft SignTool (.pfx), PowerShell y OpenSSL
+│   │   │   ├── platform/
+│   │   │   │   ├── PlatformServices.kt          # Interfaz unificada de servicios de plataforma (Android SAF / Desktop AWT)
+│   │   │   │   ├── LocalPlatformServices.kt     # CompositionLocal para inyección de dependencias multiplataforma en Compose
+│   │   │   │   ├── AndroidPlatformServices.kt   # Implementación Android con SAF y FileProvider
+│   │   │   │   ├── DesktopPlatformServices.kt   # Implementación Desktop con FileDialog y portapapeles AWT
+│   │   │   │   ├── PlatformFileAdapters.kt      # Adaptadores de flujos y descriptores de archivo multiplataforma
+│   │   │   │   ├── AndroidCryptoExtensions.kt   # Extensiones criptográficas y compatibilidad Android KeyStore
+│   │   │   │   └── SignetVersionInfo.kt         # Metadatos de versión en runtime, resolución de canales (.dev, .beta, .estable, .debug) y tags
 │   │   │   ├── data/
 │   │   │   │   ├── KeystoreDataSource.kt        # Abstracción desacoplada de persistencia (RoomKeystoreDataSource / DesktopKeystoreDataSource)
 │   │   │   │   ├── KeystoreRepository.kt        # Repositorio que orquesta base de datos y operaciones
@@ -124,9 +132,10 @@ app/
 │   │   │       │   │       ├── ApkKeystoreSelectorSection.kt # Selector interactivo entre almacenes guardados y archivo JKS/PKCS12 externo
 │   │   │       │   │       ├── ApkMatchResultCard.kt         # Banner de diagnóstico comparativo de huellas SHA-256 y dictamen
 │   │   │       │   │       └── ApkErrorCard.kt               # Tarjeta de visualización de errores y advertencias de análisis
-│   │   │       │   ├── SavedKeystoresScreen.kt  # Orquestador de historial de almacenes de claves guardados
+│   │   │       │   ├── SavedKeystoresScreen.kt  # Orquestador de historial de almacenes de claves guardados con búsqueda y filtros
 │   │   │       │   ├── saved/
-│   │   │       │   │   ├── SavedKeystoresHeader.kt       # Banner de restauración de respaldos ZIP
+│   │   │       │   │   ├── SavedKeystoresHeader.kt       # Banner de exportación y restauración de respaldos ZIP
+│   │   │       │   │   ├── SavedKeystoresSearchAndFilterSection.kt # Barra de búsqueda rápida con lupa y chips de filtro (Más nuevos, Más viejos, Intermedio, Recién vistos)
 │   │   │       │   │   ├── KeystoreCardItem.kt           # Tarjeta de keystore con credenciales, huella SHA-256 y acciones
 │   │   │       │   │   ├── EmptySavedKeystoresView.kt    # Vista vacía amigable con llamadas a la acción
 │   │   │       │   │   └── SavedKeystoresDialogs.kt      # Diálogos de eliminación, progreso y errores de integridad
@@ -136,7 +145,7 @@ app/
 │   │   │       │       ├── ThemeModeSection.kt           # Selector de temas (Claro, Oscuro, Negro 100% AMOLED, Sistema)
 │   │   │       │       ├── ColorPaletteSection.kt        # Selector de paleta de acentos y Material You (Android 12+)
 │   │   │       │       ├── LegalLinksSection.kt          # Accesos a Términos, Privacidad y guía de bienvenida
-│   │   │       │       └── DistributionInfoSection.kt    # Resumen de criptografía offline, soporte de tiendas y GPL v3
+│   │   │       │       └── DistributionInfoSection.kt    # Visualizador de versión activa, badges de canal (.dev, .beta, .estable, .debug) y matriz de tags
 │   │   │       ├── state/
 │   │   │       │   ├── FormState.kt             # Modelo inmutable de estado del formulario de generación de keystore
 │   │   │       │   └── KeystoreUiStates.kt      # Contratos sellados de estado de UI (Generation, Restore, Inspector, ApkMatcher)
@@ -245,6 +254,19 @@ app/
 
 ### 7. Estrategia Multi-Canal y Versionado Semántico
 - **`.debug` (`com.signet.app.debug` / `1.0.0-D`)**: Compilación interna y automática vía GitHub Actions (`build-debug-apk.yml`) firmada con `debug.keystore`.
-- **`.dev` (`com.signet.app.dev` / `1.0.0.dev`)**: Pre-alpha para pruebas de funciones en desarrollo temprano firmadas por el desarrollador.
+- **`.dev` (`com.signet.app.dev` / `1.0.0-dev`)**: Pre-alpha para pruebas de funciones en desarrollo temprano firmadas por el desarrollador.
 - **`.beta` (`com.signet.app.beta` / `1.0.0-B`)**: Versión beta con herramientas pulidas candidatas a definitivas.
 - **`.estable` (`com.signet.app` / `1.0.0-E`)**: Versión definitiva de producción para tiendas de terceros (Uptodown, GitHub Releases).
+
+### 8. Pipeline de Optimización, R8 Full Mode y Reducción de Peso
+1. **R8 Full Mode (`gradle.properties`)**: `android.enableR8.fullMode=true` para inlining agresivo de lambdas de Compose, desvirtualización de clases y eliminación de bridges de Kotlin.
+2. **Afinamiento ProGuard (`app/proguard-rules.pro`)**: Tree-shaking selectivo sobre BouncyCastle (`org.bouncycastle.*`) preservando instanciación de providers y suprimiendo clases no utilizadas.
+3. **Descarte de Metadatos de Empaquetado (`app/build.gradle.kts`)**: Exclusión en `packaging.resources` de `.kotlin_module`, `DebugProbesKt.bin`, esquemas `.proto` y metadatos de versionado de Compose/AndroidX.
+
+### 9. Hardening de Bytecode y Verificación de Firma en Runtime
+1. **Aplanamiento de Paquetes (`-repackageclasses ''` / `-allowaccessmodification`)**: Elimina la jerarquía de paquetes en el DEX agrupando todas las clases en el paquete raíz para entorpecer el análisis estático.
+2. **Supresión de Nombres de Variables (`Intrinsics`)**: Elimina las cadenas de texto de validación generadas por Kotlin en Release.
+3. **Ocultación de Archivos Fuente (`-renamesourcefileattribute ""`)**: Suprime nombres de archivos `.kt` originales en el binario.
+4. **Verificador de Integridad de Firma (`SignatureVerifier.kt`)**: Consulta `signingInfo` / certificados de firma en runtime para certificar la autenticidad del APK frente a clonaciones o redistribuciones maliciosas de terceros.
+
+

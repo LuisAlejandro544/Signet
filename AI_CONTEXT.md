@@ -140,3 +140,35 @@ Este documento proporciona contexto técnico, decisiones de arquitectura y direc
     - **Matriz Multi-Arquitectura Nativa**: Compila y empaqueta de forma paralela para procesadores de PC tradicional (`windows-x64`) y procesadores de tecnología móvil en Windows (`windows-arm64` / Snapdragon / Qualcomm).
     - **Empaquetado Nativo con `jpackage` en Windows Runner**: Genera binarios `.exe` autónomos, instaladores Windows Installer `.msi` y paquetes portables `.zip` con JDK 17 embebido para cada arquitectura.
     - **Hashes Criptográficos**: Calcula hashes SHA-256 para verificación de integridad de cada archivo generado y los adjunta a GitHub Releases y notificaciones de Telegram.
+
+21. **Búsqueda Instantánea & Filtros Inteligentes de la Bóveda (`SavedKeystoresSearchAndFilterSection`)**:
+    - **Flujo Reactivo (`filteredSavedKeystores`)**: Combina `savedKeystores`, `searchQuery`, `selectedSortFilter` y `recentlyViewedMap` con Kotlin Coroutines `combine` para una experiencia fluida a 60/120 fps.
+    - **Filtro de Texto Multi-Atributo**: Coincidencias en tiempo real sobre nombre de archivo, alias, DN (CN, OU, O), algoritmo, serial y huellas SHA-256, SHA-1 y MD5.
+    - **Cuatro Criterios de Ordenamiento (`KeystoreSortFilter`)**:
+      * `NEWEST`: Creación más reciente primero (`createdAt` desc).
+      * `OLDEST`: Creación más antigua primero (`createdAt` asc).
+      * `INTERMEDIATE`: Agrupación por proximidad al promedio temporal / mediana de creación.
+      * `RECENTLY_VIEWED`: Priorización por timestamp de apertura/inspección en tiempo de ejecución.
+    - **Componentes Compose**: `OutlinedTextField` con botón de limpieza, fila horizontal `FilterChip` y tarjeta de resultados vacía con botón para restablecer filtros.
+
+22. **Nomenclatura de Tags de Versión y Visualización de Canal en Runtime (`SignetVersionInfo` / `SignetChannel`)**:
+    - **Resolución Dinámica de Canales**: Detección automática en tiempo de ejecución basada en `versionName` y `applicationId`:
+      * `DEBUG` (`-D` / `com.signet.app.debug` / `1.0.0-D`): Canal de depuración interna.
+      * `PRE_ALPHA` (`-dev` / `com.signet.app.dev` / `1.0.0-dev`): Canal pre-alpha para pruebas de innovación temprana.
+      * `BETA` (`-B` / `com.signet.app.beta` / `1.0.0-B`): Canal beta comunitario con funciones pulidas.
+      * `STABLE` (`-E` / `com.signet.app` / `1.0.0-E`): Canal de producción final para Uptodown y GitHub Releases.
+    - **Integración en UI (`DistributionInfoSection` & `SoftwareUpdateSection`)**: Visualización de la versión activa formateada, badges de canal con colores semánticos, Package ID del canal y tabla de referencia de los 4 canales con sus tags y sufijos correspondientes.
+
+23. **Optimización de Empaquetado, R8 Full Mode y Tree-Shaking Criptográfico**:
+    - **R8 Full Mode Activado (`gradle.properties`)**: `android.enableR8.fullMode=true` habilitando optimizaciones agresivas de inlining, devirtualización de llamadas Kotlin y eliminación de métodos bridge.
+    - **Afinamiento de Reglas ProGuard (`app/proguard-rules.pro`)**: Conservación precisa de constructores de proveedores JCE en BouncyCastle (`org.bouncycastle.jce.provider.BouncyCastleProvider`) y clases ASN.1/X.509/PKCS sin usar comodines globales `{ *; }` innecesarios, permitiendo que R8 elimine algoritmos no invocados.
+    - **Descarte de Metadatos y Recursos Redundantes (`app/build.gradle.kts`)**: Exclusión en `packaging.resources` de metadatos `.kotlin_module`, `DebugProbesKt.bin`, esquemas `.proto` y versionado de librerías Compose/AndroidX, optimizando el tamaño final del binario APK para su distribución en tiendas de terceros y GitHub.
+
+24. **Hardening de DEX, Anti-Ingeniería Inversa y Verificación de Integridad (`SignatureVerifier`)**:
+    - **Aplanamiento y Fusión de Paquetes**: Directivas `-repackageclasses ''` y `-allowaccessmodification` en ProGuard para reubicar todas las clases en el paquete raíz, destruyendo la estructura de directorios en el DEX e impidiendo la identificación de módulos por herramientas de decompilación.
+    - **Supresión de Nombres de Variables (`Intrinsics`)**: Directivas `-assumenosideeffects class kotlin.jvm.internal.Intrinsics` que purgan del bytecode en Release los nombres reales de los parámetros de funciones en texto plano.
+    - **Ofuscación de Modelos UI & Descarte de Pistas de Fuente**: Eliminación de exclusiones innecesarias para estados de UI en ProGuard y renombrado anónimo de atributos fuente con `-renamesourcefileattribute ""`.
+    - **Verificación de Integridad de Firma en Runtime**: Módulo `SignatureVerifier.kt` que inspecciona `signingInfo` / certificados del APK instalado en Android, verificando su autenticidad y visualizándolo en `DistributionInfoSection`.
+
+
+

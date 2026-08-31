@@ -1,17 +1,39 @@
-refactor(core): desarrollo modular y desacoplamiento de componentes centrales
+feat(vault): implementar busqueda reactiva con lupa y filtros inteligentes en keystores guardados
 
-- Modularización de generación criptográfica (`com.example.crypto`):
-  * Desacoplamiento de `KeystoreGenerator.kt` en fachada orquestadora delegando en `KeyPairFactory.kt` (generación de claves asimétricas RSA/EC/DSA), `X509CertificateBuilder.kt` (construcción de certificados X.509 v3 con extensiones ASN.1 Code Signing) y `Pkcs12KeystoreSerializer.kt` (serialización y persistencia PKCS#12).
+- Motor de busqueda instantanea y filtrado reactivo (`KeystoreViewModel`):
+  * Adicion de `searchQuery`, `selectedSortFilter` y `recentlyViewedMap` gestionados mediante flujos `StateFlow`.
+  * Integracion del flujo reactivo `filteredSavedKeystores` utilizando `combine` de Kotlin Coroutines para evaluar en tiempo real coincidencias sobre nombres de archivo, alias, campos X.500 Distinguished Name (CN, OU, O), algoritmo criptografico (RSA/EC) y huellas digitales SHA-256, SHA-1 y MD5.
+  * Implementacion del enum `KeystoreSortFilter` con cuatro criterios de ordenamiento: `NEWEST` (mas nuevos), `OLDEST` (mas viejos), `INTERMEDIATE` (intermedio por proximidad temporal al promedio) y `RECENTLY_VIEWED` (recien vistos/consultados por el usuario).
+  * Registro automatico en `recordKeystoreViewed` al abrir la hoja de detalles de cualquier keystore para actualizar el historial de visualizaciones en tiempo de ejecucion.
+  * Metodo `resetFilters()` para restablecer la busqueda y el filtro predeterminado en un solo toque.
 
-- Desacoplamiento de restauración de respaldos (`com.example.crypto.backup`):
-  * Extracción de `VaultRestorationCoordinator.kt` desde `SignetBackupManager.kt` para coordinar el desbloqueo criptográfico, resolución de colisiones y ensamblado de `KeystoreDetails`.
+- Componentes de interfaz de usuario en Jetpack Compose (`com.example.ui.screens.saved`):
+  * Creacion de `SavedKeystoresSearchAndFilterSection.kt`: barra de busqueda `OutlinedTextField` con icono de lupa (leadingIcon), boton de limpieza interactivo (trailingIcon) y fila horizontal scrolleable con chips de seleccion `FilterChip` estilizados con iconos representativos.
+  * Integracion en `SavedKeystoresScreen.kt` entre el encabezado de respaldos y la lista de keystores.
+  * Estado vacio interactivo cuando la busqueda no arroja resultados con mensaje descriptivo y boton para restablecer filtros.
 
-- Arquitectura modular del ViewModel (`com.example.ui.delegates`):
-  * Refactorización de `KeystoreViewModel.kt` en delegados especializados: `KeystoreFormDelegate.kt` (formularios, validación y presets), `SignApkDelegate.kt` (firmado v1/v2/v3 y zipalign), `ApkMatcherDelegate.kt` (análisis forense y cruce de huellas SHA-256) y `AppUpdateDelegate.kt` (actualizaciones GitHub Releases).
-  * Corrección de ciclo de vida e integración en Android (`AndroidViewModel`): aislamiento total del almacenamiento de dispositivo (`context.filesDir` / `SharedPreferences`) respecto a rutas de escritorio.
+- Cobertura de pruebas unitarias (`KeystoreViewModelTest.kt`):
+  * Test `search and sort filter state management and reset` verificando la actualizacion de estados de consulta, cambio de filtros, registro de keystores visualizados y restablecimiento de filtros.
 
-- Modularización de la pantalla principal (`com.example.ui`):
-  * Desacoplamiento de `MainScreen.kt` extrayendo `MainAdaptiveNavigation.kt` (NavigationRail, NavigationBar y TopAppBar adaptativos), `MainTabContent.kt` (conmutador de pestañas) y `MainGlobalSheets.kt` (host modal de hojas de detalles y diálogos de actualización).
+- Sistema de versionado con tags de canal y visualizador en tiempo de ejecucion:
+  * Estandarizacion de nomenclatura de versiones con letra de canal en `SignetStrings` (`1.0.0-dev`, `1.0.0-B`, `1.0.0-E`, `1.0.0-D`).
+  * Creacion de `SignetVersionInfo.kt` y enum `SignetChannel` para resolucion dinamica del canal activo, tag representativo y sufijos de package ID en tiempo de ejecucion.
+  * Actualizacion de `DistributionInfoSection.kt` y `SoftwareUpdateSection.kt` en `SettingsScreen` mostrando la version activa con su letra de canal, badge semantico, Package ID y matriz comparativa de canales oficiales.
+  * Suite de pruebas unitarias `SignetVersionInfoTest.kt` para validacion de resolucion de canales y atributos de version.
 
-- Actualización de documentación arquitectónica (`STRUCTURE.md`):
-  * Registro del nuevo árbol de archivos y detalle del flujo de datos modularizado.
+- Optimizacion de compilacion, R8 Full Mode y reduccion de peso de APK:
+  * Activacion de `android.enableR8.fullMode=true` en `gradle.properties` para inlining agresivo de lambdas en Compose, devirtualizacion y eliminacion de metodos puente.
+  * Afinamiento de reglas R8/ProGuard en `app/proguard-rules.pro` sobre BouncyCastle (`org.bouncycastle.*`), permitiendo tree-shaking selectivo de algoritmos criptograficos no invocados.
+  * Descarte de metadatos de empaquetado en `app/build.gradle.kts` (`packaging.resources.excludes`) excluyendo `.kotlin_module`, `DebugProbesKt.bin`, esquemas `.proto` y versionado redundante de librerias AndroidX/Compose.
+
+- Hardening de DEX, proteccion anti-ingenieria inversa y verificacion de integridad de firma:
+  * Aplanamiento y fusion de paquetes (`-repackageclasses ''` y `-allowaccessmodification`) en ProGuard para reubicar todas las clases en la raiz del DEX y eliminar la estructura de directorios visible para descompiladores.
+  * Supresion de nombres de variables en bytecode (`kotlin.jvm.internal.Intrinsics`) eliminando cadenas de texto en texto plano de parametros de funciones.
+  * Ocultacion de archivos fuente Kotlin (`-renamesourcefileattribute ""`) y liberacion de ofuscacion de modelos de UI y ViewModels no persistidos.
+  * Modulo de verificacion de integridad en tiempo de ejecucion `SignatureVerifier.kt` para inspeccionar el certificado del APK instalado (`signingInfo`) y alertar ante binarios alterados o refirmados por terceros no autorizados.
+  * Integracion visual de la tarjeta de integridad de firma y huella SHA-256 en `DistributionInfoSection.kt`.
+  * Cobertura de pruebas unitarias con `SignatureVerifierTest.kt`.
+
+- Actualizacion de documentacion del proyecto:
+  * Sincronizacion de `README.md`, `ROADMAP.md`, `STRUCTURE.md`, `AI_CONTEXT.md` y `Changelog-release.md` con la nueva funcionalidad de busqueda y filtrado, nomenclatura de versiones por canal, visualizador en runtime, optimizaciones de reduccion de peso en R8 y medidas de hardening/anti-tampering.
+

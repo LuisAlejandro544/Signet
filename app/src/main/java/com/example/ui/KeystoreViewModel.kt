@@ -20,6 +20,7 @@ import com.example.ui.state.ApkSigningUiState
 import com.example.ui.state.FormState
 import com.example.ui.state.GenerationUiState
 import com.example.ui.state.InspectorUiState
+import com.example.ui.state.KeystoreSortFilter
 import com.example.ui.state.RestoreUiState
 import com.example.ui.state.SignApkFormState
 import com.example.ui.theme.ColorPalette
@@ -31,6 +32,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.io.File
@@ -115,6 +117,76 @@ open class KeystoreViewModel(
 
     val savedKeystores: StateFlow<List<KeystoreDetails>> = repository.allKeystores
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // Search and Filtering State for Saved Keystores
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
+    private val _selectedSortFilter = MutableStateFlow(KeystoreSortFilter.NEWEST)
+    val selectedSortFilter: StateFlow<KeystoreSortFilter> = _selectedSortFilter.asStateFlow()
+
+    private val _recentlyViewedMap = MutableStateFlow<Map<Long, Long>>(emptyMap())
+    val recentlyViewedMap: StateFlow<Map<Long, Long>> = _recentlyViewedMap.asStateFlow()
+
+    val filteredSavedKeystores: StateFlow<List<KeystoreDetails>> = combine(
+        savedKeystores,
+        _searchQuery,
+        _selectedSortFilter,
+        _recentlyViewedMap
+    ) { all, query, filter, viewedMap ->
+        val filtered = if (query.isBlank()) {
+            all
+        } else {
+            val q = query.trim().lowercase()
+            all.filter { k ->
+                k.fileName.lowercase().contains(q) ||
+                k.alias.lowercase().contains(q) ||
+                k.subjectDn.lowercase().contains(q) ||
+                k.issuerDn.lowercase().contains(q) ||
+                k.algorithm.lowercase().contains(q) ||
+                k.sha256Fingerprint.lowercase().contains(q) ||
+                k.sha1Fingerprint.lowercase().contains(q) ||
+                k.md5Fingerprint.lowercase().contains(q) ||
+                k.serialNumber.lowercase().contains(q)
+            }
+        }
+
+        when (filter) {
+            KeystoreSortFilter.NEWEST -> filtered.sortedByDescending { it.createdAt }
+            KeystoreSortFilter.OLDEST -> filtered.sortedBy { it.createdAt }
+            KeystoreSortFilter.INTERMEDIATE -> {
+                if (filtered.size <= 2) {
+                    filtered
+                } else {
+                    val meanTime = filtered.map { it.createdAt }.average()
+                    filtered.sortedBy { kotlin.math.abs(it.createdAt - meanTime) }
+                }
+            }
+            KeystoreSortFilter.RECENTLY_VIEWED -> {
+                filtered.sortedWith(
+                    compareByDescending<KeystoreDetails> { viewedMap[it.id] ?: 0L }
+                        .thenByDescending { it.createdAt }
+                )
+            }
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun setSearchQuery(query: String) {
+        _searchQuery.value = query
+    }
+
+    fun setSortFilter(filter: KeystoreSortFilter) {
+        _selectedSortFilter.value = filter
+    }
+
+    fun resetFilters() {
+        _searchQuery.value = ""
+        _selectedSortFilter.value = KeystoreSortFilter.NEWEST
+    }
+
+    fun recordKeystoreViewed(keystoreId: Long) {
+        _recentlyViewedMap.value = _recentlyViewedMap.value + (keystoreId to System.currentTimeMillis())
+    }
 
     // 0: Generar, 1: Mis Keystores, 2: Firmar APK, 3: Inspeccionar, 4: Configuración
     private val _selectedTab = MutableStateFlow(0)
@@ -222,6 +294,7 @@ open class KeystoreViewModel(
     }
 
     fun showKeystoreDetails(details: KeystoreDetails) {
+        recordKeystoreViewed(details.id)
         formDelegate.showKeystoreDetails(details)
     }
 

@@ -63,7 +63,13 @@ Generador y administrador profesional de Keystores (`.jks` y `.keystore`) para A
   - Cálculo instantáneo de huellas digitales (**SHA-256**, **SHA-1**, **MD5**) requeridas para Firebase, Google Sign-In, Facebook SDK y Maps API.
   - Visualización del certificado en formato estándar PEM (`-----BEGIN CERTIFICATE-----`).
 
-- **Gestión Local Segura & Cifrado en Reposo (Android KeyStore + AES-256-GCM)**:
+- **Gestión Local Segura, Búsqueda Inteligente & Cifrado en Reposo (Android KeyStore + AES-256-GCM)**:
+  - **Búsqueda Instantánea con Lupa**: Barra de búsqueda interactiva en la pantalla de claves guardadas para filtrar en tiempo real por nombre de archivo, alias, campos Distinguished Name (CN, OU, O), algoritmo criptográfico o huellas digitales SHA-256/SHA-1/MD5.
+  - **Filtros y Modos de Ordenamiento Avanzados**: Selector rápido mediante chips de Material 3 con cuatro criterios de organización:
+    * **Más nuevos**: Prioriza los keystores creados o importados más recientemente.
+    * **Más viejos**: Muestra primero los keystores históricos o iniciales.
+    * **Intermedio**: Agrupa y prioriza aquellos con fechas medias de creación para facilitar exploraciones balanceadas.
+    * **Recién vistos**: Registro dinámico de consulta que sitúa al inicio las claves abiertas o consultadas recientemente por el usuario.
   - **Cifrado Automático en Importación y Creación**: Tanto al generar un nuevo keystore como al importar respaldos individuales o restaurar una bóveda completa (.zip), todas las contraseñas se cifran de forma transparente en la base de datos Room usando **AES-256-GCM** protegido por **Android KeyStore** (`enc:v1:`). El usuario accede y copia sus credenciales con normalidad desde la UI, pero el almacenamiento físico en SQLite queda 100% protegido contra accesos indebidos de apps maliciosas o usuarios con acceso root.
   - **Protección del Portapapeles (Android 13+ / API 33+)**: Integración de la bandera del sistema `ClipDescription.EXTRA_IS_SENSITIVE` al copiar contraseñas y binarios Base64 para prevenir previsualizaciones flotantes no deseadas, acompañado de un aviso contextual preventivo sobre acceso de terceros al portapapeles.
   - Almacenamiento seguro en base de datos local **Room** (100% offline, sin telemetría, sin analíticas ni servidores externos).
@@ -107,7 +113,7 @@ Signet adopta un sistema estructurado de canales de desarrollo y distribución q
 | Canal | Sufijo / Package ID | Etiqueta de Versión | Firma y Origen | Propósito y Estabilidad |
 |---|---|---|---|---|
 | **Exclusivo Debug (`.debug`)** | `com.signet.app.debug` | `1.0.0-D` | Dinámica en runner (`debug.keystore`) | **Canal interno de desarrollo**: Funciones en pruebas privadas por el desarrollador antes de llegar a `.dev`. Generado exclusivamente por el workflow de GitHub Actions (`build-debug-apk.yml`). |
-| **Pre-Alpha (`.dev`)** | `com.signet.app.dev` | `1.0.0.dev` | Firma personalizada (GitHub Secrets) | **Canal de innovación activa**: Nuevas herramientas en desarrollo temprano. Pensada para evaluación comunitaria; puede ser inestable y las funciones pueden variar o eliminarse. |
+| **Pre-Alpha (`.dev`)** | `com.signet.app.dev` | `1.0.0-dev` | Firma personalizada (GitHub Secrets) | **Canal de innovación activa**: Nuevas herramientas en desarrollo temprano. Pensada para evaluación comunitaria; puede ser inestable y las funciones pueden variar o eliminarse. |
 | **Beta (`.beta`)** | `com.signet.app.beta` | `1.0.0-B` | Firma personalizada (GitHub Secrets) | **Canal de consolidación**: Funciones y herramientas ya pulidas y candidatas a definitivas. Evaluación de estabilidad previa al lanzamiento público final. |
 | **Estable (`.estable`)** | `com.signet.app` / `com.signet.app.estable` | `1.0.0-E` | Firma de producción (GitHub Secrets) | **Canal definitivo de producción**: Versión final 100% pulida, optimizada y libre de errores críticos para tiendas de terceros (Uptodown, GitHub Releases). |
 
@@ -188,9 +194,15 @@ El repositorio cuenta con pipelines automatizados en GitHub Actions orientados a
 - **Reporte JSON & Despacho a Telegram**: Genera `cli-interop-report.json` con desglose paso a paso y lo despacha de forma confidencial a Telegram.
 - **Secretos en GitHub**: Soporta secretos dedicados `TELEGRAM_BOT_TOKEN_CLI_INTEROP` / `TELEGRAM_CHAT_ID_CLI_INTEROP` o fallback automático a los secretos principales.
 
-### 5. Compilación y Firma de APK Release / Pre-Release (`.github/workflows/build-release-apk.yml`)
+### 5. Compilación, Hardening y Firma de APK Release / Pre-Release (`.github/workflows/build-release-apk.yml`)
 - **Pipeline Automatizado de Lanzamiento Beta**: Se activa automáticamente al publicar o crear un Pre-Release en GitHub, al empujar tags semánticos (ej. `v1.0.0-B`, `v*`), o de forma manual con `workflow_dispatch`.
-- **Optimización R8 / ProGuard**: Ofusca y comprime recursos (`isMinifyEnabled = true`, `isShrinkResources = true`) preservando BouncyCastle, Room y componentes de presentación.
+- **Optimización R8 Full Mode & ProGuard Avanzado**: Ofusca, aplica desvirtualización, inlining de lambdas de Compose y realiza un tree-shaking selectivo sobre BouncyCastle (`android.enableR8.fullMode=true`), eliminando metadatos redundantes (`.kotlin_module`, `DebugProbesKt`, prototipos) y reduciendo el peso del APK empaquetado manteniendo la funcionalidad criptográfica al 100%.
+- **Hardening de Bytecode y Anti-Ingeniería Inversa**:
+  * **Aplanamiento de Paquetes (`-repackageclasses ''` / `-allowaccessmodification`)**: Mueve todas las clases ofuscadas al paquete raíz eliminando la jerarquía de directorios en el DEX para impedir la deducción de arquitectura por descompiladores.
+  * **Supresión de Nombres de Variables (`kotlin.jvm.internal.Intrinsics`)**: Elimina en Release llamadas internas que filtran nombres de variables en texto plano dentro del bytecode.
+  * **Ocultación de Archivos Fuente (`-renamesourcefileattribute ""`)**: Borra referencias a nombres de archivos `.kt` originales.
+- **Verificación de Integridad de Firma en Runtime (Anti-Tampering / Anti-Clon)**:
+  * `SignatureVerifier.kt` inspecciona el certificado criptográfico de instalación (`signingInfo`) y valida la autenticidad frente a clonaciones o modificaciones no autorizadas por terceros.
 - **Firma Criptográfica Segura**: Decodifica el almacén JKS/PKCS12 a partir de secretos en Base64 e inyecta las credenciales de firma en tiempo de compilación.
 - **Publicación Automática**: Adjunta el binario `Signet-v*-release-signed.apk` junto a su checksum `SHA-256` en los assets del Pre-Release de GitHub y como artefacto del workflow.
 - **Secretos en GitHub Requeridos para el Canal Beta**:

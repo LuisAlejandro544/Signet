@@ -1,5 +1,6 @@
 package com.example.update
 
+import com.example.platform.SignetVersionInfo
 import com.example.ui.res.SignetStrings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -54,7 +55,7 @@ object AppUpdateManager {
      * y determina si existe una actualización disponible para la plataforma actual.
      */
     suspend fun checkLatestRelease(
-        currentVersion: String = SignetStrings.APP_VERSION,
+        currentVersion: String = SignetVersionInfo.versionName,
         isDesktop: Boolean = false
     ): AppReleaseInfo? = withContext(Dispatchers.IO) {
         try {

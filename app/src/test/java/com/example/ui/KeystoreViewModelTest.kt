@@ -3,6 +3,7 @@ package com.example.ui
 import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import com.example.data.model.KeyAlgorithm
+import com.example.ui.state.KeystoreSortFilter
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -109,5 +110,38 @@ class KeystoreViewModelTest {
         if (sampleKeystore.exists()) {
             sampleKeystore.delete()
         }
+    }
+
+    @Test
+    fun `search and sort filter state management and reset`() {
+        val application = ApplicationProvider.getApplicationContext<Application>()
+        val viewModel = KeystoreViewModel(application)
+
+        // Initial default state
+        assertEquals("", viewModel.searchQuery.value)
+        assertEquals(KeystoreSortFilter.NEWEST, viewModel.selectedSortFilter.value)
+
+        // Set search query
+        viewModel.setSearchQuery("release")
+        assertEquals("release", viewModel.searchQuery.value)
+
+        // Set filters
+        viewModel.setSortFilter(KeystoreSortFilter.OLDEST)
+        assertEquals(KeystoreSortFilter.OLDEST, viewModel.selectedSortFilter.value)
+
+        viewModel.setSortFilter(KeystoreSortFilter.INTERMEDIATE)
+        assertEquals(KeystoreSortFilter.INTERMEDIATE, viewModel.selectedSortFilter.value)
+
+        viewModel.setSortFilter(KeystoreSortFilter.RECENTLY_VIEWED)
+        assertEquals(KeystoreSortFilter.RECENTLY_VIEWED, viewModel.selectedSortFilter.value)
+
+        // Record viewed keystore
+        viewModel.recordKeystoreViewed(101L)
+        assertTrue(viewModel.recentlyViewedMap.value.containsKey(101L))
+
+        // Reset filters
+        viewModel.resetFilters()
+        assertEquals("", viewModel.searchQuery.value)
+        assertEquals(KeystoreSortFilter.NEWEST, viewModel.selectedSortFilter.value)
     }
 }

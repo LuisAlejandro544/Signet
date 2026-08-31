@@ -103,3 +103,13 @@ data class SignApkFormState(
     val zipalign: Boolean = true,
     val outputFileName: String = "app-signed.apk"
 )
+
+/**
+ * Filter and sorting criteria for saved keystores list.
+ */
+enum class KeystoreSortFilter(val label: String) {
+    NEWEST("Más nuevos"),
+    OLDEST("Más viejos"),
+    INTERMEDIATE("Intermedio"),
+    RECENTLY_VIEWED("Recién vistos")
+}

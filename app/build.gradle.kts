@@ -18,7 +18,7 @@ android {
     minSdk = 24
     targetSdk = 36
     versionCode = 1
-    versionName = "1.0.0"
+    versionName = "1.0.0-dev"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -71,6 +71,9 @@ android {
       excludes += listOf(
         "/META-INF/{AL2.0,LGPL2.1}",
         "META-INF/*.version",
+        "META-INF/androidx.*.version",
+        "META-INF/com.google.android.*",
+        "META-INF/*.kotlin_module",
         "META-INF/INDEX.LIST",
         "META-INF/DEPENDENCIES",
         "META-INF/LICENSE*",
@@ -78,6 +81,8 @@ android {
         "META-INF/proguard/**",
         "META-INF/io.netty.versions.properties",
         "kotlin-tooling-metadata.json",
+        "kotlin/**",
+        "**/*.version",
         "**/*.proto",
         "DebugProbesKt.bin"
       )
