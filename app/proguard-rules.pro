@@ -4,15 +4,31 @@
 -keepattributes SourceFile,LineNumberTable
 -renamesourcefileattribute SourceFile
 
-# BouncyCastle Cryptography (Fine-tuned for Signet keystores and APK signing)
--keep class org.bouncycastle.jce.provider.** { *; }
+# BouncyCastle Cryptography (Afinado para generación de keystores, firmas X.509 y APK signing)
+-keep class org.bouncycastle.jce.provider.BouncyCastleProvider { *; }
+-keep class org.bouncycastle.jce.provider.** { <fields>; <methods>; }
 -keep class org.bouncycastle.asn1.** { *; }
 -keep class org.bouncycastle.cert.** { *; }
 -keep class org.bouncycastle.operator.** { *; }
 -keep class org.bouncycastle.pkcs.** { *; }
--keep class org.bouncycastle.crypto.** { *; }
+-keep class org.bouncycastle.jcajce.** { *; }
+-keep class org.bouncycastle.crypto.digests.** { *; }
+-keep class org.bouncycastle.crypto.macs.** { *; }
+-keep class org.bouncycastle.crypto.params.** { *; }
+-keep class org.bouncycastle.crypto.generators.** { *; }
+-keep class org.bouncycastle.crypto.signers.** { *; }
+-keep class org.bouncycastle.crypto.engines.** { *; }
 -dontwarn org.bouncycastle.**
 -dontnote org.bouncycastle.**
+
+# Optimización de logs: descartar llamadas a android.util.Log en compilaciones de Release
+-assumenosideeffects class android.util.Log {
+    public static boolean isLoggable(java.lang.String, int);
+    public static int v(...);
+    public static int d(...);
+    public static int i(...);
+    public static int println(...);
+}
 
 # Room Database & SQLite
 -keep class androidx.room.** { *; }

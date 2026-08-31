@@ -1,9 +1,11 @@
-fix(desktop): corregir exclusión de fuentes Android en el compilador Kotlin para el módulo Desktop
+perf(r8): optimizar reglas de R8/ProGuard y habilitar depuración estricta de binarios
 
-- Diagnóstico y Causa Raíz del Error en CI (`:desktop:compileKotlin`):
-  * Al compilar el módulo JVM de escritorio (`:desktop:compileKotlin`), Gradle incluía inadvertidamente `SignetDesktopApp.kt` (archivo de UI con dependencias AndroidX / Jetpack Compose) debido a que la regla de exclusión no coincidía con el árbol de directorios anidados al vincular `../app/src/main/java/com/example/desktop`.
+- Optimización y afinado de reglas para BouncyCastle (`app/proguard-rules.pro`):
+  * Reemplazo de reglas comodín globales por directivas específicas sobre los componentes criptográficos requeridos (proveedores JCE, certificados X.509, ASN.1, PKCS#10/#12, generadores de parámetros, digestores y motores de firma).
+  * Reducción significativa de clases legadas innecesarias conservadas en el paquete final.
 
-- Solución y Ajustes Técnicos (`desktop/build.gradle.kts`):
-  * Configuración explícita del bloque `kotlin` en `sourceSets.main` además del bloque `java`.
-  * Aplicación de patrones de exclusión comodín globales (`**/SignetDesktopApp.kt` y `**/AndroidCryptoExtensions.kt`), impidiendo que el compilador Kotlin de escritorio intente procesar componentes dependientes del SDK de Android.
-  * Verificación y compilación exitosa de las tareas `:desktop:compileKotlin` y `:desktop:fatJar` en entorno puro JVM (Java 17).
+- Eliminación de llamadas a trazas de logging en Release (`app/proguard-rules.pro`):
+  * Configuración de directiva `-assumenosideeffects` para remover llamadas de depuración (`android.util.Log.v`, `d`, `i`, `println`) en builds de producción.
+
+- Habilitación y verificación de R8 Full Mode (`gradle.properties`):
+  * Activación de `android.enableR8.fullMode=true` para optimización profunda de lambdas de Compose, inlining y devirtualización.
