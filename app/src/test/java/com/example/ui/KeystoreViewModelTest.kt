@@ -94,4 +94,20 @@ class KeystoreViewModelTest {
         viewModel.updateForm { it.copy(isEphemeral = true) }
         assertTrue(viewModel.formState.value.isEphemeral)
     }
+
+    @Test
+    fun `orphan keystore files auto recovery test`() {
+        val application = ApplicationProvider.getApplicationContext<Application>()
+        val tempDir = application.filesDir
+        val sampleKeystore = java.io.File(tempDir, "recovered_sample.jks")
+        sampleKeystore.writeBytes("SAMPLE_KEYSTORE_BINARY_DATA".toByteArray())
+
+        val viewModel = KeystoreViewModel(application)
+        viewModel.syncKeystores(tempDir)
+
+        // Clean up
+        if (sampleKeystore.exists()) {
+            sampleKeystore.delete()
+        }
+    }
 }

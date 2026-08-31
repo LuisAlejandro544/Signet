@@ -4,6 +4,7 @@ import com.example.crypto.Base64Compat
 import com.example.crypto.DesktopStorageUtils
 import com.example.crypto.KeystoreGenerator
 import com.example.crypto.SignetBackupManager
+import com.example.crypto.x509.X509CertificateUtils
 import com.example.data.model.KeystoreConfig
 import com.example.data.model.KeystoreDetails
 import kotlinx.coroutines.Dispatchers
@@ -17,6 +18,81 @@ class KeystoreRepository(private val dataSource: KeystoreDataSource) {
     constructor(dataDir: File = DesktopStorageUtils.getDesktopDataDir()) : this(DesktopKeystoreDataSource(dataDir))
 
     val allKeystores: Flow<List<KeystoreDetails>> = dataSource.getAllKeystores()
+
+    suspend fun syncAndRecoverOrphanKeystores(storageDir: File): Int = withContext(Dispatchers.IO) {
+        var recoveredCount = 0
+        try {
+            if (!storageDir.exists() || !storageDir.isDirectory) return@withContext 0
+
+            val validExtensions = setOf("jks", "keystore", "p12", "bks", "pfx")
+            val files = storageDir.listFiles() ?: return@withContext 0
+
+            for (file in files) {
+                if (file.isFile && file.extension.lowercase() in validExtensions) {
+                    val existing = dataSource.getKeystoreByPathOrName(file.absolutePath, file.name)
+                    if (existing == null) {
+                        try {
+                            val bytes = file.readBytes()
+                            val b64 = Base64Compat.encodeToString(bytes)
+
+                            var detailsList: List<KeystoreDetails>? = null
+                            val candidatePasswords = listOf("", "android", "password", "123456")
+                            for (pwd in candidatePasswords) {
+                                try {
+                                    val inspected = KeystoreGenerator.inspectKeystore(bytes, pwd)
+                                    if (inspected.isNotEmpty()) {
+                                        detailsList = inspected
+                                        break
+                                    }
+                                } catch (_: Exception) {}
+                            }
+
+                            if (!detailsList.isNullOrEmpty()) {
+                                for (item in detailsList) {
+                                    val recovered = item.copy(
+                                        fileName = file.name,
+                                        filePath = file.absolutePath,
+                                        fileSizeBytes = file.length(),
+                                        base64Content = b64,
+                                        createdAt = if (file.lastModified() > 0) file.lastModified() else System.currentTimeMillis()
+                                    )
+                                    dataSource.insertKeystore(recovered)
+                                    recoveredCount++
+                                }
+                            } else {
+                                val fallbackSha256 = X509CertificateUtils.calculateFingerprint(bytes, "SHA-256")
+                                val fallbackDetails = KeystoreDetails(
+                                    fileName = file.name,
+                                    alias = file.nameWithoutExtension,
+                                    filePath = file.absolutePath,
+                                    fileSizeBytes = file.length(),
+                                    storePassword = "",
+                                    keyPassword = "",
+                                    base64Content = b64,
+                                    sha256Fingerprint = fallbackSha256,
+                                    sha1Fingerprint = "",
+                                    md5Fingerprint = "",
+                                    validFrom = 0L,
+                                    validUntil = 0L,
+                                    algorithm = if (file.extension.equals("pfx", ignoreCase = true) || file.extension.equals("p12", ignoreCase = true)) "PKCS12" else "RSA",
+                                    subjectDn = "Recuperado: ${file.name}",
+                                    issuerDn = "Signet Auto-Recovery",
+                                    serialNumber = "",
+                                    certificatePem = "",
+                                    createdAt = if (file.lastModified() > 0) file.lastModified() else System.currentTimeMillis()
+                                )
+                                dataSource.insertKeystore(fallbackDetails)
+                                recoveredCount++
+                            }
+                        } catch (_: Exception) {
+                            // Ignorar errores individuales en archivos dañados
+                        }
+                    }
+                }
+            }
+        } catch (_: Exception) {}
+        recoveredCount
+    }
 
     suspend fun generateAndSaveKeystore(
         outputDir: File,

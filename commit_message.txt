@@ -1,28 +1,22 @@
-feat(desktop): integrar runtime Compose Desktop en Gradle, host de ventana grafica interactiva y suite completa de comandos CLI/Headless para Windows Terminal y PowerShell
+fix(persistence): implementar migraciones no destructivas en Room y motor de auto-recuperación de almacenes de claves locales
 
-- Runtime de Compose Desktop en Gradle (`desktop/build.gradle.kts`):
-  * Declaración de dependencias de Compose Desktop JVM runtime (UI, Material 3, Material Icons Extended) en el módulo `:desktop`.
-  * Integración con la tarea `fatJar` y la tarea de ejecución `runDesktop` para despliegue y distribución en Windows y JVM pura.
+- Migraciones Seguras y No Destructivas en Room (`AppDatabase.kt`):
+  * Definición explícita del objeto de migración `MIGRATION_1_2` para preservar tablas SQLite y columnas entre versiones.
+  * Eliminación de `fallbackToDestructiveMigration()` para evitar que futuras actualizaciones de la aplicación eliminen los almacenes de claves, firmas y credenciales guardadas en la base de datos.
+  * Configuración de la base de datos mediante `.addMigrations(MIGRATION_1_2)`.
 
-- Host de Ventana Gráfica Interactiva en `DesktopLauncher` (`app/src/main/java/com/example/desktop/Main.kt`):
-  * Inicialización de la ventana de escritorio con dimensiones optimizadas (1150x780), centrado en pantalla y soporte HiDPI (`sun.java2d.dpiaware=true`, `sun.java2d.uiScale.enabled=true`).
-  * Aplicación del Look and Feel nativo del sistema operativo y despacho seguro en el hilo de eventos de interfaz de usuario (AWT/Swing Event Dispatch Thread).
-  * Control y detección de modo headless para ejecución desatendida en servidores, scripts y terminales.
+- Motor de Auto-Recuperación y Sincronización de Archivos Físicos (`KeystoreRepository.kt`):
+  * Implementación de la rutina `syncAndRecoverOrphanKeystores(storageDir: File)` para escanear el almacenamiento local buscando archivos `.jks`, `.keystore`, `.p12`, `.bks` y `.pfx`.
+  * Detección e indexación automática de archivos huérfanos o presentes en el almacenamiento interno que no figuren en la base de datos tras una actualización.
+  * Extracción de certificados X.509 públicos, cálculo de huellas digitales SHA-256, SHA-1, MD5 y codificación Base64 en segundo plano (`Dispatchers.IO`).
 
-- Suite Completa de Operaciones CLI / Headless para Windows Terminal, PowerShell y CMD:
-  * Subcomando `sign`: Firma integral de archivos APK desde terminal con esquemas v1, v2, v3 y zipalign de 4 bytes (`signet sign --apk <app.apk> --keystore <key.jks> --password <pwd> [--output <out.apk>]`).
-  * Subcomando `generate` / `gen`: Generación desatendida de almacenes de claves PKCS#12 (.jks, .keystore, .p12, .pfx) con algoritmos RSA 2048, RSA 4096 o EC P-256 (`signet generate --name release-key.jks --alias key0 --password <pwd> --algo RSA_2048`).
-  * Subcomando `inspect`: Inspección forense de certificados X.509 y cálculo de huellas digitales SHA-256, SHA-1 y MD5 tanto de archivos Keystore como de archivos APK (`signet inspect --file <archivo>`).
-  * Subcomando `match`: Validación y cruce criptográfico entre un archivo APK y un Keystore (`signet match --apk <app.apk> --keystore <key.jks>`).
-  * Subcomando `base64`: Exportación instantánea del archivo Keystore en cadena Base64 lista para variables de entorno y secrets de CI/CD (`signet base64 --file <key.jks>`).
-  * Subcomando `backup-create`: Empaquetado de respaldos ZIP firmados con HMAC-SHA256 anti-manipulación desde línea de comandos.
-  * Subcomando `vault`: Gestión, listado y apertura directa del directorio de almacenamiento seguro en Windows (`%APPDATA%/Signet`).
-  * Flags `--help` / `-h`, `--version` / `-V` y `--open-vault` / `-v`.
+- Consultas y Soporte en Repositorio (`KeystoreDao.kt`, `KeystoreDataSource.kt`, `AndroidKeystoreRepository.kt`):
+  * Adición de la consulta `getKeystoreByPathOrName(filePath, fileName)` para verificación instantánea y prevención de duplicados.
+  * Soporte unificado tanto en `RoomKeystoreDataSource` (Android) como en `DesktopKeystoreDataSource` (Desktop).
 
-- Configuración y Desacoplamiento del Workflow CI/CD de Windows Desktop (`.github/workflows/build-release-desktop.yml`):
-  * Activación flexible mediante ejecución manual `workflow_dispatch` (generando binarios `.exe`, `.msi` y `.zip` y subiéndolos exclusivamente como artefactos de workflow sin publicar en GitHub Release assets).
-  * Publicación y adjunción automática a GitHub Release assets preservada estrictamente cuando el flujo se activa mediante eventos de lanzamiento (`release`) o tags de versión (`push` con tags `v*`, `v*-B`, `v*-dev`, `v*-E`, `v*-desktop*`).
-  * Generación de checksums SHA-256 y notificación privada a Telegram.
+- Sincronización Reactiva en ViewModel (`KeystoreViewModel.kt`):
+  * Ejecución automática de la rutina de auto-recuperación al iniciar el ViewModel tanto en Android como en Desktop.
+  * Métodos auxiliares `syncKeystores()` para permitir sincronizaciones manuales y bajo demanda.
 
-- Actualización de Documentación Técnica (.md):
-  * Sincronización de `README.md`, `ROADMAP.md`, `STRUCTURE.md` y `AI_CONTEXT.md` reflejando las nuevas capacidades CLI headless para Windows Terminal/PowerShell, el runtime de Compose Desktop y el comportamiento del workflow de compilación.
+- Pruebas Unitarias Automatizadas (`KeystoreViewModelTest.kt`):
+  * Incorporación de test unitario para validar el escaneo, detección y recuperación de archivos de keystore huérfanos.

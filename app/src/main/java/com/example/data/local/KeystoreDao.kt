@@ -14,6 +14,9 @@ interface KeystoreDao {
     @Query("SELECT * FROM keystores WHERE id = :id")
     suspend fun getKeystoreById(id: Long): KeystoreEntity?
 
+    @Query("SELECT * FROM keystores WHERE filePath = :filePath OR fileName = :fileName LIMIT 1")
+    suspend fun getKeystoreByPathOrName(filePath: String, fileName: String): KeystoreEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertKeystore(keystore: KeystoreEntity): Long
 

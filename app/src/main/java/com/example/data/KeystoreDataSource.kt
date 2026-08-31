@@ -22,6 +22,7 @@ import java.io.File
 interface KeystoreDataSource {
     fun getAllKeystores(): Flow<List<KeystoreDetails>>
     suspend fun getKeystoreById(id: Long): KeystoreDetails?
+    suspend fun getKeystoreByPathOrName(filePath: String, fileName: String): KeystoreDetails?
     suspend fun insertKeystore(details: KeystoreDetails): Long
     suspend fun deleteKeystoreById(id: Long)
 }
@@ -85,6 +86,15 @@ class DesktopKeystoreDataSource(
     override suspend fun getKeystoreById(id: Long): KeystoreDetails? = withContext(dispatcher) {
         mutex.withLock {
             _keystoresFlow.value.firstOrNull { it.id == id }
+        }
+    }
+
+    override suspend fun getKeystoreByPathOrName(filePath: String, fileName: String): KeystoreDetails? = withContext(dispatcher) {
+        mutex.withLock {
+            _keystoresFlow.value.firstOrNull {
+                (filePath.isNotBlank() && it.filePath == filePath) ||
+                (fileName.isNotBlank() && it.fileName == fileName)
+            }
         }
     }
 

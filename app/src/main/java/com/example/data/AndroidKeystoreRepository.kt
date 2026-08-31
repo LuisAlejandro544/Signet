@@ -19,6 +19,10 @@ class RoomKeystoreDataSource(private val dao: KeystoreDao) : KeystoreDataSource 
         return dao.getKeystoreById(id)?.toDetails()
     }
 
+    override suspend fun getKeystoreByPathOrName(filePath: String, fileName: String): KeystoreDetails? {
+        return dao.getKeystoreByPathOrName(filePath, fileName)?.toDetails()
+    }
+
     override suspend fun insertKeystore(details: KeystoreDetails): Long {
         val entity = KeystoreEntity.fromDetails(details)
         return dao.insertKeystore(entity)

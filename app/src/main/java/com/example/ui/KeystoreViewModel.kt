@@ -54,12 +54,40 @@ open class KeystoreViewModel(
     constructor(application: Application) : this(
         AppPreferencesManager(application),
         createAndroidKeystoreRepository(AppDatabase.getDatabase(application))
-    )
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                repository.syncAndRecoverOrphanKeystores(application.filesDir)
+            } catch (_: Exception) {}
+        }
+    }
 
     constructor() : this(
         AppPreferencesManager(),
         KeystoreRepository(com.example.crypto.DesktopStorageUtils.getDesktopDataDir())
-    )
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                repository.syncAndRecoverOrphanKeystores(com.example.crypto.DesktopStorageUtils.getDesktopDataDir())
+            } catch (_: Exception) {}
+        }
+    }
+
+    fun syncKeystores(context: Context) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                repository.syncAndRecoverOrphanKeystores(context.filesDir)
+            } catch (_: Exception) {}
+        }
+    }
+
+    fun syncKeystores(dir: File = com.example.crypto.DesktopStorageUtils.getDesktopDataDir()) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                repository.syncAndRecoverOrphanKeystores(dir)
+            } catch (_: Exception) {}
+        }
+    }
 
     val savedKeystores: StateFlow<List<KeystoreDetails>> = repository.allKeystores
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
