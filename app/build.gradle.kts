@@ -75,6 +75,9 @@ android {
         "META-INF/DEPENDENCIES",
         "META-INF/LICENSE*",
         "META-INF/NOTICE*",
+        "META-INF/proguard/**",
+        "META-INF/io.netty.versions.properties",
+        "kotlin-tooling-metadata.json",
         "**/*.proto",
         "DebugProbesKt.bin"
       )

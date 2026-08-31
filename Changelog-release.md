@@ -68,5 +68,8 @@ Primer pre-lanzamiento público oficial del **Canal Beta (`.beta`)** de Signet (
   * Catálogo centralizado de recursos y cadenas de texto en `SignetStrings` (`com.example.ui.res.SignetStrings`) eliminando dependencias de `android.R` y `stringResource`.
   * Desacoplamiento de `LocalContext` en componentes UI delegando en `LocalPlatformServices`.
   * UX Adaptativo y Ergonomía de Escritorio en Compose (`NavigationRail` en pantallas de escritorio y `NavigationBar` en móviles).
+- **Aviso sobre Versiones de Escritorio / PC (Experimental & Llamado a la Comunidad)**:
+  * Las versiones y ejecutables para PC (Windows/Linux/JVM) se proporcionan como experimentales y su funcionamiento no está plenamente garantizado en todos los entornos de escritorio.
+  * Se extiende una invitación abierta a la comunidad de desarrolladores y colaboradores open source para contribuir, pulir o construir herramientas y clientes dedicados para PC basados en el núcleo criptográfico de Signet.
 - **Pipeline Automatizado de CI/CD**: Workflow de GitHub Actions con firma desatendida mediante variables `KEYSTORE_BETA_BASE64` y publicación automática de assets.
 

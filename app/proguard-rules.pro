@@ -1,5 +1,8 @@
 # ProGuard / R8 Configuration for Signet Release & Beta builds
 
+# Número de pasadas de optimización y análisis de código muerto en R8
+-optimizationpasses 5
+
 # Preserve line numbers for stacktraces
 -keepattributes SourceFile,LineNumberTable
 -renamesourcefileattribute SourceFile

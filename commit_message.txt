@@ -1,11 +1,10 @@
-perf(r8): optimizar reglas de R8/ProGuard y habilitar depuración estricta de binarios
+perf(build): optimizar pasadas de R8, dexing incremental y exclusión de metadatos
 
-- Optimización y afinado de reglas para BouncyCastle (`app/proguard-rules.pro`):
-  * Reemplazo de reglas comodín globales por directivas específicas sobre los componentes criptográficos requeridos (proveedores JCE, certificados X.509, ASN.1, PKCS#10/#12, generadores de parámetros, digestores y motores de firma).
-  * Reducción significativa de clases legadas innecesarias conservadas en el paquete final.
+- Aumento de pasadas de optimización de R8 (`app/proguard-rules.pro`):
+  * Configuración de `-optimizationpasses 5` para permitir eliminación profunda y en cascada de código muerto.
 
-- Eliminación de llamadas a trazas de logging en Release (`app/proguard-rules.pro`):
-  * Configuración de directiva `-assumenosideeffects` para remover llamadas de depuración (`android.util.Log.v`, `d`, `i`, `println`) en builds de producción.
+- Optimización de empaquetado y exclusión de metadatos (`app/build.gradle.kts`):
+  * Exclusión de descriptores redundantes en el APK: `META-INF/proguard/**`, `META-INF/io.netty.versions.properties` y `kotlin-tooling-metadata.json`.
 
-- Habilitación y verificación de R8 Full Mode (`gradle.properties`):
-  * Activación de `android.enableR8.fullMode=true` para optimización profunda de lambdas de Compose, inlining y devirtualización.
+- Configuración de compilación y dexing D8/R8 (`gradle.properties`):
+  * Habilitación de desugaring en D8 (`android.enableD8.desugaring=true`) y compilación incremental en Kotlin (`kotlin.incremental=true`) junto a R8 Full Mode.
