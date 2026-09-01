@@ -14,11 +14,25 @@ android {
   compileSdk { version = release(36) { minorApiLevel = 1 } }
 
   defaultConfig {
-    applicationId = "com.signet.app"
     minSdk = 24
     targetSdk = 36
     versionCode = 1
-    versionName = "1.0.0-dev"
+
+    val rawVersionName = (project.findProperty("signetVersionName") as? String)
+        ?: System.getenv("SIGNET_VERSION_NAME")
+        ?: "1.0.0-dev"
+    val cleanVersionName = rawVersionName.removePrefix("v").removePrefix("V")
+    versionName = cleanVersionName
+
+    val customAppId = (project.findProperty("signetApplicationId") as? String)
+        ?: System.getenv("SIGNET_APPLICATION_ID")
+        ?: when {
+            cleanVersionName.endsWith("-B", ignoreCase = true) || cleanVersionName.contains("beta", ignoreCase = true) -> "com.signet.app.beta"
+            cleanVersionName.endsWith("-dev", ignoreCase = true) || cleanVersionName.endsWith("-A", ignoreCase = true) || cleanVersionName.contains(".dev", ignoreCase = true) -> "com.signet.app.dev"
+            cleanVersionName.endsWith("-D", ignoreCase = true) -> "com.signet.app.debug"
+            else -> "com.signet.app"
+        }
+    applicationId = customAppId
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     resourceConfigurations += listOf("es", "en")

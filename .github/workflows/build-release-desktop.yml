@@ -182,29 +182,15 @@ jobs:
             Copy-Item -Path "$OUT_DIR/Signet/Signet.exe" -Destination $EXE_DIRECT
           }
 
-          # Generar Checksums SHA-256
-          $HASH_ZIP = (Get-FileHash -Path $PORTABLE_ZIP -Algorithm SHA256).Hash
-          "$HASH_ZIP  $(Split-Path $PORTABLE_ZIP -Leaf)" | Out-File -FilePath "$PORTABLE_ZIP.sha256" -Encoding ascii
-
           if ($FINAL_MSI -and (Test-Path $FINAL_MSI)) {
-            $HASH_MSI = (Get-FileHash -Path $FINAL_MSI -Algorithm SHA256).Hash
-            "$HASH_MSI  $(Split-Path $FINAL_MSI -Leaf)" | Out-File -FilePath "$FINAL_MSI.sha256" -Encoding ascii
             echo "msi_path=$FINAL_MSI" >> $env:GITHUB_OUTPUT
-            echo "msi_checksum=$FINAL_MSI.sha256" >> $env:GITHUB_OUTPUT
-            echo "msi_sha256=$HASH_MSI" >> $env:GITHUB_OUTPUT
           }
 
           if (Test-Path $EXE_DIRECT) {
-            $HASH_EXE = (Get-FileHash -Path $EXE_DIRECT -Algorithm SHA256).Hash
-            "$HASH_EXE  $(Split-Path $EXE_DIRECT -Leaf)" | Out-File -FilePath "$EXE_DIRECT.sha256" -Encoding ascii
             echo "exe_path=$EXE_DIRECT" >> $env:GITHUB_OUTPUT
-            echo "exe_checksum=$EXE_DIRECT.sha256" >> $env:GITHUB_OUTPUT
-            echo "exe_sha256=$HASH_EXE" >> $env:GITHUB_OUTPUT
           }
 
           echo "zip_path=$PORTABLE_ZIP" >> $env:GITHUB_OUTPUT
-          echo "zip_checksum=$PORTABLE_ZIP.sha256" >> $env:GITHUB_OUTPUT
-          echo "zip_sha256=$HASH_ZIP" >> $env:GITHUB_OUTPUT
           echo "tag_name=$TAG" >> $env:GITHUB_OUTPUT
           echo "dist_tag=$DIST_TAG" >> $env:GITHUB_OUTPUT
 
@@ -214,11 +200,8 @@ jobs:
           name: signet-${{ matrix.dist_tag }}-binaries
           path: |
             ${{ steps.package_windows.outputs.zip_path }}
-            ${{ steps.package_windows.outputs.zip_checksum }}
             ${{ steps.package_windows.outputs.msi_path }}
-            ${{ steps.package_windows.outputs.msi_checksum }}
             ${{ steps.package_windows.outputs.exe_path }}
-            ${{ steps.package_windows.outputs.exe_checksum }}
           if-no-files-found: warn
           retention-days: 14
 
@@ -230,11 +213,8 @@ jobs:
           prerelease: ${{ github.event.release.prerelease || inputs.is_prerelease || true }}
           files: |
             ${{ steps.package_windows.outputs.zip_path }}
-            ${{ steps.package_windows.outputs.zip_checksum }}
             ${{ steps.package_windows.outputs.msi_path }}
-            ${{ steps.package_windows.outputs.msi_checksum }}
             ${{ steps.package_windows.outputs.exe_path }}
-            ${{ steps.package_windows.outputs.exe_checksum }}
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Casino
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Shield
@@ -69,6 +70,8 @@ fun KeystoreCredentialsForm(
     onToggleUseSamePassword: (Boolean) -> Unit,
     onKeyPasswordChange: (String) -> Unit,
     onToggleKeyPasswordVisibility: () -> Unit,
+    onRandomizeFileName: () -> Unit = {},
+    onRandomizeAlias: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var selectedPasswordLength by remember { mutableIntStateOf(20) }
@@ -194,13 +197,30 @@ fun KeystoreCredentialsForm(
                 label = { Text("Nombre del archivo * (${formState.fullFileName})") },
                 placeholder = { Text("ej: release-key") },
                 trailingIcon = {
-                    Text(
-                        text = ".${formState.fileExtension}",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(end = 12.dp)
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(2.dp),
+                        modifier = Modifier.padding(end = 6.dp)
+                    ) {
+                        IconButton(
+                            onClick = onRandomizeFileName,
+                            modifier = Modifier.size(36.dp).testTag("random_filename_button")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Casino,
+                                contentDescription = "Generar nombre de archivo aleatorio",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        Text(
+                            text = ".${formState.fileExtension}",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(end = 4.dp)
+                        )
+                    }
                 },
                 singleLine = true,
                 modifier = Modifier
@@ -359,6 +379,19 @@ fun KeystoreCredentialsForm(
                 onValueChange = onAliasChange,
                 label = { Text("Alias de la clave (Key Alias) *") },
                 placeholder = { Text("ej: key0 o upload") },
+                trailingIcon = {
+                    IconButton(
+                        onClick = onRandomizeAlias,
+                        modifier = Modifier.size(36.dp).testTag("random_alias_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Casino,
+                            contentDescription = "Generar alias aleatorio",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                },
                 singleLine = true,
                 modifier = Modifier
                     .fillMaxWidth()

@@ -3,46 +3,22 @@
 # Número de pasadas de optimización y análisis de código muerto en R8
 -optimizationpasses 5
 
-# Aplanamiento y Fusión de Paquetes (Flattening)
-# Mueve todas las clases ofuscadas al paquete raíz por defecto eliminando pistas de carpetas
--repackageclasses ''
--allowaccessmodification
-
 # Ocultación de Archivos Fuente y Pistas de Depuración
--keepattributes LineNumberTable
+-keepattributes *Annotation*,Exceptions,InnerClasses,Signature,LineNumberTable,EnclosingMethod
 -renamesourcefileattribute ""
 
-# BouncyCastle Cryptography (Afinado con R8 Full Mode y Tree-Shaking selectivo)
-# Se conserva la instanciación de BouncyCastleProvider y servicios JCE requeridos
--keep class org.bouncycastle.jce.provider.BouncyCastleProvider {
-    public <init>();
-}
--keepclassmembers class org.bouncycastle.jce.provider.** {
-    public <init>(...);
-    public static ** getInstance(...);
-}
--keep class org.bouncycastle.asn1.ASN1ObjectIdentifier { *; }
--keep class org.bouncycastle.asn1.ASN1Primitive { *; }
--keep class org.bouncycastle.asn1.ASN1Encodable { *; }
--keep class org.bouncycastle.asn1.x509.** { *; }
--keep class org.bouncycastle.asn1.pkcs.** { *; }
--keep class org.bouncycastle.asn1.x500.** { *; }
--keep class org.bouncycastle.cert.X509CertificateHolder { *; }
--keep class org.bouncycastle.cert.jcajce.** { *; }
--keep class org.bouncycastle.operator.jcajce.** { *; }
--keep class org.bouncycastle.pkcs.PKCS10CertificationRequest { *; }
--keep class org.bouncycastle.pkcs.jcajce.** { *; }
--keep class org.bouncycastle.jcajce.provider.asymmetric.** { *; }
--keep class org.bouncycastle.jcajce.provider.digest.** { *; }
--keep class org.bouncycastle.jcajce.provider.symmetric.** { *; }
--keep class org.bouncycastle.crypto.digests.** { public <init>(...); }
--keep class org.bouncycastle.crypto.macs.** { public <init>(...); }
--keep class org.bouncycastle.crypto.params.** { *; }
--keep class org.bouncycastle.crypto.generators.** { public <init>(...); }
--keep class org.bouncycastle.crypto.signers.** { public <init>(...); }
--keep class org.bouncycastle.crypto.engines.** { public <init>(...); }
+# BouncyCastle Cryptography (Seguridad JCA/JCE y Serializadores PKCS12 / BKS / JKS)
+# BouncyCastleProvider carga dinámicamente sus algoritmos y keystores vía reflexión interna
+-keep class org.bouncycastle.** { *; }
+-keep interface org.bouncycastle.** { *; }
 -dontwarn org.bouncycastle.**
 -dontnote org.bouncycastle.**
+
+# Java Security Provider SPI y servicios de KeyStore
+-keep class java.security.** { *; }
+-keep interface java.security.** { *; }
+-keep class javax.crypto.** { *; }
+-keep interface javax.crypto.** { *; }
 
 # Jetpack Compose & Kotlin Runtime
 -dontwarn androidx.compose.**

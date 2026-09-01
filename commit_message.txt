@@ -1,20 +1,41 @@
-feat(build): integrar empaquetado nativo sin extraccion y distribucion dedicada para emuladores PC
+feat(ci): eliminacion de archivos de checksum sha256 en assets y artifacts de release
+feat(build): resolucion dinamica de canales y versionado en pipeline y compilacion
+feat(generator): generacion de datos aleatorios por campo y perfil de prueba rapida
 
-- Optimizacion de huella de instalacion en disco en dispositivos moviles:
-  * Activacion de `useLegacyPackaging = false` (`extractNativeLibs = false`) en `app/build.gradle.kts` dentro del bloque `packaging.jniLibs`.
-  * Habilita la lectura directa de librerias nativas `.so` (Room/SQLite y componentes NDK) directamente desde el archivo APK mediante `mmap` en Android 6.0+ (API 23+), eliminando la duplicacion y copia fisica en el directorio `/data/app/` del almacenamiento interno del telefono y reduciendo significativamente el peso de la app instalada.
-  * Inyeccion de configuracion `resourceConfigurations += listOf("es", "en")` para filtrar traducciones automáticas no utilizadas en librerias AndroidX y Material 3, optimizando `resources.arsc`.
+- Limpieza y endurecimiento de flujos de Release (`.github/workflows/build-release-apk.yml` y `.github/workflows/build-release-desktop.yml`):
+  * Eliminacion de la generacion y subida de archivos `.sha256` en los artefactos de GitHub Actions (`actions/upload-artifact`) y en los assets adjuntos de los lanzamientos (`softprops/action-gh-release`).
+  * Los paquetes binarios APK (`.apk`), instaladores MSI (`.msi`), ejecutables directos (`.exe`) y paquetes portables (`.zip`) ahora se distribuyen de forma limpia sin archivos de checksum redundantes.
 
-- Soporte de compilacion y distribucion independiente para emuladores de PC (x86 / x86_64):
-  * Parametrizacion dinamica de `ndk.abiFilters` y filtros de exclusion de `jniLibs` mediante la propiedad Gradle `-PsignetTargetArch` (o variable de entorno `SIGNET_TARGET_ARCH`).
-  * Generacion del binario principal de lanzamiento `Signet-${TAG}-release-signed.apk` preservando compatibilidad estricta con procesadores ARM de 64 bits (`arm64-v8a`) y 32 bits (`armeabi-v7a`) para maxima compatibilidad en telefonos moviles.
-  * Generacion del paquete dedicado `Signet-${TAG}-emulator-x86-release-signed.apk` compilado exclusivamente con arquitecturas `x86_64` y `x86` para Android Studio Emulator, BlueStacks, LDPlayer y entornos CI/CD en PC.
+- Pipeline y compilacion dinamica de canales (`app/build.gradle.kts` y `.github/workflows/build-release-apk.yml`):
+  * Vinculacion dinamica de `versionName` y `applicationId` en Gradle a traves de propiedades `-PsignetVersionName` y variables de entorno `SIGNET_VERSION_NAME`.
+  * Deteccion y asignacion automatica de sufijos de paquete segun el canal del Tag: `com.signet.app.beta` para tags `-B` / Beta, `com.signet.app` para tags estables (`-E` o versiones limpias), `com.signet.app.dev` para desarrollo pre-alpha y `com.signet.app.debug` para debug.
+  * Inyeccion automatica del Tag resuelto en el workflow de GitHub Actions durante `assembleRelease` para dispositivos moviles (ARM) y emuladores (x86), garantizando que `BuildConfig.VERSION_NAME` y `SignetVersionInfo` reconozcan el canal Beta/Estable exacto en tiempo de ejecucion.
 
-- Actualizacion del workflow de CI/CD de GitHub Actions (`.github/workflows/build-release-apk.yml`):
-  * Ejecucion secuencial de la compilacion y firmado tanto del APK para moviles como del APK dedicado para emuladores.
-  * Generacion automatica de hashes de integridad criptografica SHA-256 independientes (`.sha256`) para cada variante de arquitectura.
-  * Publicacion y adjunto de ambos paquetes en GitHub Releases / Pre-Releases con documentacion explicativa de arquitecturas.
-  * Envio automatizado de ambos archivos a Telegram mediante MTProto / Bot API con sus respectivas huellas digitales y metadatos.
+- Generacion aleatoria individual y global en formulario de Keystores (`ui/screens/generate/`):
+  * Creacion del generador criptografico `RandomIdentityGenerator` (`crypto/RandomIdentityGenerator.kt`) con CSPRNG (`SecureRandom`) y conjuntos de datos realistas para Common Name (CN), Organizacion (O), Unidad Organizativa (OU), Ciudad (L), Estado (ST), Codigos de Pais ISO (C), Nombres de Archivo y Alias.
+  * Integracion de botones de dado interactivos (`Icons.Default.Casino`) en el `trailingIcon` de cada campo individual (CN, O, OU, L, ST, C, FileName, Alias) para aleatorizacion instantanea.
+  * Incorporacion del boton de accion rápida "Autocompletar Identidad Aleatoria" en la tarjeta de datos del certificado X.500 (`KeystoreDnFields.kt`).
+  * Incorporacion del preset "Prueba Rápida Completa 🎲" en `GeneratePresetsSection.kt` para poblar en 1 toque el formulario completo con credenciales seguras, identidad DN y parametros estandar.
+  * Delegacion reactiva en `KeystoreFormDelegate.kt` y `KeystoreViewModel.kt` (`randomizeFileName`, `randomizeAlias`, `randomizeCommonName`, `randomizeOrganization`, `randomizeOrganizationalUnit`, `randomizeLocality`, `randomizeState`, `randomizeCountryCode`, `randomizeAllDnFields`, `fillQuickTestProfile`).
+  * Cobertura de pruebas unitarias exhaustivas con Robolectric y JUnit 4 en `RandomIdentityGeneratorTest.kt` y `KeystoreViewModelTest.kt`.
 
-- Actualizacion de documentacion del proyecto:
-  * Sincronizacion de `README.md`, `ROADMAP.md`, `STRUCTURE.md`, `AI_CONTEXT.md` y `Changelog-release.md` con las optimizaciones de almacenamiento y la matriz de distribucion de artefactos.
+- Modularizacion de la interfaz de validacion forense APK Matcher (`ui/screens/inspect/`):
+  * Descomposicion de `ApkMatcherSection.kt` (reduccion de 687 a menos de 200 lineas) en componentes desacoplados dentro del paquete `ui/screens/inspect/apk/`.
+  * Creacion de `ApkMatcherHeaderBanner.kt` para el encabezado explicativo y beneficios de validacion previa a despliegues.
+  * Creacion de `ApkFileSelectorCard.kt` para el lanzador SAF de seleccion de archivos APK.
+  * Creacion de `ApkKeystoreSelectorCard.kt` para la seleccion entre almacenes de la boveda Signet vs archivos JKS externos y ejecucion del analisis.
+  * Creacion de `ApkMatchResultCard.kt` para el dictamen visual comparativo de firmas e incompatibilidades SHA-256.
+  * Creacion de `ApkMetadataDetailsCard.kt` para la visualizacion de metadatos AXML, Package Name y certificados X.509.
+  * Creacion de `ApkErrorCard.kt` para el renderizado consistente de advertencias y errores de lectura.
+
+- Modularizacion del modulo de escritorio (`desktop/`):
+  * Desacoplamiento de `Main.kt` extrayendo la ejecucion headless en `desktop/cli/DesktopCliHandler.kt` para todos los comandos de terminal (`sign`, `generate`, `inspect`, `match`, `base64`, `backup-create`, `vault`).
+  * Creacion de `desktop/DesktopWindowLauncher.kt` para encapsular la inicializacion grafica de ventana Swing/Compose, configuraciones HiDPI y asignacion del icono del candado criptografico.
+  * Conversion de `Main.kt` en un punto de entrada ligero y limpio (`DesktopLauncher`).
+
+- Modularizacion del ViewModel principal (`ui/`):
+  * Creacion de `ui/delegates/KeystoreFilterDelegate.kt` para encapsular el filtrado reactivo de busqueda (`searchQuery`), ordenamiento cronologico (`selectedSortFilter`) y mapa de acceso reciente (`recentlyViewedMap`).
+  * Simplificacion y reduccion del acoplamiento en `KeystoreViewModel.kt` mediante la inyeccion del nuevo delegado de filtrado.
+
+- Actualizacion de arquitectura:
+  * Sincronizacion del arbol de archivos y descripciones en `STRUCTURE.md` y documentacion del proyecto.

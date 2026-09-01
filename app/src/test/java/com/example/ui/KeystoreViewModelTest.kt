@@ -144,4 +144,58 @@ class KeystoreViewModelTest {
         assertEquals("", viewModel.searchQuery.value)
         assertEquals(KeystoreSortFilter.NEWEST, viewModel.selectedSortFilter.value)
     }
+
+    @Test
+    fun `field randomization and quick test profile generate complete valid state`() {
+        val application = ApplicationProvider.getApplicationContext<Application>()
+        val viewModel = KeystoreViewModel(application)
+
+        // Randomize single fields
+        viewModel.randomizeFileName()
+        assertTrue(viewModel.formState.value.fileName.isNotBlank())
+
+        viewModel.randomizeAlias()
+        assertTrue(viewModel.formState.value.alias.isNotBlank())
+
+        viewModel.randomizeCommonName()
+        assertTrue(viewModel.formState.value.commonName.isNotBlank())
+
+        viewModel.randomizeOrganization()
+        assertTrue(viewModel.formState.value.organization.isNotBlank())
+
+        viewModel.randomizeOrganizationalUnit()
+        assertTrue(viewModel.formState.value.organizationalUnit.isNotBlank())
+
+        viewModel.randomizeLocality()
+        assertTrue(viewModel.formState.value.locality.isNotBlank())
+
+        viewModel.randomizeState()
+        assertTrue(viewModel.formState.value.state.isNotBlank())
+
+        viewModel.randomizeCountryCode()
+        assertEquals(2, viewModel.formState.value.countryCode.length)
+
+        // Randomize all DN fields
+        viewModel.randomizeAllDnFields()
+        val formDn = viewModel.formState.value
+        assertTrue(formDn.commonName.isNotBlank())
+        assertTrue(formDn.organization.isNotBlank())
+        assertTrue(formDn.organizationalUnit.isNotBlank())
+        assertTrue(formDn.locality.isNotBlank())
+        assertTrue(formDn.state.isNotBlank())
+        assertEquals(2, formDn.countryCode.length)
+
+        // Fill full quick test profile
+        viewModel.fillQuickTestProfile()
+        val fullForm = viewModel.formState.value
+        assertTrue(fullForm.fileName.isNotBlank())
+        assertEquals("jks", fullForm.fileExtension)
+        assertEquals(20, fullForm.storePassword.length)
+        assertEquals(fullForm.storePassword, fullForm.confirmPassword)
+        assertTrue(fullForm.alias.isNotBlank())
+        assertTrue(fullForm.commonName.isNotBlank())
+        assertTrue(fullForm.organization.isNotBlank())
+        assertEquals(2, fullForm.countryCode.length)
+        assertEquals(25, fullForm.validityYears)
+    }
 }

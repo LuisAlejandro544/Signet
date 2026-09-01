@@ -1,6 +1,7 @@
 package com.example.ui.delegates
 
 import com.example.crypto.PasswordGenerator
+import com.example.crypto.RandomIdentityGenerator
 import com.example.data.KeystoreRepository
 import com.example.data.model.DistinguishedName
 import com.example.data.model.KeyAlgorithm
@@ -44,6 +45,88 @@ class KeystoreFormDelegate {
             storePassword = pwd,
             confirmPassword = pwd,
             isStorePasswordVisible = true
+        )
+    }
+
+    fun randomizeFileName() {
+        _formState.value = _formState.value.copy(
+            fileName = RandomIdentityGenerator.randomFileName()
+        )
+    }
+
+    fun randomizeAlias() {
+        _formState.value = _formState.value.copy(
+            alias = RandomIdentityGenerator.randomAlias()
+        )
+    }
+
+    fun randomizeCommonName() {
+        _formState.value = _formState.value.copy(
+            commonName = RandomIdentityGenerator.randomCommonName()
+        )
+    }
+
+    fun randomizeOrganization() {
+        _formState.value = _formState.value.copy(
+            organization = RandomIdentityGenerator.randomOrganization()
+        )
+    }
+
+    fun randomizeOrganizationalUnit() {
+        _formState.value = _formState.value.copy(
+            organizationalUnit = RandomIdentityGenerator.randomOrganizationalUnit()
+        )
+    }
+
+    fun randomizeLocality() {
+        _formState.value = _formState.value.copy(
+            locality = RandomIdentityGenerator.randomLocality()
+        )
+    }
+
+    fun randomizeState() {
+        _formState.value = _formState.value.copy(
+            state = RandomIdentityGenerator.randomState()
+        )
+    }
+
+    fun randomizeCountryCode() {
+        _formState.value = _formState.value.copy(
+            countryCode = RandomIdentityGenerator.randomCountryCode()
+        )
+    }
+
+    fun randomizeAllDnFields() {
+        val identity = RandomIdentityGenerator.generateFullDnIdentity()
+        _formState.value = _formState.value.copy(
+            commonName = identity.commonName,
+            organization = identity.organization,
+            organizationalUnit = identity.organizationalUnit,
+            locality = identity.locality,
+            state = identity.state,
+            countryCode = identity.countryCode
+        )
+    }
+
+    fun fillQuickTestProfile() {
+        val identity = RandomIdentityGenerator.generateFullDnIdentity()
+        val pwd = PasswordGenerator.generate(length = 20)
+        _formState.value = _formState.value.copy(
+            fileName = RandomIdentityGenerator.randomFileName(),
+            fileExtension = "jks",
+            storePassword = pwd,
+            confirmPassword = pwd,
+            isStorePasswordVisible = true,
+            alias = RandomIdentityGenerator.randomAlias(),
+            useSamePassword = true,
+            commonName = identity.commonName,
+            organization = identity.organization,
+            organizationalUnit = identity.organizationalUnit,
+            locality = identity.locality,
+            state = identity.state,
+            countryCode = identity.countryCode,
+            validityYears = 25,
+            algorithm = KeyAlgorithm.RSA_2048
         )
     }
 

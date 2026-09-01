@@ -11,6 +11,7 @@ import com.example.data.local.AppDatabase
 import com.example.data.model.KeystoreDetails
 import com.example.ui.delegates.ApkMatcherDelegate
 import com.example.ui.delegates.AppUpdateDelegate
+import com.example.ui.delegates.KeystoreFilterDelegate
 import com.example.ui.delegates.KeystoreFormDelegate
 import com.example.ui.delegates.SignApkDelegate
 import com.example.ui.preferences.AppPreferencesManager
@@ -32,7 +33,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.io.File
@@ -50,6 +50,7 @@ typealias SignApkFormState = com.example.ui.state.SignApkFormState
  * Main ViewModel orchestrating Signet's state.
  * Deconstructs responsibilities into modular delegates:
  * - [KeystoreFormDelegate]: Form editing, presets, and keystore generation.
+ * - [KeystoreFilterDelegate]: Real-time search, chronological sorting, and history tracking.
  * - [SignApkDelegate]: APK selection, signature inspection, and APK signing.
  * - [ApkMatcherDelegate]: Forensic signature inspection and APK vs Keystore matching.
  * - [AppUpdateDelegate]: Release version checking and binary update downloading.
@@ -60,10 +61,11 @@ open class KeystoreViewModel(
     private val repository: KeystoreRepository,
     private val baseDataDir: File,
     private val formDelegate: KeystoreFormDelegate = KeystoreFormDelegate(),
+    private val filterDelegate: KeystoreFilterDelegate = KeystoreFilterDelegate(),
     private val signApkDelegate: SignApkDelegate = SignApkDelegate(),
     private val apkMatcherDelegate: ApkMatcherDelegate = ApkMatcherDelegate(),
     private val updateDelegate: AppUpdateDelegate = AppUpdateDelegate()
-) : androidx.lifecycle.AndroidViewModel(application) {
+) : AndroidViewModel(application) {
 
     constructor(application: Application) : this(
         application = application,
@@ -118,74 +120,29 @@ open class KeystoreViewModel(
     val savedKeystores: StateFlow<List<KeystoreDetails>> = repository.allKeystores
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // Search and Filtering State for Saved Keystores
-    private val _searchQuery = MutableStateFlow("")
-    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
-
-    private val _selectedSortFilter = MutableStateFlow(KeystoreSortFilter.NEWEST)
-    val selectedSortFilter: StateFlow<KeystoreSortFilter> = _selectedSortFilter.asStateFlow()
-
-    private val _recentlyViewedMap = MutableStateFlow<Map<Long, Long>>(emptyMap())
-    val recentlyViewedMap: StateFlow<Map<Long, Long>> = _recentlyViewedMap.asStateFlow()
-
-    val filteredSavedKeystores: StateFlow<List<KeystoreDetails>> = combine(
-        savedKeystores,
-        _searchQuery,
-        _selectedSortFilter,
-        _recentlyViewedMap
-    ) { all, query, filter, viewedMap ->
-        val filtered = if (query.isBlank()) {
-            all
-        } else {
-            val q = query.trim().lowercase()
-            all.filter { k ->
-                k.fileName.lowercase().contains(q) ||
-                k.alias.lowercase().contains(q) ||
-                k.subjectDn.lowercase().contains(q) ||
-                k.issuerDn.lowercase().contains(q) ||
-                k.algorithm.lowercase().contains(q) ||
-                k.sha256Fingerprint.lowercase().contains(q) ||
-                k.sha1Fingerprint.lowercase().contains(q) ||
-                k.md5Fingerprint.lowercase().contains(q) ||
-                k.serialNumber.lowercase().contains(q)
-            }
-        }
-
-        when (filter) {
-            KeystoreSortFilter.NEWEST -> filtered.sortedByDescending { it.createdAt }
-            KeystoreSortFilter.OLDEST -> filtered.sortedBy { it.createdAt }
-            KeystoreSortFilter.INTERMEDIATE -> {
-                if (filtered.size <= 2) {
-                    filtered
-                } else {
-                    val meanTime = filtered.map { it.createdAt }.average()
-                    filtered.sortedBy { kotlin.math.abs(it.createdAt - meanTime) }
-                }
-            }
-            KeystoreSortFilter.RECENTLY_VIEWED -> {
-                filtered.sortedWith(
-                    compareByDescending<KeystoreDetails> { viewedMap[it.id] ?: 0L }
-                        .thenByDescending { it.createdAt }
-                )
-            }
-        }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    // Search and Filtering State (delegated)
+    val searchQuery: StateFlow<String> = filterDelegate.searchQuery
+    val selectedSortFilter: StateFlow<KeystoreSortFilter> = filterDelegate.selectedSortFilter
+    val recentlyViewedMap: StateFlow<Map<Long, Long>> = filterDelegate.recentlyViewedMap
+    val filteredSavedKeystores: StateFlow<List<KeystoreDetails>> = filterDelegate.buildFilteredSavedKeystoresFlow(
+        savedKeystores = savedKeystores,
+        scope = viewModelScope
+    )
 
     fun setSearchQuery(query: String) {
-        _searchQuery.value = query
+        filterDelegate.setSearchQuery(query)
     }
 
     fun setSortFilter(filter: KeystoreSortFilter) {
-        _selectedSortFilter.value = filter
+        filterDelegate.setSortFilter(filter)
     }
 
     fun resetFilters() {
-        _searchQuery.value = ""
-        _selectedSortFilter.value = KeystoreSortFilter.NEWEST
+        filterDelegate.resetFilters()
     }
 
     fun recordKeystoreViewed(keystoreId: Long) {
-        _recentlyViewedMap.value = _recentlyViewedMap.value + (keystoreId to System.currentTimeMillis())
+        filterDelegate.recordKeystoreViewed(keystoreId)
     }
 
     // 0: Generar, 1: Mis Keystores, 2: Firmar APK, 3: Inspeccionar, 4: Configuración
@@ -273,6 +230,46 @@ open class KeystoreViewModel(
 
     fun generateRandomPassword(length: Int = 20) {
         formDelegate.generateRandomPassword(length)
+    }
+
+    fun randomizeFileName() {
+        formDelegate.randomizeFileName()
+    }
+
+    fun randomizeAlias() {
+        formDelegate.randomizeAlias()
+    }
+
+    fun randomizeCommonName() {
+        formDelegate.randomizeCommonName()
+    }
+
+    fun randomizeOrganization() {
+        formDelegate.randomizeOrganization()
+    }
+
+    fun randomizeOrganizationalUnit() {
+        formDelegate.randomizeOrganizationalUnit()
+    }
+
+    fun randomizeLocality() {
+        formDelegate.randomizeLocality()
+    }
+
+    fun randomizeState() {
+        formDelegate.randomizeState()
+    }
+
+    fun randomizeCountryCode() {
+        formDelegate.randomizeCountryCode()
+    }
+
+    fun randomizeAllDnFields() {
+        formDelegate.randomizeAllDnFields()
+    }
+
+    fun fillQuickTestProfile() {
+        formDelegate.fillQuickTestProfile()
     }
 
     fun applyPreset(presetName: String) {

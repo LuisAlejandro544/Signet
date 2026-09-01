@@ -137,7 +137,8 @@ fun GenerateScreen(
         // Section: Quick Presets
         GeneratePresetsSection(
             formState = formState,
-            onApplyPreset = { presetKey -> viewModel.applyPreset(presetKey) }
+            onApplyPreset = { presetKey -> viewModel.applyPreset(presetKey) },
+            onFillQuickTest = { viewModel.fillQuickTestProfile() }
         )
 
         // Section 1: File & Credentials Form
@@ -163,7 +164,9 @@ fun GenerateScreen(
             onKeyPasswordChange = { keyPwd -> viewModel.updateForm { it.copy(keyPassword = keyPwd) } },
             onToggleKeyPasswordVisibility = {
                 viewModel.updateForm { it.copy(isKeyPasswordVisible = !it.isKeyPasswordVisible) }
-            }
+            },
+            onRandomizeFileName = { viewModel.randomizeFileName() },
+            onRandomizeAlias = { viewModel.randomizeAlias() }
         )
 
         // Section 2: Cryptography & Validity Slider
@@ -182,7 +185,14 @@ fun GenerateScreen(
             onOrganizationalUnitChange = { ou -> viewModel.updateForm { it.copy(organizationalUnit = ou) } },
             onLocalityChange = { loc -> viewModel.updateForm { it.copy(locality = loc) } },
             onStateChange = { st -> viewModel.updateForm { it.copy(state = st) } },
-            onCountryCodeChange = { code -> viewModel.updateForm { it.copy(countryCode = code) } }
+            onCountryCodeChange = { code -> viewModel.updateForm { it.copy(countryCode = code) } },
+            onRandomizeCommonName = { viewModel.randomizeCommonName() },
+            onRandomizeOrganization = { viewModel.randomizeOrganization() },
+            onRandomizeOrganizationalUnit = { viewModel.randomizeOrganizationalUnit() },
+            onRandomizeLocality = { viewModel.randomizeLocality() },
+            onRandomizeState = { viewModel.randomizeState() },
+            onRandomizeCountryCode = { viewModel.randomizeCountryCode() },
+            onRandomizeAllDnFields = { viewModel.randomizeAllDnFields() }
         )
 
         // Section 4: Ephemeral Zero-Footprint Mode Switch

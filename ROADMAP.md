@@ -64,6 +64,11 @@ Plan estratégico de evolución técnica y funcionalidades para el proyecto **Si
   - [x] Búsqueda instantánea con lupa para filtrar en tiempo real por nombre de archivo, alias, DN (CN, OU, O), algoritmo criptográfico o huellas digitales SHA-256/SHA-1/MD5.
   - [x] Filtros y ordenamiento inteligente mediante chips Material 3: *Más nuevos*, *Más viejos*, *Intermedio* y *Recién vistos* (con tracking dinámico de visualizaciones).
   - [x] Vista vacía interactiva para búsquedas sin resultados con acción de restablecimiento en 1 clic.
+- [x] **Generación Aleatoria por Campo & Perfil de Prueba Rápida (CSPRNG)**:
+  - [x] Generador de identidades y datos X.500 `RandomIdentityGenerator` con CSPRNG (`SecureRandom`) para prototipado ágil y privacidad.
+  - [x] Botones interactivos de dado (`Casino`) en cada campo individual (Common Name, Organización, Unidad, Ciudad, Estado, País ISO, Nombre de Archivo, Alias).
+  - [x] Botón global de "Autocompletar Identidad Aleatoria" en la sección de datos del certificado X.500.
+  - [x] Preset "Prueba Rápida Completa 🎲" para poblar instantáneamente el formulario completo con credenciales seguras y parámetros estándar.
 - [ ] **Conversión de Formatos**:
   - Conversión bidireccional entre JKS/PKCS12 y PEM/CRT/KEY.
 - [x] **Arquitectura Multiplataforma & Signet Desktop**:

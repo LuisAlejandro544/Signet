@@ -15,7 +15,10 @@ app/
 │   │   │   ├── MainActivity.kt                  # Punto de entrada de la actividad Android, Navigation y tema reactivo
 │   │   │   ├── desktop/
 │   │   │   │   ├── Main.kt                      # Punto de entrada ejecutable nativo para escritorio (Windows / macOS / Linux) y CLI
-│   │   │   │   └── SignetDesktopApp.kt          # Contenedor Compose Desktop con inyección de servicios de plataforma
+│   │   │   │   ├── DesktopWindowLauncher.kt     # Inicializador del contenedor de ventana gráfica Swing y configuración HiDPI
+│   │   │   │   ├── SignetDesktopApp.kt          # Contenedor Compose Desktop con inyección de servicios de plataforma
+│   │   │   │   └── cli/
+│   │   │   │       └── DesktopCliHandler.kt     # Despachador y ejecutor de comandos CLI headless (sign, generate, inspect, match, base64, backup, vault)
 │   │   │   ├── platform/
 │   │   │   │   ├── PlatformServices.kt          # Interfaz agnóstica de servicios del sistema operativo (archivos, portapapeles, explorador)
 │   │   │   │   ├── DesktopPlatformServices.kt   # Implementación para Windows/Desktop (Java AWT, FileDialog, Explorer nativo)
@@ -42,6 +45,7 @@ app/
 │   │   │   │   ├── keystore/
 │   │   │   │   │   └── Pkcs12KeystoreSerializer.kt # Serializador de almacenes PKCS#12, JKS, PFX y persistencia en disco
 │   │   │   │   ├── PasswordGenerator.kt         # Generador criptográfico CSPRNG de contraseñas ultra seguras y cálculo de entropía
+│   │   │   │   ├── RandomIdentityGenerator.kt   # Generador CSPRNG de datos aleatorios para DN (X.500), país, nombres de archivo y alias
 │   │   │   │   ├── SignetBackupManager.kt       # Fachada orquestadora de exportación/restauración de respaldos individuales y bóvedas
 │   │   │   │   ├── backup/
 │   │   │   │   │   ├── BackupTemplates.kt       # Generador de plantillas de texto (credentials.txt, key.properties, README-BACKUP.txt, VAULT-SUMMARY.txt)
@@ -77,10 +81,11 @@ app/
 │   │   │   └── ui/
 │   │   │       ├── KeystoreViewModel.kt         # ViewModel orquestador central que delega en gestores especializados
 │   │   │       ├── delegates/
-│   │   │       │   ├── KeystoreFormDelegate.kt  # Delegado de formularios de creación, presets, validación y estados de generación
-│   │   │       │   ├── SignApkDelegate.kt       # Delegado de selección de APK, análisis preliminar y ejecución de firmado v1/v2/v3
-│   │   │       │   ├── ApkMatcherDelegate.kt    # Delegado de análisis forense y verificación de firmas APK vs Keystore
-│   │   │       │   └── AppUpdateDelegate.kt     # Delegado de comprobación de versiones en GitHub Releases y descarga de binarios
+│   │   │       │   ├── KeystoreFormDelegate.kt   # Delegado de formularios de creación, presets, validación y estados de generación
+│   │   │       │   ├── KeystoreFilterDelegate.kt # Delegado modular de búsqueda en tiempo real, ordenamiento temporal y métricas de acceso
+│   │   │       │   ├── SignApkDelegate.kt        # Delegado de selección de APK, análisis preliminar y ejecución de firmado v1/v2/v3
+│   │   │       │   ├── ApkMatcherDelegate.kt     # Delegado de análisis forense y verificación de firmas APK vs Keystore
+│   │   │       │   └── AppUpdateDelegate.kt      # Delegado de comprobación de versiones en GitHub Releases y descarga de binarios
 │   │   │       ├── MainScreen.kt                # Contenedor principal adaptativo (Desktop/Tablet/Mobile) con scaffolding limpio
 │   │   │       ├── navigation/
 │   │   │       │   ├── MainAdaptiveNavigation.kt # Componentes NavigationRail, NavigationBar y TopAppBar adaptativos
@@ -127,10 +132,11 @@ app/
 │   │   │       │   │   ├── CertificateDetailsResultCard.kt # Tarjeta de visualización de certificados X.509 y huellas
 │   │   │       │   │   ├── ApkMatcherSection.kt          # Orquestador y layout principal de validación forense APK vs Keystore
 │   │   │       │   │   └── apk/
+│   │   │       │   │       ├── ApkMatcherHeaderBanner.kt     # Banner informativo de presentación del validador de coincidencia
 │   │   │       │   │       ├── ApkFileSelectorCard.kt        # Tarjeta de selección de archivo APK mediante SAF
-│   │   │       │   │       ├── ApkDetailsInfoCard.kt         # Visualizador de metadatos del paquete y firmas v1/v2/v3 detectadas
-│   │   │       │   │       ├── ApkKeystoreSelectorSection.kt # Selector interactivo entre almacenes guardados y archivo JKS/PKCS12 externo
+│   │   │       │   │       ├── ApkKeystoreSelectorCard.kt    # Selector interactivo entre almacenes guardados y archivo JKS externo con validación
 │   │   │       │   │       ├── ApkMatchResultCard.kt         # Banner de diagnóstico comparativo de huellas SHA-256 y dictamen
+│   │   │       │   │       ├── ApkMetadataDetailsCard.kt     # Visualizador de metadatos del paquete, package name y certificados X.509
 │   │   │       │   │       └── ApkErrorCard.kt               # Tarjeta de visualización de errores y advertencias de análisis
 │   │   │       │   ├── SavedKeystoresScreen.kt  # Orquestador de historial de almacenes de claves guardados con búsqueda y filtros
 │   │   │       │   ├── saved/

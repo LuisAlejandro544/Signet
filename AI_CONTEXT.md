@@ -21,10 +21,11 @@ Este documento proporciona contexto técnico, decisiones de arquitectura y direc
    - Android cuenta con un proveedor criptográfico interno limitado `"BC"`.
    - **Regla Obligatoria**: Siempre registrar `BouncyCastleProvider` al inicio de la lista de proveedores con `Security.insertProviderAt(BouncyCastleProvider(), 1)` y pasar explícitamente la instancia del proveedor a `JcaContentSignerBuilder`, `JcaX509CertificateConverter` y `KeyStore.getInstance("PKCS12", provider)`.
 
-3. **Generación Criptográfica de Contraseñas (CSPRNG)**:
+3. **Generación Criptográfica de Contraseñas & Datos de Prueba (CSPRNG)**:
    - Utilizar `com.example.crypto.PasswordGenerator` con `SecureRandom` del sistema operativo.
    - Longitud parametrizada (16, 20, 24, 32 caracteres) garantizando inclusión de mayúsculas, minúsculas, números y símbolos seguros para terminal y Gradle.
    - Cálculo en tiempo real de entropía (bits) y fortaleza para retroalimentación visual en Compose.
+   - **Generación Aleatoria por Campo (`RandomIdentityGenerator`)**: Proporciona listas y generadores CSPRNG para nombres de archivo, alias, CN, O, OU, L, ST y códigos de país ISO de 2 letras, permitiendo aleatorizar campos individuales (mediante botones de dado `Casino`) o autocompletar la identidad completa/formulario de prueba en 1 toque.
 
 4. **Formatos Soportados, Validez & Modo Efímero**:
    - Generación: Estándar PKCS#12 (.jks, .keystore, .p12 y .pfx) compatible al 100% con `apksigner`, `jarsigner`, Android Studio Gradle Plugin, Microsoft SignTool (Windows Authenticode), PowerShell `Set-AuthenticodeSignature` y Apple codesign.

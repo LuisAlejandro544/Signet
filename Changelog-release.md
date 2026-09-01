@@ -12,6 +12,12 @@ Primer pre-lanzamiento público oficial del **Canal Beta (`.beta`)** de Signet (
 ---
 
 ### ✨ Características Principales Incluidas
+- 🎲 **Generación de Datos Aleatorios por Campo & Perfil de Prueba Rápida (CSPRNG)**:
+  * **Aleatorización Individual en 1 Toque**: Botones interactivos con icono de dado (`Casino`) integrados directamente en el `trailingIcon` de cada campo del formulario de generación (`Common Name`, `Organización`, `Unidad Organizativa`, `Ciudad`, `Estado`, `Código de País ISO`, `Nombre de Archivo` y `Alias`).
+  * **Motor Criptográfico `RandomIdentityGenerator`**: Generador seguro respaldado por `SecureRandom` que genera identidades realistas, nombres de proyectos, empresas de software y ubicaciones geográficas con códigos de país ISO 3166-1 alfa-2 válidos.
+  * **Botón de Autocompletar Identidad X.500**: Permite rellenar de forma coherente y simultánea todos los campos del certificado Distinguished Name.
+  * **Plantilla "Prueba Rápida Completa 🎲"**: Preset de 1 clic en `GeneratePresetsSection` que puebla todo el formulario con archivo `.jks`, credenciales ultra seguras de 20 caracteres y parámetros estándar para realizar pruebas ágiles de keystores y firmas sin fricción.
+
 - 🔐 **Generador Criptográfico de Keystores**:
   * Creación de almacenes de claves en formatos estándares de la industria: **JKS (Java KeyStore)**, **.keystore**, **PKCS#12 (.p12)** y **Microsoft Authenticode (.pfx)**.
   * **Extensiones X.509 de Firma de Código (Code Signing)**: Incorporación nativa de extensiones X.509 (`KeyUsage` con `digitalSignature` / `keyEncipherment` y `ExtendedKeyUsage` con `id_kp_codeSigning`) para firma de ejecutables de Windows (.exe / .msi), librerías DLL y paquetes móviles sin alertas del sistema operativo.
